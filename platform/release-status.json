@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "product_version": "0.1.0-dev",
+  "profiles": {
+    "lite": {
+      "software_tests": "passed",
+      "t153mx_short_board_test": "passed-with-peripheral-limitations",
+      "soak_24h": "not-run"
+    },
+    "enhanced": {
+      "host_node_red_test": "passed",
+      "rk3568_board_test": "not-run",
+      "t536_board_test": "not-run"
+    }
+  },
+  "production_security": "not-certified"
+}

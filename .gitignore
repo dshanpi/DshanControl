@@ -1,0 +1,7 @@
+.test-venv/
+dist/
+__pycache__/
+*.py[cod]
+*.log
+*.db
+.DS_Store
