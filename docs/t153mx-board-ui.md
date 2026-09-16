@@ -4,14 +4,14 @@
 
 | 页面 | 文件 | SHA-256 |
 | --- | --- | --- |
-| 运行总览 | `01-overview.png` | `65e19d3b6821ed03bd124c3c69674cd810489c99a53a1d27b7c5b210e81981c6` |
-| CAN / CANopen | `02a-fieldbus-can.png` | `729fba97d55180a93739d3272568cef8b45a428279237f69046c8dcc92a66ef0` |
-| RS485 / Modbus | `02b-fieldbus-modbus.png` | `b7950ea502da43c27a30ccb3327993c918f71f998c24c8ee38ec148269d00` |
-| EtherCAT | `02c-fieldbus-ethercat.png` | `acf52bc1f3a6af540b6af37d3eefb2ceff6534e703d1486b3ccd24fb3874d856` |
-| 网络通信 | `03-network.png` | `3949a8ebc4b7e6c6e1f543248f77faeeb1b1125ec3f33168dcea45c5e7b03772` |
-| 设备监控 | `04-devices.png` | `f9a1dc3ed7b28651a0ff9e4b6566aa46c3098dbbb7fe5e92851c27d6c26d0c16` |
-| 告警记录 | `05-alarms.png` | `c3fe31329ff2b89ea5bc251c69d661d294193d6d59a79219dddee467ffd67b37` |
-| 系统设置 | `06-settings.png` | `ea652fd9a62b32d3f29be5076f037bd4a4f9931b4a83cfa879488e458b674342` |
+| 运行总览 | `01-overview.png` | `d62a2b1e895d0dfe5f1a4bdcdb304996f04c8d14e0949b8977b0d948701e396a` |
+| CAN / CANopen | `02a-fieldbus-can.png` | `f43603b581164f174c936a80b194c92c8bb947d2745d25962a3bc96b97594ce2` |
+| RS485 / Modbus | `02b-fieldbus-modbus.png` | `0c84c758fcd7276b7c65576221868c8f49df7fcc8093e60823241f5c9c6c5ad1` |
+| EtherCAT | `02c-fieldbus-ethercat.png` | `1a5a6a1a3a060dc0602d54b4c755b8b31904e144bd28bcfae36a2d6100ed10c8` |
+| 网络通信 | `03-network.png` | `6962329154a1eff9a9f9eecaccf277d5bbc9b324c9c611ac1950e00eeba89a7c` |
+| 设备监控 | `04-devices.png` | `006a56e101fbc38f6de8ee8130d11af36465cf56c85843d4d147e776c8ea4b38` |
+| 告警记录 | `05-alarms.png` | `15c85b3ed78625b0dd25f87343643d024c724d5e5a1920a467619bdf497d0ca0` |
+| 系统设置 | `06-settings.png` | `014dc9f8b97bf9bbb908f9c0fe55964945db9f141da6446470ddbd551de91665` |
 
 ## 证据来源
 
@@ -19,6 +19,8 @@
 - 采集方式：板端 `fbgrab` 直接读取真实 framebuffer
 - 传输方式：板卡通过 Wi-Fi `wlan0` 获取地址后，由临时只读 HTTP 服务传输；
   板端与本地逐图 SHA-256 一致
+- 发布处理：`fbgrab` 输出的 PNG 将 Alpha 错误写为全透明；发布文件仅移除该 Alpha
+  通道并保留原始 RGB 像素，转换前后 RGB 字节已逐图校验一致；表中为发布文件 SHA-256
 - 运行内核：`Linux Tina5.0 5.10.198 #69 SMP PREEMPT`
 - 镜像大小：`604371968` bytes
 - 镜像 SHA-256：`84914b6b79c59c5dd5221ba9aa59ae107c06d4826d193c10260ed7ce5cc87f17`
