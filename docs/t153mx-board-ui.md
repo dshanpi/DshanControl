@@ -4,14 +4,14 @@
 
 | 页面 | 文件 | SHA-256 |
 | --- | --- | --- |
-| 运行总览 | `01-overview.png` | `d62a2b1e895d0dfe5f1a4bdcdb304996f04c8d14e0949b8977b0d948701e396a` |
-| CAN / CANopen | `02a-fieldbus-can.png` | `f43603b581164f174c936a80b194c92c8bb947d2745d25962a3bc96b97594ce2` |
-| RS485 / Modbus | `02b-fieldbus-modbus.png` | `0c84c758fcd7276b7c65576221868c8f49df7fcc8093e60823241f5c9c6c5ad1` |
-| EtherCAT | `02c-fieldbus-ethercat.png` | `1a5a6a1a3a060dc0602d54b4c755b8b31904e144bd28bcfae36a2d6100ed10c8` |
-| 网络通信 | `03-network.png` | `6962329154a1eff9a9f9eecaccf277d5bbc9b324c9c611ac1950e00eeba89a7c` |
-| 设备监控 | `04-devices.png` | `006a56e101fbc38f6de8ee8130d11af36465cf56c85843d4d147e776c8ea4b38` |
-| 告警记录 | `05-alarms.png` | `15c85b3ed78625b0dd25f87343643d024c724d5e5a1920a467619bdf497d0ca0` |
-| 系统设置 | `06-settings.png` | `014dc9f8b97bf9bbb908f9c0fe55964945db9f141da6446470ddbd551de91665` |
+| 运行总览 | `01-overview-opaque.png` | `d62a2b1e895d0dfe5f1a4bdcdb304996f04c8d14e0949b8977b0d948701e396a` |
+| CAN / CANopen | `02a-fieldbus-can-opaque.png` | `f43603b581164f174c936a80b194c92c8bb947d2745d25962a3bc96b97594ce2` |
+| RS485 / Modbus | `02b-fieldbus-modbus-opaque.png` | `0c84c758fcd7276b7c65576221868c8f49df7fcc8093e60823241f5c9c6c5ad1` |
+| EtherCAT | `02c-fieldbus-ethercat-opaque.png` | `1a5a6a1a3a060dc0602d54b4c755b8b31904e144bd28bcfae36a2d6100ed10c8` |
+| 网络通信 | `03-network-opaque.png` | `6962329154a1eff9a9f9eecaccf277d5bbc9b324c9c611ac1950e00eeba89a7c` |
+| 设备监控 | `04-devices-opaque.png` | `006a56e101fbc38f6de8ee8130d11af36465cf56c85843d4d147e776c8ea4b38` |
+| 告警记录 | `05-alarms-opaque.png` | `15c85b3ed78625b0dd25f87343643d024c724d5e5a1920a467619bdf497d0ca0` |
+| 系统设置 | `06-settings-opaque.png` | `014dc9f8b97bf9bbb908f9c0fe55964945db9f141da6446470ddbd551de91665` |
 
 ## 证据来源
 
