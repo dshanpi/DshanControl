@@ -1,5 +1,30 @@
 # DshanControl
 
+## T153MX 实板桌面
+
+以下界面均由运行 Linux `#69` 的 T153MX 通过 `fbgrab` 从真实 framebuffer 获取，
+不是设计稿或模拟器截图。采集信息、逐图校验值和测试边界见
+[实板 UI 记录](docs/t153mx-board-ui.md)。
+
+<table>
+  <tr>
+    <td><strong>运行总览</strong><br><img src="docs/images/t153mx-ui/01-overview.png" alt="T153MX 运行总览" width="100%"></td>
+    <td><strong>CAN / CANopen</strong><br><img src="docs/images/t153mx-ui/02a-fieldbus-can.png" alt="T153MX CAN 与 CANopen 页面" width="100%"></td>
+  </tr>
+  <tr>
+    <td><strong>RS485 / Modbus</strong><br><img src="docs/images/t153mx-ui/02b-fieldbus-modbus.png" alt="T153MX RS485 与 Modbus 页面" width="100%"></td>
+    <td><strong>EtherCAT</strong><br><img src="docs/images/t153mx-ui/02c-fieldbus-ethercat.png" alt="T153MX EtherCAT 页面" width="100%"></td>
+  </tr>
+  <tr>
+    <td><strong>网络通信</strong><br><img src="docs/images/t153mx-ui/03-network.png" alt="T153MX 网络通信页面" width="100%"></td>
+    <td><strong>设备监控</strong><br><img src="docs/images/t153mx-ui/04-devices.png" alt="T153MX 设备监控页面" width="100%"></td>
+  </tr>
+  <tr>
+    <td><strong>告警记录</strong><br><img src="docs/images/t153mx-ui/05-alarms.png" alt="T153MX 告警记录页面" width="100%"></td>
+    <td><strong>系统设置</strong><br><img src="docs/images/t153mx-ui/06-settings.png" alt="T153MX 系统设置页面" width="100%"></td>
+  </tr>
+</table>
+
 DshanControl 是一个面向工业网关、边缘控制器和带屏设备的开源工业控制桌面系统。
 它提供统一设备模型、Qt 本地 HMI、Web 管理、服务自愈、工业协议适配契约，以及
 Lite/Enhanced 两类运行配置。
@@ -60,11 +85,3 @@ make test
 
 可编辑 Mermaid 源图和分层说明见
 [docs/system-architecture.md](docs/system-architecture.md)。
-
-## 当前 T153MX 实板桌面
-
-![T153MX 当前真实 framebuffer](docs/images/t153mx-desktop-current.png)
-
-该图由已烧写并启动的 T153MX 在 Linux `#69` 上通过 `fbgrab` 从真实 framebuffer
-抓取，不是设计稿或历史截图。采集时间、镜像 SHA-256、Goodix 识别结果和验证边界见
-[docs/t153mx-board-ui.md](docs/t153mx-board-ui.md)。
