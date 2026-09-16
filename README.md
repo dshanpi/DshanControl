@@ -47,7 +47,8 @@ make test
 
 ## 状态
 
-- T153 Lite：短时实板软件测试通过，但 Goodix 修复镜像最终烧写仍受外部 USB 链路限制。
+- T153 Lite：短时实板软件测试通过；Goodix GT911 已在 `0x14` 注册为
+  `/dev/input/event1`。五点物理触控准确性仍待人工确认。
 - Enhanced：Node-RED 主机配置测试通过；RK3568/T536 实板测试未完成。
 - 24 小时老化、生产安全基线、签名 OTA 和自动回滚尚未完成。
 
@@ -59,3 +60,11 @@ make test
 
 可编辑 Mermaid 源图和分层说明见
 [docs/system-architecture.md](docs/system-architecture.md)。
+
+## 当前 T153MX 实板桌面
+
+![T153MX 当前真实 framebuffer](docs/images/t153mx-desktop-current.png)
+
+该图由已烧写并启动的 T153MX 在 Linux `#68` 上通过 `fbgrab` 从真实 framebuffer
+抓取，不是设计稿或历史截图。采集时间、镜像 SHA-256、Goodix 识别结果和验证边界见
+[docs/t153mx-board-ui.md](docs/t153mx-board-ui.md)。
