@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" role="img" aria-labelledby="title desc">
+  <title id="title">DshanControl 工业控制桌面系统架构</title>
+  <desc id="desc">从应用、统一接口、平台服务、协议适配、硬件抽象到板级硬件的六层架构</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#11171b"/><stop offset="1" stop-color="#1b242a"/></linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d7a53d"/></marker>
+    <style>
+      .title{font:700 30px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#f1f5f7}.sub{font:14px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#9eabb3}.layer{font:700 17px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#f1f5f7}.boxTitle{font:700 15px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#edf2f4}.boxText{font:12px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#aebac1}.tag{font:700 12px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif}.line{stroke:#d7a53d;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1440" height="920" fill="url(#bg)"/>
+  <rect x="36" y="28" width="1368" height="76" rx="8" fill="#202a30" stroke="#3b4850"/>
+  <rect x="56" y="47" width="40" height="40" fill="none" stroke="#d7a53d"/><text x="76" y="73" text-anchor="middle" class="layer">DC</text>
+  <text x="116" y="62" class="title">DshanControl 工业控制桌面系统</text>
+  <text x="116" y="85" class="sub">统一应用接口 · 硬件 Manifest · Lite / Enhanced 双运行配置 · 板卡可移植</text>
+
+  <!-- Applications -->
+  <g filter="url(#shadow)"><rect x="190" y="132" width="1040" height="112" rx="8" fill="#202a30" stroke="#4a5962"/></g>
+  <text x="214" y="158" class="layer">01 应用与交互层</text>
+  <g><rect x="214" y="174" width="290" height="50" rx="5" fill="#29343b" stroke="#4fbf8b"/><text x="232" y="195" class="boxTitle">Qt 本地 HMI</text><text x="232" y="214" class="boxText">总览 · 趋势 · 告警 · 触摸操作</text></g>
+  <g><rect x="519" y="174" width="290" height="50" rx="5" fill="#29343b" stroke="#55a7d9"/><text x="537" y="195" class="boxTitle">Web 管理桌面</text><text x="537" y="214" class="boxText">HTTPS · 设备配置 · 服务与日志</text></g>
+  <g><rect x="824" y="174" width="382" height="50" rx="5" fill="#29343b" stroke="#d7a53d"/><text x="842" y="195" class="boxTitle">Node-RED / 第三方工业应用</text><text x="842" y="214" class="boxText">Enhanced 可选 · 容器隔离 · 无直接硬件权限</text></g>
+
+  <!-- Contract -->
+  <path class="line" d="M720 244 V270"/>
+  <g filter="url(#shadow)"><rect x="190" y="274" width="1040" height="82" rx="8" fill="#273139" stroke="#d7a53d" stroke-width="2"/></g>
+  <text x="214" y="301" class="layer">02 稳定接口与数据契约</text>
+  <rect x="214" y="313" width="310" height="27" rx="13" fill="#3a3324"/><text x="369" y="332" text-anchor="middle" class="tag" fill="#f2c86d">统一 /api/v1</text>
+  <rect x="542" y="313" width="310" height="27" rx="13" fill="#253a34"/><text x="697" y="332" text-anchor="middle" class="tag" fill="#69d5a3">MQTT 规范化遥测 / 受控命令</text>
+  <rect x="870" y="313" width="336" height="27" rx="13" fill="#25333d"/><text x="1038" y="332" text-anchor="middle" class="tag" fill="#7fc2eb">JSON Schema · 版本化契约</text>
+
+  <!-- Platform -->
+  <path class="line" d="M720 356 V382"/>
+  <g filter="url(#shadow)"><rect x="190" y="386" width="1040" height="124" rx="8" fill="#202a30" stroke="#4a5962"/></g>
+  <text x="214" y="413" class="layer">03 平台服务层</text>
+  <g><rect x="214" y="430" width="230" height="60" rx="5" fill="#29343b" stroke="#dd6d73"/><text x="230" y="452" class="boxTitle">安全与权限</text><text x="230" y="472" class="boxText">登录限速 · CSRF · RBAC · 审计</text></g>
+  <g><rect x="458" y="430" width="230" height="60" rx="5" fill="#29343b" stroke="#55a7d9"/><text x="474" y="452" class="boxTitle">设备与点位模型</text><text x="474" y="472" class="boxText">CRUD · 版本递增 · 通道映射</text></g>
+  <g><rect x="702" y="430" width="230" height="60" rx="5" fill="#29343b" stroke="#4fbf8b"/><text x="718" y="452" class="boxTitle">持久化</text><text x="718" y="472" class="boxText">SQLite · 原子配置 · 历史数据</text></g>
+  <g><rect x="946" y="430" width="260" height="60" rx="5" fill="#29343b" stroke="#d7a53d"/><text x="962" y="452" class="boxTitle">运行保障</text><text x="962" y="472" class="boxText">健康检查 · supervisor · 防重启风暴</text></g>
+
+  <!-- Adapters -->
+  <path class="line" d="M720 510 V536"/>
+  <g filter="url(#shadow)"><rect x="190" y="540" width="1040" height="118" rx="8" fill="#202a30" stroke="#4a5962"/></g>
+  <text x="214" y="567" class="layer">04 工业协议与通信适配层</text>
+  <g><rect x="214" y="584" width="230" height="54" rx="5" fill="#29343b" stroke="#d7a53d"/><text x="230" y="606" class="boxTitle">CAN / CAN-FD</text><text x="230" y="625" class="boxText">CANopen · EDS · NMT · SDO/PDO</text></g>
+  <g><rect x="458" y="584" width="230" height="54" rx="5" fill="#29343b" stroke="#d7a53d"/><text x="474" y="606" class="boxTitle">RS485</text><text x="474" y="625" class="boxText">Modbus RTU · 安全空载</text></g>
+  <g><rect x="702" y="584" width="230" height="54" rx="5" fill="#29343b" stroke="#d7a53d"/><text x="718" y="606" class="boxTitle">EtherCAT</text><text x="718" y="625" class="boxText">SOEM · CoE · 周期/WKC</text></g>
+  <g><rect x="946" y="584" width="260" height="54" rx="5" fill="#29343b" stroke="#55a7d9"/><text x="962" y="606" class="boxTitle">网络与云</text><text x="962" y="625" class="boxText">双网口 · Wi-Fi · 4G · MQTT</text></g>
+
+  <!-- HAL -->
+  <path class="line" d="M720 658 V684"/>
+  <g filter="url(#shadow)"><rect x="190" y="688" width="1040" height="76" rx="8" fill="#273139" stroke="#4fbf8b" stroke-width="2"/></g>
+  <text x="214" y="715" class="layer">05 硬件抽象与板卡 Manifest</text>
+  <text x="214" y="742" class="boxText">逻辑角色 → Linux 设备映射：fieldbus0 · management0 · can0/1 · rs485_0 · cellular0/1 · display0</text>
+
+  <!-- Board -->
+  <path class="line" d="M720 764 V790"/>
+  <g filter="url(#shadow)"><rect x="190" y="794" width="1040" height="94" rx="8" fill="#202a30" stroke="#4a5962"/></g>
+  <text x="214" y="821" class="layer">06 Linux / 板级支持与硬件</text>
+  <text x="214" y="848" class="boxText">Buildroot / Tina · Linux 驱动 · DTS · 启动服务 · A/B 分区</text>
+  <text x="214" y="871" class="boxText">T153MX：显示/Goodix 触摸 · 双 CAN · RS485 · 双以太网 · Wi-Fi/BT · 双蜂窝 · eMMC</text>
+
+  <!-- Profile rail -->
+  <g filter="url(#shadow)"><rect x="38" y="132" width="126" height="756" rx="8" fill="#1d262c" stroke="#3b4850"/></g>
+  <text x="101" y="162" text-anchor="middle" class="layer">Profiles</text>
+  <rect x="54" y="188" width="94" height="178" rx="6" fill="#253a34" stroke="#4fbf8b"/><text x="101" y="220" text-anchor="middle" class="tag" fill="#69d5a3">LITE</text><text x="101" y="249" text-anchor="middle" class="boxText">原生进程</text><text x="101" y="272" text-anchor="middle" class="boxText">Qt HMI</text><text x="101" y="295" text-anchor="middle" class="boxText">Web/Core</text><text x="101" y="318" text-anchor="middle" class="boxText">SQLite</text><text x="101" y="341" text-anchor="middle" class="boxText">T153</text>
+  <rect x="54" y="390" width="94" height="218" rx="6" fill="#25333d" stroke="#55a7d9"/><text x="101" y="422" text-anchor="middle" class="tag" fill="#7fc2eb">ENHANCED</text><text x="101" y="451" text-anchor="middle" class="boxText">Lite 核心</text><text x="101" y="474" text-anchor="middle" class="boxText">OCI 容器</text><text x="101" y="497" text-anchor="middle" class="boxText">Node-RED</text><text x="101" y="520" text-anchor="middle" class="boxText">资源限制</text><text x="101" y="543" text-anchor="middle" class="boxText">RK3568</text><text x="101" y="566" text-anchor="middle" class="boxText">T536</text><text x="101" y="591" text-anchor="middle" class="boxText" fill="#d7a53d">待实板</text>
+  <text x="1280" y="876" class="sub">v0.1.0-dev</text>
+</svg>

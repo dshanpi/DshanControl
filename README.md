@@ -52,3 +52,17 @@ make test
 - 24 小时老化、生产安全基线、签名 OTA 和自动回滚尚未完成。
 
 许可证：[GPL-3.0](LICENSE)。
+
+## 实板桌面
+
+![T153MX 上的 DshanControl HMI](docs/images/t153-hmi-framebuffer.png)
+
+这是 1024×768 T153MX 真实 framebuffer 截图，不是设计稿。采集来源、校验值和当前
+Goodix 验证边界见 [docs/ui-screenshot.md](docs/ui-screenshot.md)。
+
+## 系统架构
+
+![DshanControl 工业控制桌面系统架构](docs/images/system-architecture.svg)
+
+可编辑 Mermaid 源图和分层说明见
+[docs/system-architecture.md](docs/system-architecture.md)。
