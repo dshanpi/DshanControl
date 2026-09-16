@@ -15,3 +15,8 @@ requirements must be collected by each board integration:
 This repository intentionally excludes SoC vendor BSP archives, proprietary
 wireless firmware, modem firmware, board boot binaries and flashing tools.
 Presence in a downstream firmware does not change those components' licenses.
+
+The source-only T153MX board integration under `boards/t153mx-tina5/` includes
+device-tree and build integration material that retains any SPDX license stated
+in the individual file. See its `NOTICE.md` and `source-snapshot.json` for the
+precise inclusion and exclusion boundary.

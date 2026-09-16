@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-09-16",
+  "source_repository": "https://github.com/dshanpi/T153MX-Tina5SDK_OmniGate",
+  "base_commit": "11fdc2bb52ad0a0347fa82a5bfbe2627b7d1d6a1",
+  "source_state": "validated-working-tree",
+  "validated_linux_build": 69,
+  "runtime_profile": "t153-lite",
+  "contents": [
+    "board-device-tree-and-config",
+    "can-mmc-wireless-and-dsi-source-changes",
+    "kernel-and-buildroot-config",
+    "rootfs-services",
+    "ab-partition-and-swupdate-config",
+    "protocol-package-recipes",
+    "acceptance-and-verification-scripts"
+  ],
+  "excluded": [
+    "complete-vendor-sdk",
+    "vendor-boot-binaries",
+    "wireless-firmware",
+    "compiled-dtbo",
+    "flashing-tools",
+    "download-cache",
+    "firmware-images",
+    "build-output",
+    "device-credentials",
+    "raw-acceptance-logs"
+  ],
+  "production_security": "not-certified"
+}

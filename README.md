@@ -48,6 +48,7 @@ IEC 62443 认证产品，也不能替代具体现场总线从站的互操作测�
 components/       core、HMI、Web、supervisor 等可复用组件
 platform/         profiles、boards、contracts、schemas 和 Node-RED 配置
 deploy/           板卡运行时 Manifest 与开源服务接入示例
+boards/           T153MX 等板卡的源码接入层、配置与验收工具
 docs/             架构、移植、安全和发布说明
 scripts/          测试与源码发布工具
 tests/            平台与 Web 自动化测试
@@ -56,6 +57,11 @@ tests/            平台与 Web 自动化测试
 应用必须通过 `/etc/omnigate/platform.json` 解析逻辑通道，不得写死 `can0`、
 `eth0` 或 `/dev/tty*`。完整架构见 [platform/docs/architecture.md](platform/docs/architecture.md)，
 新板卡移植见 [platform/docs/porting-guide.md](platform/docs/porting-guide.md)。
+
+T153MX Tina Linux 5 的 DTS、内核/Buildroot 配置、A/B 分区、rootfs 服务、
+协议包配方和实板验收脚本已备份到
+[boards/t153mx-tina5](boards/t153mx-tina5/README.md)。该目录是源码级板卡接入快照，
+不包含厂商二进制、完整 SDK 或可直接烧写的固件镜像。
 
 ## 测试
 

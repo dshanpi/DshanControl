@@ -39,6 +39,20 @@ for value in "$ROOT/platform/components.json" \
 	"$PYTHON" -m json.tool "$value" >/dev/null
 done
 "$PYTHON" -m json.tool "$ROOT/platform/apps/node-red/flows.json" >/dev/null
+"$PYTHON" -m json.tool \
+	"$ROOT/boards/t153mx-tina5/source-snapshot.json" >/dev/null
+"$PYTHON" -m py_compile \
+	"$ROOT/boards/t153mx-tina5/scripts/t153_board_acceptance.py" \
+	"$ROOT/boards/t153mx-tina5/scripts/test_web_api.py"
+sh -n "$ROOT/scripts/apply_t153mx_tina5.sh"
+find "$ROOT/boards/t153mx-tina5/overlay" -type f -exec sh -c '
+	for source_file do
+		first_line=$(sed -n "1p" "$source_file")
+		case "$first_line" in
+			"#!/bin/sh"*|"#!/usr/bin/env sh"*) sh -n "$source_file" ;;
+		esac
+	done
+' sh {} +
 if command -v node >/dev/null 2>&1; then
 	node --check "$ROOT/platform/apps/node-red/settings.js"
 fi
