@@ -8,20 +8,20 @@
 
 <table>
   <tr>
-    <td><strong>运行总览</strong><br><img src="docs/images/t153mx-ui/01-overview.png" alt="T153MX 运行总览" width="100%"></td>
-    <td><strong>CAN / CANopen</strong><br><img src="docs/images/t153mx-ui/02a-fieldbus-can.png" alt="T153MX CAN 与 CANopen 页面" width="100%"></td>
+    <td><strong>运行总览</strong><br><img src="docs/images/t153mx-ui/01-overview.png?v=602dcfc" alt="T153MX 运行总览" width="100%"></td>
+    <td><strong>CAN / CANopen</strong><br><img src="docs/images/t153mx-ui/02a-fieldbus-can.png?v=602dcfc" alt="T153MX CAN 与 CANopen 页面" width="100%"></td>
   </tr>
   <tr>
-    <td><strong>RS485 / Modbus</strong><br><img src="docs/images/t153mx-ui/02b-fieldbus-modbus.png" alt="T153MX RS485 与 Modbus 页面" width="100%"></td>
-    <td><strong>EtherCAT</strong><br><img src="docs/images/t153mx-ui/02c-fieldbus-ethercat.png" alt="T153MX EtherCAT 页面" width="100%"></td>
+    <td><strong>RS485 / Modbus</strong><br><img src="docs/images/t153mx-ui/02b-fieldbus-modbus.png?v=602dcfc" alt="T153MX RS485 与 Modbus 页面" width="100%"></td>
+    <td><strong>EtherCAT</strong><br><img src="docs/images/t153mx-ui/02c-fieldbus-ethercat.png?v=602dcfc" alt="T153MX EtherCAT 页面" width="100%"></td>
   </tr>
   <tr>
-    <td><strong>网络通信</strong><br><img src="docs/images/t153mx-ui/03-network.png" alt="T153MX 网络通信页面" width="100%"></td>
-    <td><strong>设备监控</strong><br><img src="docs/images/t153mx-ui/04-devices.png" alt="T153MX 设备监控页面" width="100%"></td>
+    <td><strong>网络通信</strong><br><img src="docs/images/t153mx-ui/03-network.png?v=602dcfc" alt="T153MX 网络通信页面" width="100%"></td>
+    <td><strong>设备监控</strong><br><img src="docs/images/t153mx-ui/04-devices.png?v=602dcfc" alt="T153MX 设备监控页面" width="100%"></td>
   </tr>
   <tr>
-    <td><strong>告警记录</strong><br><img src="docs/images/t153mx-ui/05-alarms.png" alt="T153MX 告警记录页面" width="100%"></td>
-    <td><strong>系统设置</strong><br><img src="docs/images/t153mx-ui/06-settings.png" alt="T153MX 系统设置页面" width="100%"></td>
+    <td><strong>告警记录</strong><br><img src="docs/images/t153mx-ui/05-alarms.png?v=602dcfc" alt="T153MX 告警记录页面" width="100%"></td>
+    <td><strong>系统设置</strong><br><img src="docs/images/t153mx-ui/06-settings.png?v=602dcfc" alt="T153MX 系统设置页面" width="100%"></td>
   </tr>
 </table>
 
