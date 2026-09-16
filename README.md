@@ -65,6 +65,6 @@ make test
 
 ![T153MX 当前真实 framebuffer](docs/images/t153mx-desktop-current.png)
 
-该图由已烧写并启动的 T153MX 在 Linux `#68` 上通过 `fbgrab` 从真实 framebuffer
+该图由已烧写并启动的 T153MX 在 Linux `#69` 上通过 `fbgrab` 从真实 framebuffer
 抓取，不是设计稿或历史截图。采集时间、镜像 SHA-256、Goodix 识别结果和验证边界见
 [docs/t153mx-board-ui.md](docs/t153mx-board-ui.md)。

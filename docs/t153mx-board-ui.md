@@ -6,12 +6,14 @@
 
 - 采集日期：2026-09-16
 - 采集方式：板端 `fbgrab` 直接读取真实 framebuffer
-- 运行内核：`Linux Tina5.0 5.10.198 #68 SMP PREEMPT`
+- 运行内核：`Linux Tina5.0 5.10.198 #69 SMP PREEMPT`
 - 镜像大小：`604371968` bytes
-- 镜像 SHA-256：`c6d46e4238555ea3cbf1858ed191af097ea6979acf8c25e1fa82f258d82eecce`
-- 截图 SHA-256：`1ce628498e57bc407b4087421c6637b2d87d89ec3799eb27ddf195907fca178f`
+- 镜像 SHA-256：`84914b6b79c59c5dd5221ba9aa59ae107c06d4826d193c10260ed7ce5cc87f17`
+- 截图 SHA-256：`4a99cdb02598c8fa4e21329968302588da87997fdc70d0c0bd6d0837b07a0949`
 - 烧写结果：`partition + verify + reboot` 成功，Boot0/Boot1 verified，
   `verifyState=success`、`verifyErrorCode=0`
+- 启动检查：已消除缺失 `powerkey_display` / `powerkey_suspend` 和 NFS server
+  的启动告警；冷启动日志未见 panic、Oops 或 OOM。
 
 ## 界面检查
 
@@ -23,8 +25,8 @@
 ## 触摸状态
 
 Goodix GT911 已在 I²C `0x14` 识别为 ID 967、版本 1060，并注册
-`Goodix Capacitive TouchScreen` 与 `/dev/input/event1`。驱动枚举通过；五点物理触控
-准确性必须由现场人工点击确认，当前不声明该项通过。
+`Goodix Capacitive TouchScreen` 与 `/dev/input/event1`。驱动枚举通过，物理触摸已由
+现场用户在当前界面实际操作确认可用。
 
 ## 边界
 
