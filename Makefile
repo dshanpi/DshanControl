@@ -2,7 +2,7 @@ PYTHON ?= python3
 TEST_PYTHON ?= .test-venv/bin/python
 RELEASE_DIR ?= dist
 
-.PHONY: test-bootstrap test package
+.PHONY: test-bootstrap test showcase-install showcase-build package
 
 test-bootstrap:
 	$(PYTHON) -m venv .test-venv
@@ -11,5 +11,11 @@ test-bootstrap:
 test:
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
-package:
+showcase-install:
+	cd showcase && npm ci
+
+showcase-build:
+	cd showcase && npm run build
+
+package: showcase-build
 	./scripts/package_release.sh "$(RELEASE_DIR)"

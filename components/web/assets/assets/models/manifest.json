@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "kind": "procedural-concept-assets",
+  "notice": "Concept models for the public demonstration; not production CAD.",
+  "editableSource": "showcase/src/components/IndustrialScene.vue",
+  "coordinateSystem": "three.js Y-up",
+  "assets": [
+    { "id": "gateway-01", "name": "DshanControl concept gateway", "parts": ["enclosure", "ports", "status-strip", "heat-sink"] },
+    { "id": "motor-02", "name": "Industrial motor", "parts": ["body", "fins", "shaft", "mount"] },
+    { "id": "meter-01", "name": "Energy meter", "parts": ["enclosure", "display", "terminals"] },
+    { "id": "temp-03", "name": "Temperature probe", "parts": ["probe", "head", "selection-ring"] },
+    { "id": "line-01", "name": "Conveyor cell", "parts": ["belt", "rollers", "supports", "packages", "robot", "display"] }
+  ]
+}

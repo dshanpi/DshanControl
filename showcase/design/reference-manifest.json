@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "date": "2026-09-17",
+  "files": [
+    {
+      "page_id": "P01",
+      "path": "references/01-solution-home.png",
+      "original_filename": "exec-6c51cbac-7ffa-4aa6-8747-eab5e59a9e30.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "6873ba9d38665eb4085c11c9ea962ff3bcacf58d286ba293e1380a0f9e989fc8",
+      "role": "immutable_generated_UI_reference",
+      "actual_3d_asset": false
+    },
+    {
+      "page_id": "P02",
+      "path": "references/02-interactive-topology.png",
+      "original_filename": "exec-cc66260e-1082-4aa9-aa9f-e5664f688393.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "9891753d846fb7dfd5a5b3f06bc18bd059fbadc2d14d35f630fa6351b81d35ad",
+      "role": "immutable_generated_UI_reference",
+      "actual_3d_asset": false
+    },
+    {
+      "page_id": "P03",
+      "path": "references/03-protocol-playground.png",
+      "original_filename": "exec-8d124241-2a7f-4803-8f98-ab64269a2344.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "fb2141dea600bbfe59a6393c65f6fa37e2ad1452228129d1b1e7bccfde9a2ec3",
+      "role": "immutable_generated_UI_reference",
+      "actual_3d_asset": false
+    },
+    {
+      "page_id": "P04",
+      "path": "references/04-device-monitor.png",
+      "original_filename": "exec-8b77bd81-941a-4285-a7b7-d06d0f8f56ff.png",
+      "size_px": [
+        1672,
+        940
+      ],
+      "sha256": "07ea164ec90e47f818026e060300445c066bf142e63218e5ee64316eb0fee22f",
+      "role": "immutable_generated_UI_reference",
+      "actual_3d_asset": false
+    },
+    {
+      "page_id": "P05",
+      "path": "references/05-enhanced-flow.png",
+      "original_filename": "exec-1ba7aa69-2e5e-4eac-8301-bbc04bcace1d.png",
+      "size_px": [
+        1672,
+        941
+      ],
+      "sha256": "e93ed66ce041afda160ed3fbc8eb4f66fc0fb0db8d6b018c0d8bb5b5e6aaefd5",
+      "role": "immutable_generated_UI_reference",
+      "actual_3d_asset": false
+    }
+  ]
+}

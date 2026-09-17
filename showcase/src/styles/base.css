@@ -1,0 +1,73 @@
+:root {
+  --primary: #1768ed;
+  --primary-hover: #0f55d1;
+  --primary-soft: #eaf2ff;
+  --page-bg: #f3f7fd;
+  --surface: #fff;
+  --heading: #0b2348;
+  --text: #273d5b;
+  --muted: #7286a2;
+  --border: #dfe8f3;
+  --success: #10a878;
+  --warning: #d98a13;
+  --danger: #d93025;
+  --offline: #899bb4;
+  --shadow: 0 7px 22px rgba(35, 74, 127, .055);
+  --header-h: 68px;
+  font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  color: var(--text);
+  background: var(--page-bg);
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--page-bg); }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--page-bg); }
+button, input, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { color: inherit; }
+a { color: inherit; text-decoration: none; }
+svg { display: block; }
+h1, h2, h3, h4, p { margin-top: 0; }
+.page { min-height: calc(100vh - var(--header-h)); overflow: hidden; }
+.container { width: min(1528px, calc(100% - 144px)); margin: 0 auto; }
+.surface { background: rgba(255,255,255,.96); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.eyebrow { color: var(--primary); font-weight: 700; font-size: 13px; letter-spacing: .06em; }
+.demo-badge, .status-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border: 1px solid #bee9d7; border-radius: 18px; background: #eafbf4; color: #087b56; font-size: 13px; font-weight: 600; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.btn { height: 44px; padding: 0 24px; border: 1px solid #bcd0ea; border-radius: 8px; background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; font-weight: 650; transition: 160ms ease; }
+.btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+.btn-primary { color: #fff; border-color: var(--primary); background: linear-gradient(135deg, #2375f5, #075de9); box-shadow: 0 8px 18px rgba(23,104,237,.18); }
+.btn-primary:hover { color: #fff; background: var(--primary-hover); }
+.icon { width: 20px; height: 20px; display: inline-grid; place-items: center; }
+.muted { color: var(--muted); }
+.section-title { color: var(--heading); font-size: 22px; line-height: 1.4; font-weight: 750; }
+.tab-row { display: flex; align-items: center; background: rgba(255,255,255,.86); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tab { min-width: 0; height: 44px; flex: 1; border: 0; border-right: 1px solid var(--border); background: transparent; color: var(--heading); font-weight: 650; cursor: pointer; }
+.tab:last-child { border-right: 0; }
+.tab.active { color: #fff; background: linear-gradient(135deg, #2375f5, #1768ed); }
+.metric-card { min-width: 0; height: 96px; padding: 18px 22px; display: grid; grid-template-columns: 54px 1fr 100px; align-items: center; gap: 14px; }
+.metric-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; color: var(--primary); background: linear-gradient(135deg, #edf5ff, #fff); font-size: 26px; }
+.metric-label { color: var(--muted); font-size: 15px; }
+.metric-value { margin-top: 4px; color: var(--heading); font-size: 30px; line-height: 1; font-weight: 750; font-variant-numeric: tabular-nums; }
+.spark { width: 100%; height: 38px; }
+.page-footer { height: 42px; display: flex; justify-content: space-between; align-items: center; padding: 0 max(36px, calc((100vw - 1528px)/2)); color: #7890ae; font-size: 12px; border-top: 1px solid #e4edf7; background: rgba(255,255,255,.35); }
+
+@media (min-width: 1800px) {
+  :root { --header-h: 76px; }
+  .container { width: min(1740px, calc(100% - 180px)); }
+}
+
+@media (max-width: 1200px) {
+  .container { width: calc(100% - 48px); }
+}
+
+@media (max-width: 760px) {
+  :root { --header-h: 60px; }
+  .container { width: calc(100% - 28px); }
+  .page { overflow: visible; }
+  .page-footer { padding: 0 16px; }
+  .metric-card { grid-template-columns: 46px 1fr 72px; padding: 14px; }
+  .metric-icon { width: 46px; height: 46px; }
+  .metric-value { font-size: 25px; }
+}

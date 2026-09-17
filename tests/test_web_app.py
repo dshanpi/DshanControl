@@ -22,6 +22,9 @@ class WebApplicationTests(unittest.TestCase):
         assets.mkdir()
         (assets / "index.html").write_text("<!doctype html><title>test</title>",
                                            encoding="utf-8")
+        (assets / "manage").mkdir()
+        (assets / "manage/index.html").write_text(
+            "<!doctype html><title>manage</title>", encoding="utf-8")
         manifest = {
             "schema_version": 1, "board_id": "test-board", "soc": "test-soc",
             "runtime_profile": "lite", "channels": {
@@ -92,6 +95,13 @@ class WebApplicationTests(unittest.TestCase):
         self.assertEqual(client.post(
             "/api/login", data="not-json", content_type="application/json"
         ).status_code, 400)
+
+    def test_public_showcase_and_legacy_management_routes(self):
+        client = self.app.test_client()
+        for path in ("/", "/experience/scenes", "/experience/protocols",
+                     "/experience/monitor", "/experience/flows", "/manage"):
+            self.assertEqual(client.get(path).status_code, 200, path)
+        self.assertEqual(client.get("/api/v1/platform").status_code, 401)
 
     def test_device_point_crud_csrf_and_audit(self):
         client = self.app.test_client()

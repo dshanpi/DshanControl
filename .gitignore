@@ -5,3 +5,8 @@ __pycache__/
 *.log
 *.db
 .DS_Store
+node_modules/
+test-results/
+playwright-report/
+coverage/
+*.tsbuildinfo

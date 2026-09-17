@@ -40,8 +40,8 @@ mkdir -p "$RUNTIME/usr/lib/omnigate-web" \
 	"$RUNTIME/etc/omnigate"
 cp "$ROOT/components/web/app.py" "$ROOT/components/web/hmi_api.py" \
 	"$RUNTIME/usr/lib/omnigate-web/"
-cp "$ROOT/components/web/assets/index.html" \
-	"$RUNTIME/usr/share/omnigate-web/index.html"
+copy_tree "$ROOT/components/web/assets" \
+	"$RUNTIME/usr/share/omnigate-web"
 cp "$ROOT/components/web/config/config.json" \
 	"$RUNTIME/etc/omnigate-web/config.json"
 cp "$ROOT/components/supervisor/supervisor.py" \

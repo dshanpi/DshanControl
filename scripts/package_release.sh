@@ -15,6 +15,7 @@ ARCHIVE="$OUTPUT/$NAME.tar.gz"
 
 tar --sort=name --owner=0 --group=0 --numeric-owner \
 	--exclude='./.git' --exclude='./.test-venv' --exclude='./dist' \
+	--exclude='./showcase/node_modules' --exclude='./showcase/test-results' \
 	--exclude='__pycache__' --exclude='*.pyc' \
 	-C "$ROOT" -czf "$ARCHIVE" --transform "s,^\.,$NAME," .
 (cd "$OUTPUT" && sha256sum "$NAME.tar.gz") > "$ARCHIVE.sha256"

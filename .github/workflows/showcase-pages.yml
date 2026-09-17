@@ -1,0 +1,125 @@
+name: Test, build and deploy showcase
+
+on:
+  push:
+    branches:
+      - feat/showcase-cicd
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify and build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Read GitHub Pages configuration
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: showcase/package-lock.json
+
+      - name: Install host test dependencies
+        run: make test-bootstrap
+
+      - name: Run host and API tests
+        run: make test
+
+      - name: Install showcase dependencies
+        working-directory: showcase
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: showcase
+        run: npm test
+
+      - name: Install Chromium
+        working-directory: showcase
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop and mobile browser tests
+        working-directory: showcase
+        run: npm run test:e2e
+
+      - name: Build GitHub Pages site
+        working-directory: showcase
+        env:
+          VITE_BASE_PATH: ${{ format('{0}/', steps.pages.outputs.base_path) }}
+        run: npm run build
+
+      - name: Upload verified site
+        uses: actions/upload-artifact@v7
+        with:
+          name: showcase-site
+          path: components/web/assets/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Prepare Pages artifact
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/showcase-cicd'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Download verified site
+        uses: actions/download-artifact@v8
+        with:
+          name: showcase-site
+          path: site
+
+      - name: Add SPA fallback
+        run: |
+          cp site/index.html site/404.html
+          touch site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    name: Deploy GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/showcase-cicd'
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy verified site
+        id: deployment
+        uses: actions/deploy-pages@v4

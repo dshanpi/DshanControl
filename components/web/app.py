@@ -174,8 +174,13 @@ def require_login():
         if request.remote_addr in ("127.0.0.1", "::1"):
             return None
         return jsonify(error="HMI API仅允许本机访问"), 403
-    public = {"/", "/api/login", "/api/health"}
-    if request.path.startswith("/assets/") or request.path in public:
+    public = {"/", "/manage", "/manage/", "/api/login", "/api/health"}
+    showcase_prefixes = (
+        "/experience/scenes", "/experience/protocols",
+        "/experience/monitor", "/experience/flows",
+    )
+    if (request.path.startswith("/assets/") or request.path in public or
+            request.path.startswith(showcase_prefixes)):
         return None
     if not session.get("authenticated"):
         return jsonify(error="请先登录"), 401
@@ -225,6 +230,18 @@ def handle_error(exc):
 @app.get("/")
 def index():
     return send_from_directory(APP_DIR, "index.html")
+
+
+@app.get("/experience/<path:name>")
+def showcase(name):
+    """Serve the public Vue application for its history-mode routes."""
+    return send_from_directory(APP_DIR, "index.html")
+
+
+@app.get("/manage", strict_slashes=False)
+def legacy_management():
+    """Keep the authenticated management UI available after the redesign."""
+    return send_from_directory(APP_DIR / "manage", "index.html")
 
 
 @app.get("/assets/<path:name>")

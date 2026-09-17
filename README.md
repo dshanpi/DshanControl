@@ -70,6 +70,21 @@ make test-bootstrap
 make test
 ```
 
+## 解决方案展示站
+
+Vue 3 解决方案展示站位于 [`showcase/`](showcase/README.md)，生产构建由现有 Flask
+服务在 `/` 与 `/experience/*` 提供，原 Web 管理界面保留在 `/manage`。
+
+`feat/showcase-cicd` 分支配置了 GitHub Actions：每次提交和 Pull Request 自动运行
+后端测试、前端单元测试、桌面/移动端浏览器测试并生成静态站点；该分支测试通过后，
+自动部署到 GitHub Pages。构建会读取 Pages 当前的 `base_path`，兼容仓库子路径和
+`control.100ask.net` 自定义域名。
+
+```sh
+make showcase-install
+make showcase-build
+```
+
 ## 发布边界
 
 本仓库仅包含可复用的 GPL-3.0 开源平台源码和板卡接入示例。Allwinner BSP、无线固件、
