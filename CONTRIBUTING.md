@@ -13,3 +13,10 @@ authentication, CSRF protection, bounded input and explicit operator intent.
 Do not report protocol interoperability without a real compatible slave and
 captured evidence.  Never add credentials, private keys, production tokens or
 customer data to examples, logs, fixtures or commits.
+
+Follow [AGENTS.md](AGENTS.md) and [the dual release gates](docs/RELEASING.md).
+DshanControl is the industrial desktop product; S4 SD NAND is an additional
+Buildroot target. EinkOS is a release-standard reference and SmartDesktopMimi is
+outside this product. Keep board-specific lifecycle/health adapters in `boards/`;
+the application update engine and protocol stay portable. Unqualified targets are
+listed as candidates, never as supported profiles.
