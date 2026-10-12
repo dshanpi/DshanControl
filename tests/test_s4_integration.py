@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +45,36 @@ class S4IntegrationTests(unittest.TestCase):
         self.assertEqual([], manifest['capabilities'])
         self.assertEqual(['display0'], list(manifest['channels']))
         self.assertEqual('not-run', manifest['validation'])
+
+    def test_actual_s4_manifest_serves_hmi_without_t153_channels(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            (base / 'config.json').write_text('{"auth":{},"can":{},"canopen":{},"ec20":{"profiles":{}}}')
+            (base / 'settings.json').write_text('{"demo_mode":false}')
+            env = dict(os.environ, PYTHONPATH=str(ROOT / 'components/core/src') + ':' + str(ROOT / 'components/web'))
+            env.update(OMNIGATE_CORE_PATH=str(ROOT / 'components/core/src'),
+                       OMNIGATE_PLATFORM_MANIFEST=str(ROOT / 'boards/t113s4-sdnand/platform.json'),
+                       OMNIGATE_WEB_CONFIG=str(base / 'config.json'),
+                       OMNIGATE_CONFIG=str(base / 'config.json'),
+                       OMNIGATE_WEB_SECRET=str(base / 'secret.key'),
+                       OMNIGATE_WEB_LOG=str(base / 'web.log'),
+                       OMNIGATE_EDGE_DB=str(base / 'edge.db'),
+                       OMNIGATE_HMI_DB=str(base / 'hmi.db'),
+                       OMNIGATE_HMI_SETTINGS=str(base / 'settings.json'),
+                       OMNIGATE_TB_CONFIG=str(base / 'thingsboard.json'),
+                       OMNIGATE_MODBUS_CONFIG=str(base / 'modbus.json'),
+                       DSHANCONTROL_APPLICATION_COMMIT='fixture-commit')
+            code = """
+from unittest.mock import patch
+from types import SimpleNamespace
+import app
+with patch('subprocess.run', return_value=SimpleNamespace(returncode=1, stdout='')):
+    client = app.app.test_client()
+    response = client.get('/api/hmi/v1/snapshot')
+    assert response.status_code == 200, response.data
+    assert client.get('/api/health').get_json()['application_commit'] == 'fixture-commit'
+"""
+            subprocess.run([sys.executable, '-c', code], env=env, check=True)
 
     def test_s4_uses_old_buildroot_generic_qmake_adapter(self):
         recipe = (ROOT / 'boards/t113s4-sdnand/buildroot/package/dshancontrol/dshancontrol.mk').read_text()
