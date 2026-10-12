@@ -18,6 +18,10 @@
     "t113s4-sdnand": {
       "application_port": "in-progress",
       "buildroot_configuration": "generated",
+      "application_cross_build": "passed",
+      "application_build_commit": "68784eba5bd94e156c6cfd3705256148243137e1",
+      "signed_fixture_draft": "passed",
+      "system_image": "not-built",
       "board_test": "not-run",
       "power_loss": "not-run",
       "automatic_updates_qualified": false

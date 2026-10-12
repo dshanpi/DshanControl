@@ -23,8 +23,38 @@ T113s4 SD NAND + Buildroot 为新增目标。EinkOS 仅参考发布标准，Smar
 S4 当前仍是开发草稿：实际屏幕/触摸、硬件修订、存储容量、实板连接尚待确认。
 未生成合格烧录镜像、未烧录、未做现场总线互操作、未做实际断电恢复或长期老化。
 系统契约模板保留 pending，缺少已验证身份/信任根时拒绝安装；不得改标为通过。
-最终测试及构建结果随本次交付记录更新。
+未检测到 ADB 或 USB 串口连接的目标板；不能用主机模拟代替上板验收。
 
 本轮主机验证：`make test` 52 项通过（核心 5 + 仓库/应用/更新/发布 47）；
 Buildroot 构建出的主机 Python 3.7 上更新器 27 项通过；锁定私有 Python 依赖下核心/Web
-8 项通过。Buildroot 配置生成通过，目标交叉构建进行中。上述数字不包含任何实板测试。
+8 项通过。上述数字不包含任何实板测试。
+
+## 本轮交叉构建结果
+
+2026-10-12，Buildroot `dshancontrol` 目标成功结束（exit 0）。Qt Base/Charts
+5.11.3、Python 3.7.2、私有 Python 依赖、字体和工业 HMI 已安装到目标目录。
+修复了宿主 GCC 9 编译 Qt 5.11.3 qmake 时缺少 SeedSequence `result_type` 的问题；
+补丁随外部 Buildroot 树保存，未直接修改 SDK 配方。
+
+- 构建应用提交：`68784eba5bd94e156c6cfd3705256148243137e1`（干净源码快照）。
+- 硬件输入提交：`0bbdbbabcfad8da15696e803f6714bfd1748a0a6`。
+- HMI SHA256：`5d8c83574ee56c7394d1b58e8fd5ef1bb1aea0bc96c09cfe5810930971a53173`。
+- ELF：ARMv7-A、ELF32、softfp 调用约定，解释器 `/lib/ld-linux.so.3`。
+- HMI、LinuxFB 插件、Python SSL/SQLite/zlib、OpenSSL 的递归动态依赖核对通过，
+  共检查 42 个文件。此检查证明依赖存在，不代表目标板上已成功加载运行。
+- 使用上述原生 HMI、测试专用设备契约及临时 RSA 密钥生成签名草稿包，离线验签、
+  源码/构建信息/载荷哈希检查通过；公开发布检查因缺少实板证据按预期拒绝。
+  测试契约 board_id 为 `fixture-only-t113s4`，不适用于真实设备；测试私钥已删除。
+
+本地构建及证据位于 SDK 的 `out/dshancontrol-s4-dev2/`：
+`build-provenance.json` 记录输入；`validation/` 保存构建日志、测试日志、ELF 信息、
+依赖清单和 `report.json`。测试草稿包位于应用仓库忽略目录 `dist/signed-draft-smoke/`。
+这些产物未上传，未生成完整系统镜像，SDK 全组件清单仍未完成。
+
+## 后续验收顺序
+
+1. 确认实板修订、屏幕/触摸、SD NAND 容量和调试连接，完成 S4 BSP/Bootloader
+   及完整 rootfs 构建，核对分区容量，补齐 SDK 组件与本地补丁清单。
+2. 配置真实设备身份、公钥、维护互锁及板级健康探针，生成系统契约并打包开发镜像。
+3. 上板验证冷启动、显示/触摸、网络、所需工业接口和数据持久化，再验证错板拒绝、
+   签名拒绝、应用升级、实际掉电恢复、回退和老化；未通过前保持草稿状态。
