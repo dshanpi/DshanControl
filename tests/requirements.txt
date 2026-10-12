@@ -1,2 +1,10 @@
+# Match the pinned S4 Python runtime; no floating transitive dependencies.
 Flask==2.1.2
 Werkzeug==2.1.2
+Jinja2==3.0.3
+itsdangerous==2.1.2
+click==8.0.4
+importlib-metadata==4.8.3
+zipp==3.6.0
+typing_extensions==4.1.1
+MarkupSafe==2.0.1
