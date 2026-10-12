@@ -15,5 +15,7 @@
     "stable"
   ],
   "validation": "not-run",
-  "updater_version": "0.1.0"
+  "updater_version": "0.1.0",
+  "application_root": "/mnt/UDISK/dshancontrol/apps",
+  "data_root": "/mnt/UDISK/dshancontrol/data"
 }

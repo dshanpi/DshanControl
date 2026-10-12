@@ -78,10 +78,13 @@ class Updater:
     def __init__(self, config):
         self.config = config
         self.root = Path(config['application_root'])
+        self.contract = read_json(config['system_contract'])
+        require(self.root.is_absolute() and str(self.root) != '/' and
+                str(self.root) == self.contract.get('application_root'),
+                'application root differs from system contract')
         self.root.mkdir(parents=True, exist_ok=True)
         self.releases = self.root / 'releases'
         self.releases.mkdir(exist_ok=True)
-        self.contract = read_json(config['system_contract'])
 
     @contextlib.contextmanager
     def locked(self):

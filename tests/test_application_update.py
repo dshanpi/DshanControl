@@ -47,7 +47,8 @@ class UpdateTests(unittest.TestCase):
         self.data = self.root / 'data.db'
         self.data.write_bytes(b'USER DATA MUST SURVIVE')
         self.contract = dict(TARGET, app_id='dshancontrol', repository='dshanpi/DshanControl',
-                             data_schema=1, allowed_channels=['stable'], updater_version='0.1.0')
+                             data_schema=1, allowed_channels=['stable'], updater_version='0.1.0',
+                             application_root=str(self.app))
         atomic_json(self.root / 'contract.json', self.contract)
         self.config = dict(application_root=str(self.app), system_contract=str(self.root / 'contract.json'),
                            public_key=str(self.public), service_hook='/nonexistent/system-hook',
@@ -155,6 +156,11 @@ class UpdateTests(unittest.TestCase):
         with self.assertRaises(Rejected): validate_manifest(self.manifest, public=True)
         self.manifest['targets'][0]['validation'] = dict.fromkeys(GATES, 'passed')
         with self.assertRaises(Rejected): validate_manifest(self.manifest, public=True)
+
+    def test_configuration_cannot_redirect_installation_outside_contract(self):
+        config = dict(self.config, application_root=str(self.root / 'outside'))
+        with self.assertRaises(Rejected): Updater(config)
+        self.assertFalse((self.root / 'outside').exists())
 
     def test_minimum_updater_version_enforced(self):
         self.manifest['minimum_updater_version'] = '9.0.0'
