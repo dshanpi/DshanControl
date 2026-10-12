@@ -1,0 +1,6 @@
+config BR2_PACKAGE_DSHANCONTROL_PYTHON
+	bool "DshanControl pinned Python runtime"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  Application runtime pinned for Python 3.7; installed privately without
+	  changing Tina's legacy Flask or other applications' Python dependencies.

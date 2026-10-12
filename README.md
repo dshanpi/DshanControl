@@ -91,3 +91,15 @@ make test
 
 可编辑 Mermaid 源图和分层说明见
 [docs/system-architecture.md](docs/system-architecture.md)。
+
+## T113s4 SD NAND 接入与应用更新（开发中）
+
+DshanControl 延续已有 T153 工业桌面实现，新增以
+[100ASK_T113s4-SdNand_TinaSDK5](https://github.com/DongshanPI/100ASK_T113s4-SdNand_TinaSDK5)
+为底层来源的 Buildroot 201902 接入。EinkOS 仅提供分层与发布标准参考；
+SmartDesktopMimi 是独立项目。
+
+[S4 接入说明](boards/t113s4-sdnand/README.md) 包含隔离构建、运行目录及验收限制。
+[应用更新说明](components/updater/README.md) 描述签名清单、GitHub 检查、事务安装和恢复。
+[发布门禁](docs/RELEASING.md) 区分系统镜像与应用升级包；原源码打包命令不是应用升级包。
+S4 实板、断电、工业互操作和更新链路尚未验收，不提供已完成的系统镜像或生产 OTA 声明。

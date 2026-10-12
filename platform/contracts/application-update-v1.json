@@ -1,0 +1,15 @@
+{
+  "protocol": 1,
+  "app_id": "dshancontrol",
+  "repository": "dshanpi/DshanControl",
+  "release_kind": "application",
+  "signature": "rsa-sha256",
+  "manifest_asset": "application-release.json",
+  "signature_asset": "application-release.json.sig",
+  "target_fields": ["board_id", "hardware_revision", "architecture", "float_abi", "libc", "runtime_id", "contract_id", "updater_protocol"],
+  "payload_roots": ["bin", "lib", "share"],
+  "required_payload": ["bin/omnigate-hmi", "lib/web/app.py", "lib/web/hmi_api.py", "lib/core/omnigate_core/__init__.py", "lib/supervisor/supervisor.py", "share/web/index.html"],
+  "data_policy": "same-schema-only-no-migration-hooks",
+  "activation_policy": "system-owned-maintenance-and-health-hooks",
+  "public_release_requires": ["host_tests", "target_build", "board_function", "compatibility_rejection", "signature_rejection", "power_loss", "rollback", "data_preservation", "maintenance_interlock"]
+}

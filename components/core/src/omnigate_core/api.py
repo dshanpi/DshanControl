@@ -40,8 +40,9 @@ def _device_payload(body, manifest):
         raise ValueError("unknown platform channel")
     if not isinstance(body.get("config", {}), dict):
         raise ValueError("device config must be an object")
-    return {key: body[key] for key in required} | {
-        "enabled": bool(body.get("enabled", True)), "config": body.get("config", {})}
+    value = {key: body[key] for key in required}
+    value.update(enabled=bool(body.get("enabled", True)), config=body.get("config", {}))
+    return value
 
 
 def _point_payload(body):

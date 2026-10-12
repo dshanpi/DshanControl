@@ -234,7 +234,8 @@ def assets(name):
 
 @app.get("/api/health")
 def health():
-    return jsonify(ok=True, service="omnigate-web")
+    return jsonify(ok=True, service="omnigate-web",
+                   application_commit=os.environ.get("DSHANCONTROL_APPLICATION_COMMIT", ""))
 
 
 @app.post("/api/login")
@@ -507,7 +508,10 @@ def upload_eds():
     try:
         canopen.import_od(str(destination))
     except Exception:
-        destination.unlink(missing_ok=True)
+        try:
+            destination.unlink()
+        except FileNotFoundError:
+            pass
         raise ValueError("EDS/DCF 文件解析失败")
     node_id = request.form.get("node_id")
     if node_id:

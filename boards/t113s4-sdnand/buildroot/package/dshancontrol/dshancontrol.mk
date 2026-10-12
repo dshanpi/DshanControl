@@ -1,0 +1,22 @@
+DSHANCONTROL_VERSION = 0.1.0-dev
+DSHANCONTROL_SITE = $(BR2_EXTERNAL_DSHANCONTROL_PATH)/app-source
+DSHANCONTROL_SITE_METHOD = local
+DSHANCONTROL_LICENSE = GPL-3.0-only
+DSHANCONTROL_LICENSE_FILES = LICENSE
+DSHANCONTROL_DEPENDENCIES = qt5base qt5charts python3 dshancontrol-python openssl ca-certificates host-python3 wqy-zenhei
+
+# Buildroot 201902 has no qmake-package infrastructure. Keep T153's recipe intact.
+define DSHANCONTROL_CONFIGURE_CMDS
+	cd $(@D)/components/hmi/src && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake omnigate-hmi.pro
+endef
+
+define DSHANCONTROL_BUILD_CMDS
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)/components/hmi/src
+endef
+
+define DSHANCONTROL_INSTALL_TARGET_CMDS
+	$(HOST_DIR)/bin/python3 $(@D)/scripts/install_s4_runtime.py \
+		--source $(@D) --target $(TARGET_DIR) --hmi $(@D)/components/hmi/src/omnigate-hmi
+endef
+
+$(eval $(generic-package))

@@ -13,5 +13,14 @@
       "t536_board_test": "not-run"
     }
   },
-  "production_security": "not-certified"
+  "production_security": "not-certified",
+  "development_targets": {
+    "t113s4-sdnand": {
+      "application_port": "in-progress",
+      "buildroot_configuration": "generated",
+      "board_test": "not-run",
+      "power_loss": "not-run",
+      "automatic_updates_qualified": false
+    }
+  }
 }

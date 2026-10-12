@@ -20,3 +20,14 @@ The source-only T153MX board integration under `boards/t153mx-tina5/` includes
 device-tree and build integration material that retains any SPDX license stated
 in the individual file. See its `NOTICE.md` and `source-snapshot.json` for the
 precise inclusion and exclusion boundary.
+
+## T113s4 Buildroot integration
+
+`boards/t113s4-sdnand/buildroot/package/wqy-zenhei` is a Buildroot recipe backport
+from the SDK's `buildroot-mainline` package, preserving the upstream font hash and
+GPL-2.0 font exception license. Fonts are downloaded at build time, not stored here.
+`python-runtime.lock.json` pins PyPI artifacts for the Python 3.7 runtime (Flask,
+Werkzeug, Jinja2, itsdangerous, click, importlib-metadata, zipp, typing_extensions,
+MarkupSafe); wheel license files and MarkupSafe LICENSE.rst are installed alongside
+the runtime. MarkupSafe uses its pure Python fallback. Release source/license
+review must include these runtime sources, not only the DshanControl source archive.

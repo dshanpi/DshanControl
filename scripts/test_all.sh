@@ -57,4 +57,12 @@ if command -v node >/dev/null 2>&1; then
 	node --check "$ROOT/platform/apps/node-red/settings.js"
 fi
 
-echo "All DshanControl host-side tests passed."
+
+"$PYTHON" "$ROOT/scripts/check_gates.py"
+"$PYTHON" -m py_compile "$ROOT"/components/updater/*.py "$ROOT"/scripts/*.py
+sh -n "$ROOT/boards/t113s4-sdnand/runtime/dshancontrol-services"
+sh -n "$ROOT/boards/t113s4-sdnand/runtime/S70dshancontrol"
+
+sh -n "$ROOT/boards/t113s4-sdnand/runtime/S71dshancontrol-update"
+
+echo "All DshanControl host-side tests and repository gates passed."

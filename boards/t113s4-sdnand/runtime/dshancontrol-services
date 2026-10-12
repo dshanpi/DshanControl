@@ -1,0 +1,73 @@
+#!/bin/sh
+# System-owned lifecycle hook; application bundles cannot replace it.
+set -eu
+ROOT=/mnt/UDISK/dshancontrol
+CURRENT=$ROOT/apps/current
+DATA=$ROOT/data
+RUN=/var/run/dshancontrol
+export DSHANCONTROL_APPLICATION_COMMIT=$(python3 -c 'import json; print(json.load(open("/mnt/UDISK/dshancontrol/apps/current/installed.json"))["commit"])')
+export OMNIGATE_CORE_PATH=$CURRENT/lib/core
+export PYTHONPATH=/usr/lib/dshancontrol-python:$OMNIGATE_CORE_PATH
+export OMNIGATE_WEB_ASSETS=$CURRENT/share/web
+export OMNIGATE_WEB_CONFIG=$DATA/web.json
+export OMNIGATE_CONFIG=$DATA/web.json
+export OMNIGATE_WEB_SECRET=$DATA/session.key
+export OMNIGATE_EDGE_DB=$DATA/edge.db
+export OMNIGATE_HMI_DB=$DATA/hmi.db
+export OMNIGATE_HMI_SETTINGS=$DATA/hmi.json
+export OMNIGATE_EDS_DIR=$DATA/eds
+export OMNIGATE_LISTEN_PORT=80
+export HEALTH_URL=http://127.0.0.1/api/health
+export QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
+export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/qt/plugins
+export QT_QPA_FONTDIR=/usr/share/fonts/wqy-zenhei
+[ ! -f /etc/dshancontrol/display.env ] || . /etc/dshancontrol/display.env
+
+stop_one() {
+    [ -f "$RUN/$1.pid" ] || return 0
+    start-stop-daemon -K -p "$RUN/$1.pid" -R 10 2>/dev/null || {
+        kill -0 "$(cat "$RUN/$1.pid")" 2>/dev/null && return 1
+        :
+    }
+    rm -f "$RUN/$1.pid"
+}
+case "${1:-}" in
+maintenance)
+    # Site-specific safe-stop/interlock implementation is supplied by the system.
+    # Missing verifier refuses updates; no generic 'touch a flag' bypass.
+    test -x /etc/dshancontrol/maintenance-check
+    exec /etc/dshancontrol/maintenance-check
+    ;;
+start)
+    test -d "$CURRENT"
+    mkdir -p "$RUN" "$DATA/eds" /var/log
+    for name in web hmi supervisor; do
+        if [ -s "$RUN/$name.pid" ] && kill -0 "$(cat "$RUN/$name.pid")" 2>/dev/null; then
+            echo "$name already running" >&2; exit 1
+        fi
+    done
+    start-stop-daemon -S -b -m -p "$RUN/web.pid" -x /usr/bin/python3 -- "$CURRENT/lib/web/app.py"
+    start-stop-daemon -S -b -m -p "$RUN/hmi.pid" -x "$CURRENT/bin/omnigate-hmi"
+    WEB_RESTART_HOOK=/usr/libexec/dshancontrol-services WEB_RESTART_ACTION=restart-web \
+        start-stop-daemon -S -b -m -p "$RUN/supervisor.pid" -x /usr/bin/python3 -- "$CURRENT/lib/supervisor/supervisor.py"
+    ;;
+stop)
+    stop_one supervisor
+    stop_one hmi
+    stop_one web
+    ;;
+restart-web)
+    stop_one web
+    start-stop-daemon -S -b -m -p "$RUN/web.pid" -x /usr/bin/python3 -- "$CURRENT/lib/web/app.py"
+    ;;
+health)
+    for name in web hmi supervisor; do
+        test -s "$RUN/$name.pid"
+        kill -0 "$(cat "$RUN/$name.pid")"
+    done
+    python3 /usr/lib/dshancontrol-update/health.py
+    # Board validation may add a system-owned display/IPC/fieldbus health probe.
+    [ ! -x /etc/dshancontrol/health-check ] || /etc/dshancontrol/health-check
+    ;;
+*) echo "usage: $0 {maintenance|start|stop|health}" >&2; exit 2 ;;
+esac

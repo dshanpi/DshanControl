@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+ROOT=/mnt/UDISK/dshancontrol
+case "${1:-}" in
+start)
+    # Never write persistent state into an unmounted rootfs directory.
+    awk '$2 == "/mnt/UDISK" { found=1 } END { exit !found }' /proc/mounts
+    python3 /usr/lib/dshancontrol-update/initialize.py
+    /usr/bin/dshancontrol-update recover
+    # Recovery can already have started the known-good version.
+    if ! /usr/libexec/dshancontrol-services health >/dev/null 2>&1; then
+        /usr/libexec/dshancontrol-services stop
+        /usr/libexec/dshancontrol-services start
+    fi
+    ;;
+stop) /usr/libexec/dshancontrol-services stop ;;
+restart) "$0" stop; "$0" start ;;
+*) echo "usage: $0 {start|stop|restart}" >&2; exit 2 ;;
+esac

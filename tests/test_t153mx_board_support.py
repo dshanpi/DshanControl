@@ -1,6 +1,9 @@
 import json
 import pathlib
 import unittest
+import hashlib
+import subprocess
+import tempfile
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -54,7 +57,7 @@ class T153mxBoardSupportTests(unittest.TestCase):
                 offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual(offenders, [])
 
-    def test_canonical_runtime_sources_match_snapshot(self):
+    def test_snapshot_is_immutable_and_apply_installs_current_sources(self):
         runtime = OMNIGATE / "buildroot/overlay"
         pairs = [
             (ROOT / "components/web/app.py", runtime / "usr/lib/omnigate-web/app.py"),
@@ -62,12 +65,20 @@ class T153mxBoardSupportTests(unittest.TestCase):
             (ROOT / "components/web/assets/index.html", runtime / "usr/share/omnigate-web/index.html"),
             (ROOT / "components/supervisor/supervisor.py", runtime / "usr/lib/omnigate-supervisor/supervisor.py"),
         ]
-        for canonical, snapshot in pairs:
-            self.assertEqual(
-                canonical.read_bytes().rstrip(),
-                snapshot.read_bytes().rstrip(),
-                f"{snapshot} is not synchronized with {canonical}",
-            )
+        # Historical Linux #69 evidence remains immutable as canonical code evolves.
+        hashes = ['f3f1b3cfcf4eadfe72b7ebb97f2a3be79659e46d25c26f331bec7619e5904ae2', '34569cbbaa95c5d66f77c72db3395876030f9347b7f3a5e19476bcf64fcef78f', '41b27265234a8435f81febcf65d12e49c96d5ff85be0b4eb787c7880616d94a5', '5546977f36eb3636a45719b01c14cd97070a77c89831b5607cc7cf5067a3c449']
+        for (_, snapshot), expected in zip(pairs, hashes):
+            self.assertEqual(hashlib.sha256(snapshot.read_bytes()).hexdigest(), expected)
+        with tempfile.TemporaryDirectory() as temp:
+            sdk = pathlib.Path(temp)
+            (sdk / "buildroot/buildroot-202205").mkdir(parents=True)
+            (sdk / "device/config/chips/t153").mkdir(parents=True)
+            subprocess.run([str(ROOT / "scripts/apply_t153mx_tina5.sh"), str(sdk)],
+                           check=True, stdout=subprocess.DEVNULL)
+            for canonical, snapshot in pairs:
+                destination = sdk / snapshot.relative_to(BOARD / "overlay")
+                self.assertEqual(canonical.read_bytes(), destination.read_bytes())
+
 
 
 if __name__ == "__main__":

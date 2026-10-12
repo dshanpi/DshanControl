@@ -40,7 +40,8 @@ def write_status(value):
 
 
 def restart_web():
-    return subprocess.run(["/etc/init.d/S71omnigate-web", "restart"],
+    return subprocess.run([os.environ.get("WEB_RESTART_HOOK", "/etc/init.d/S71omnigate-web"),
+                           os.environ.get("WEB_RESTART_ACTION", "restart")],
                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                           stderr=subprocess.DEVNULL, timeout=30).returncode == 0
 

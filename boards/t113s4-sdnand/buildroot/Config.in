@@ -1,0 +1,4 @@
+source "$BR2_EXTERNAL_DSHANCONTROL_PATH/package/dshancontrol-python/Config.in"
+source "$BR2_EXTERNAL_DSHANCONTROL_PATH/package/dshancontrol/Config.in"
+
+source "$BR2_EXTERNAL_DSHANCONTROL_PATH/package/wqy-zenhei/Config.in"

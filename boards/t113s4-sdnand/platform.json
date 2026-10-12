@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "board_id": "100ask-t113s4-sdnand",
+  "soc": "allwinner-t113s4",
+  "architecture": "armv7-a",
+  "runtime_profile": "lite",
+  "capabilities": [],
+  "channels": {
+    "display0": {"kind": "display", "device": "/dev/fb0", "role": "local-hmi"}
+  },
+  "update": {"strategy": "application-versions", "system_install": "board-image", "qualified": false},
+  "security": {"development_adb": true},
+  "validation": "not-run",
+  "limitations": ["display-channel-is-configured-not-board-verified", "touch-disabled-in-hardware-baseline", "fieldbus-channels-require-board-verification"]
+}

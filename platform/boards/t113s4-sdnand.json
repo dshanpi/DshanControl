@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/board-descriptor.schema.json",
+  "schema_version": 1,
+  "id": "100ask-t113s4-sdnand",
+  "vendor": "DongshanPI",
+  "soc": "allwinner-t113s4",
+  "architecture": "armv7-a",
+  "build_system": "tina-buildroot-201902",
+  "supported_profiles": [],
+  "candidate_profiles": [
+    "lite"
+  ],
+  "runtime_manifest": "boards/t113s4-sdnand/platform.json",
+  "board_support_component": "t113s4-sdnand-adapter",
+  "display": {
+    "width": 1024,
+    "height": 600,
+    "framebuffer": "/dev/fb0"
+  },
+  "validation_status": "development-not-board-tested",
+  "limitations": [
+    "panel-and-touch-unverified",
+    "hardware-revision-unverified",
+    "fieldbus-not-mapped-or-tested",
+    "application-update-not-board-qualified"
+  ]
+}

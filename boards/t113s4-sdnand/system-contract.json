@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "app_id": "dshancontrol",
+  "repository": "dshanpi/DshanControl",
+  "board_id": "100ask-t113s4-sdnand",
+  "hardware_revision": "pending",
+  "architecture": "armv7-a",
+  "float_abi": "softfp",
+  "libc": "pending",
+  "runtime_id": "pending",
+  "contract_id": "dshancontrol-platform-1",
+  "updater_protocol": 1,
+  "data_schema": 1,
+  "allowed_channels": [
+    "stable"
+  ],
+  "validation": "not-run",
+  "updater_version": "0.1.0"
+}

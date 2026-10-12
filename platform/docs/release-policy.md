@@ -8,3 +8,7 @@
 - 每个二进制镜像记录版本、大小、SHA-256、分区表、工具版本和板卡描述 ID。
 - `release-status.json` 是当前验证状态，不是营销声明；每次发布必须随证据更新。
 - `-dev` 版本不允许标记为生产安全或现场协议互操作认证通过。
+
+DshanControl 的应用/系统双发布线及 S4 接入必须遵循
+[RELEASING](../../docs/RELEASING.md) 和仓库根目录 [AGENTS](../../AGENTS.md)。
+历史 T153 短测记录不覆盖新增更新器或 S4；SmartDesktopMimi 不属于本次产品范围。

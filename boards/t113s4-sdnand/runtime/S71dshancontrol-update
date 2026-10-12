@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+PID=/var/run/dshancontrol-update.pid
+case "${1:-}" in
+start)
+    # S70 must have initialized the mounted persistent volume first.
+    test -L /mnt/UDISK/dshancontrol/apps/current
+    if [ -s "$PID" ] && kill -0 "$(cat "$PID")" 2>/dev/null; then exit 0; fi
+    start-stop-daemon -S -b -m -p "$PID" -x /usr/bin/python3 -- /usr/lib/dshancontrol-update/watch.py
+    ;;
+stop)
+    start-stop-daemon -K -p "$PID" -R 10 2>/dev/null || true
+    rm -f "$PID"
+    ;;
+restart) "$0" stop; "$0" start ;;
+*) exit 2 ;;
+esac

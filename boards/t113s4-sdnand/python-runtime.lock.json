@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Flask",
+    "version": "2.1.2",
+    "filename": "Flask-2.1.2-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/ba/76/e9580e494eaf6f09710b0f3b9000c9c0363e44af5390be32bb0394165853/Flask-2.1.2-py3-none-any.whl",
+    "sha256": "fad5b446feb0d6db6aec0c3184d16a8c1f6c3e464b511649c8918a9be100b4fe",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "Werkzeug",
+    "version": "2.1.2",
+    "filename": "Werkzeug-2.1.2-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/c4/44/f50f2d22cdfb6d56c03d1b4cc3cfa03ebee2f21b59a7768f151e43415ba5/Werkzeug-2.1.2-py3-none-any.whl",
+    "sha256": "72a4b735692dd3135217911cbeaa1be5fa3f62bffb8745c5215420a03dc55255",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "Jinja2",
+    "version": "3.0.3",
+    "filename": "Jinja2-3.0.3-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/20/9a/e5d9ec41927401e41aea8af6d16e78b5e612bca4699d417f646a9610a076/Jinja2-3.0.3-py3-none-any.whl",
+    "sha256": "077ce6014f7b40d03b47d1f1ca4b0fc8328a692bd284016f806ed0eaca390ad8",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "itsdangerous",
+    "version": "2.1.2",
+    "filename": "itsdangerous-2.1.2-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/68/5f/447e04e828f47465eeab35b5d408b7ebaaaee207f48b7136c5a7267a30ae/itsdangerous-2.1.2-py3-none-any.whl",
+    "sha256": "2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "click",
+    "version": "8.0.4",
+    "filename": "click-8.0.4-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/4a/a8/0b2ced25639fb20cc1c9784de90a8c25f9504a7f18cd8b5397bd61696d7d/click-8.0.4-py3-none-any.whl",
+    "sha256": "6a7a62563bbfabfda3a38f3023a1db4a35978c0abd76f6c9605ecd6554d6d9b1",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "importlib-metadata",
+    "version": "4.8.3",
+    "filename": "importlib_metadata-4.8.3-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/a0/a1/b153a0a4caf7a7e3f15c2cd56c7702e2cf3d89b1b359d1f1c5e59d68f4ce/importlib_metadata-4.8.3-py3-none-any.whl",
+    "sha256": "65a9576a5b2d58ca44d133c42a241905cc45e34d2c06fd5ba2bafa221e5d7b5e",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "zipp",
+    "version": "3.6.0",
+    "filename": "zipp-3.6.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/bd/df/d4a4974a3e3957fd1c1fa3082366d7fff6e428ddb55f074bf64876f8e8ad/zipp-3.6.0-py3-none-any.whl",
+    "sha256": "9fe5ea21568a0a70e50f273397638d39b03353731e6cbbb3fd8502a33fec40bc",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "typing_extensions",
+    "version": "4.1.1",
+    "filename": "typing_extensions-4.1.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/45/6b/44f7f8f1e110027cf88956b59f2fad776cca7e1704396d043f89effd3a0e/typing_extensions-4.1.1-py3-none-any.whl",
+    "sha256": "21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2",
+    "kind": "bdist_wheel"
+  },
+  {
+    "name": "MarkupSafe",
+    "version": "2.0.1",
+    "filename": "MarkupSafe-2.0.1.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/bf/10/ff66fea6d1788c458663a84d88787bae15d45daa16f6b3ef33322a51fc7e/MarkupSafe-2.0.1.tar.gz",
+    "sha256": "594c67807fb16238b30c44bdf74f36c02cdf22d1c8cda91ef8a0ed8dabf5620a",
+    "kind": "sdist"
+  }
+]
