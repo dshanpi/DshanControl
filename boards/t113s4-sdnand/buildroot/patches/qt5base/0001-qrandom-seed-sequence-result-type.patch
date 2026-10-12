@@ -10,8 +10,7 @@ Local compatibility patch for the Tina Buildroot 201902 host qmake build.
 
 --- a/src/corelib/global/qrandom.cpp
 +++ b/src/corelib/global/qrandom.cpp
-@@ -133,6 +133,7 @@
- 
+@@ -134,5 +134,6 @@
  struct QRandomGenerator::SystemGenerator
  {
 +    typedef quint32 result_type;
