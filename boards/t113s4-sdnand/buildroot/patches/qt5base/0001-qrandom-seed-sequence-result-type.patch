@@ -1,0 +1,20 @@
+From: DshanControl maintainers
+Subject: [PATCH] qrandom: declare the seed sequence result type
+
+GCC 9's libstdc++ validates SeedSequence::result_type while selecting the
+mersenne_twister_engine constructor. Qt 5.11.3's internal SystemGenerator
+already generates quint32 values but does not declare the required alias.
+Add that alias without changing the entropy source or generated data.
+
+Local compatibility patch for the Tina Buildroot 201902 host qmake build.
+
+--- a/src/corelib/global/qrandom.cpp
++++ b/src/corelib/global/qrandom.cpp
+@@ -133,6 +133,7 @@
+ 
+ struct QRandomGenerator::SystemGenerator
+ {
++    typedef quint32 result_type;
+ #if QT_CONFIG(getentropy)
+     static qsizetype fillBuffer(void *buffer, qsizetype count) Q_DECL_NOTHROW
+     {

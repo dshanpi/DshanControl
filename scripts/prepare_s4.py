@@ -71,7 +71,8 @@ def main():
     if not (toolchain / 'bin/arm-linux-gnueabi-gcc').is_file():
         p.error('SDK Linaro 5.3.1 toolchain missing; refusing an implicit toolchain download')
     fragments = (ROOT / 'boards/t113s4-sdnand/buildroot/dshancontrol.fragment').read_text().splitlines()
-    fragments += ['BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y', 'BR2_TOOLCHAIN_EXTERNAL_PREINSTALLED=y',
+    fragments += ['BR2_GLOBAL_PATCH_DIR="' + str(external / 'patches') + '"',
+                  'BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y', 'BR2_TOOLCHAIN_EXTERNAL_PREINSTALLED=y',
                   'BR2_TOOLCHAIN_EXTERNAL_PATH="' + str(toolchain) + '"',
                   'BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="arm-linux-gnueabi"',
                   'BR2_TOOLCHAIN_EXTERNAL_GCC_5=y', 'BR2_TOOLCHAIN_EXTERNAL_HEADERS_4_0=y',

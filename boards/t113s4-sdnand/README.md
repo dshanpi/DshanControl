@@ -72,3 +72,7 @@ python3 scripts/finalize_system_contract.py --target /path/to/buildroot/target \
 This checks ARM32/soft-float calling convention, reads libc from the built target,
 hashes base runtime files, and provisions the approved public key. It still marks
 validation `not-run`; it neither creates a private key nor qualifies the board.
+
+The external tree carries a local Qt 5.11.3 `SystemGenerator::result_type` patch
+for GCC 9 host qmake compatibility. `prepare_s4.py` registers it through
+`BR2_GLOBAL_PATCH_DIR`; the original SDK Qt recipe is not edited.
