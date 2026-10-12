@@ -64,5 +64,7 @@ sh -n "$ROOT/boards/t113s4-sdnand/runtime/dshancontrol-services"
 sh -n "$ROOT/boards/t113s4-sdnand/runtime/S70dshancontrol"
 
 sh -n "$ROOT/boards/t113s4-sdnand/runtime/S71dshancontrol-update"
+sh -n "$ROOT/boards/t113s4-sdnand/runtime/S60mount_udisk"
+sh -n "$ROOT/boards/t113s4-sdnand/buildroot/post-build.sh"
 
 echo "All DshanControl host-side tests and repository gates passed."

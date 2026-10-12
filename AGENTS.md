@@ -32,6 +32,12 @@ https://github.com/DongshanPI/100ASK_T113s4-SdNand_TinaSDK5
   health checks and known-good rollback. Keep user data outside version trees.
 - Industrial application updates must occur in a board-approved maintenance
   state. Never stop live control services merely because a newer release exists.
+- S4 persistent application/data storage requires the boot-mapped writable ext4
+  UDISK volume. Never format or convert storage on startup or on mount failure.
+  Apply the system post-build override after vendor init files are installed.
+- Before image packing, verify the selected Buildroot partition table, MMC root
+  index, raw rootfs size, actual media capacity, and all SDK component inputs.
+  A list of commits or hashes alone is not a complete reproduction bundle.
 - Run `make test` for logic/tool changes. New updater/port tests must exercise
   mismatch, tampering, interruption/recovery and existing T153 behavior.
   Cross-compile native changes with the target sysroot; record unavailable checks.

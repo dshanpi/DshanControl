@@ -14,10 +14,10 @@ python3 scripts/prepare_s4.py \
   --sdk /path/to/T113-tina5v1.2-sdk \
   --hardware /path/to/100ASK_T113s4-SdNand_TinaSDK5 \
   --output /path/to/new-output
-/path/to/new-output/configure.sh
-make -C /path/to/T113-tina5v1.2-sdk/buildroot/buildroot-201902 \
-  O=/path/to/new-output/buildroot BR2_EXTERNAL=/path/to/new-output/external \
-  BR2_JLEVEL=4 dshancontrol
+/path/to/new-output/build.sh configure
+/path/to/new-output/build.sh --jobs 4 application
+# Full vendor rootfs, when the build volume has at least 16 GiB free:
+/path/to/new-output/build.sh --jobs 4 rootfs
 ```
 
 Preparation snapshots application sources and hashes, records hardware commit and
@@ -26,6 +26,10 @@ defconfig. It selects the SDK's preinstalled compiler, not an arbitrary download
 Linaro version. Dirty sources are explicitly marked development-draft. It does not
 change SDK `.buildconfig`, overwrite the existing board, or flash a device.
 `board/` contains the exact hardware board files for review; it is not a built BSP.
+The build runner validates snapshot hashes and explicitly sets S4 vendor recipe
+variables, removing inherited `LICHEE_*`/`TINA_*` settings from previous SDK sessions.
+It records commands, exit codes and logs. The 16 GiB free-space floor for a full
+rootfs is a conservative build reserve, not a measured minimum or device capacity.
 
 This builds the userspace integration target, **not a complete flashable image**.
 Full-image integration still requires selecting/compiling the S4 BSP and bootloader,
@@ -43,7 +47,11 @@ the workspace's old `t113/evb1_auto_nand` selection.
 - Python 3.7 compatibility fixes preserve behavior on T153's newer Python.
 - WenQuanYi font recipe is backported with upstream source/license hashes.
 - SD NAND UDISK is required for persistent app/data storage; boot refuses unmounted
-  storage. No A/B system partition layout is introduced by this application port.
+  storage. It must be factory-provisioned ext4; FAT cannot support version symlinks.
+  The post-build hook replaces the vendor S60 script, which otherwise tries FAT
+  formatting on mount failure. DshanControl never formats/converts existing storage
+  during startup. Unknown/FAT/damaged volumes require an explicit data-preserving
+  provisioning/recovery process. No A/B system partition layout is introduced.
 - Only the baseline display channel is configured. CAN, RS485, Ethernet fieldbus,
   cellular and touch are not copied from T153 or declared verified.
 
@@ -76,3 +84,22 @@ validation `not-run`; it neither creates a private key nor qualifies the board.
 The external tree carries a local Qt 5.11.3 `SystemGenerator::result_type` patch
 for GCC 9 host qmake compatibility. `prepare_s4.py` registers it through
 `BR2_GLOBAL_PATCH_DIR`; the original SDK Qt recipe is not edited.
+
+## System input and image preflight
+
+```sh
+python3 scripts/capture_sdk_inputs.py --sdk /path/to/sdk --output sdk-inputs.json
+python3 scripts/audit_s4_system.py --hardware /path/to/hardware \
+  --buildroot /path/to/output/buildroot --capacity-bytes ACTUAL_BYTES \
+  --rootfs-image /path/to/output/buildroot/images/rootfs.ext4 --output preflight.json
+```
+
+The SDK inventory covers every manifest component, including local tracked changes
+and untracked input identities. It does not archive those inputs or qualify a release.
+The image preflight follows Tina pack's Buildroot override: the approved baseline
+has a 1 GiB rootfs partition in `buildroot/sys_partition.fex`; its separate
+`linux-5.4/sys_partition.fex` has only 104 MiB and no UDISK. Do not interchange them.
+The current 512 MiB rootfs setting fits the Buildroot partition. The preflight also
+checks the raw ext4 superblock and boot root index. Capacity budgets reserve 32 MiB
+for boot/partition overhead and at least 256 MiB for data; final physical offsets
+and actual app/data space still need checking against the packed image and board.

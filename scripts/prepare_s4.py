@@ -71,7 +71,8 @@ def main():
     if not (toolchain / 'bin/arm-linux-gnueabi-gcc').is_file():
         p.error('SDK Linaro 5.3.1 toolchain missing; refusing an implicit toolchain download')
     fragments = (ROOT / 'boards/t113s4-sdnand/buildroot/dshancontrol.fragment').read_text().splitlines()
-    fragments += ['BR2_GLOBAL_PATCH_DIR="' + str(external / 'patches') + '"',
+    fragments += ['BR2_ROOTFS_POST_BUILD_SCRIPT="$(TOPDIR)/../config/buildroot/post_build.sh ' + str(external / 'post-build.sh') + '"',
+                  'BR2_GLOBAL_PATCH_DIR="' + str(external / 'patches') + '"',
                   'BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y', 'BR2_TOOLCHAIN_EXTERNAL_PREINSTALLED=y',
                   'BR2_TOOLCHAIN_EXTERNAL_PATH="' + str(toolchain) + '"',
                   'BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="arm-linux-gnueabi"',
@@ -92,9 +93,13 @@ def main():
     import shlex
     (out / 'configure.sh').write_text('#!/bin/sh\nset -eu\n' + ' '.join(shlex.quote(x) for x in command + ['defconfig']) + '\n')
     (out / 'configure.sh').chmod(0o755)
+    runner = ['python3', str(source / 'scripts/build_s4.py'), '--prepared', str(out)]
+    (out / 'build.sh').write_text('#!/bin/sh\nset -eu\nexec ' + ' '.join(shlex.quote(x) for x in runner) + ' "$@"\n')
+    (out / 'build.sh').chmod(0o755)
     print(out)
     print('Configure: ' + str(out / 'configure.sh'))
     print('Build: ' + ' '.join(shlex.quote(x) for x in command + ['dshancontrol']))
+    print('Board-bound build: ' + str(out / 'build.sh') + ' --jobs 4 application (or rootfs)')
     print('Full system image requires SDK manifest capture, S4 kernel/boot integration and board acceptance.')
 
 

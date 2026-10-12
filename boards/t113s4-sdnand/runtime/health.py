@@ -5,6 +5,9 @@ import os
 import sqlite3
 import urllib.request
 from pathlib import Path
+from storage import ensure_storage
+
+ensure_storage()
 
 with urllib.request.urlopen('http://127.0.0.1/api/health', timeout=5) as response:
     status = json.loads(response.read(65536).decode('utf-8'))

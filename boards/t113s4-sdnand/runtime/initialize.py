@@ -3,6 +3,9 @@
 import shutil
 from pathlib import Path
 from updater import atomic_json, sync_directory
+from storage import ensure_storage
+
+ensure_storage()
 
 root = Path('/mnt/UDISK/dshancontrol')
 (root / 'apps/releases').mkdir(parents=True, exist_ok=True)
