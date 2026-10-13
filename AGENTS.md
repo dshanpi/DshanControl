@@ -10,6 +10,13 @@ Preserve existing T153 support. Future A133/T527/RK3576 ports reuse DshanControl
 application contracts and update protocol, with separate board adapters and tested
 artifacts; never infer support from another board's successful test.
 
+UI direction: the user requests an industrial blue/white redesign with RGB50
+1024x600 as the baseline. Follow `docs/design/industrial-blue-white-v1/README.md`.
+Reflow layouts for actual screen geometry; preserve readable text and touch
+targets instead of shrinking the entire UI. Generated previews are not runtime
+or board evidence. The latest mention of T113s3 has not resolved its relationship
+to the existing T113s4 target; do not silently change BSP identity.
+
 The S4 hardware source of truth is
 https://github.com/DongshanPI/100ASK_T113s4-SdNand_TinaSDK5
 (`t113_s4/100ask`, SD NAND, Buildroot). Do not substitute

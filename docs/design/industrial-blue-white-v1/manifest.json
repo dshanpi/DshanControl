@@ -1,0 +1,48 @@
+{
+  "type": "design-preview",
+  "generator": "built-in image_gen",
+  "logical_design_baseline": [
+    1024,
+    600
+  ],
+  "runtime_screenshots": false,
+  "board_validation": "not-run",
+  "data": "fictional samples",
+  "assets": [
+    {
+      "file": "01-overview.png",
+      "title": "运行总览",
+      "pixel_width": 1639,
+      "pixel_height": 960,
+      "sha256": "4db3537de6615f6219704b10a664b4388498d3cb82e53f2fc31ae832ca4c36c8"
+    },
+    {
+      "file": "02-can-modbus.png",
+      "title": "CAN/CANopen 与 RS485/Modbus",
+      "pixel_width": 1147,
+      "pixel_height": 1371,
+      "sha256": "f0e4db45ee14ed876142a024a9c17cc4932224587eca97f7e93bc77f080d5792"
+    },
+    {
+      "file": "03-ethercat-network.png",
+      "title": "EtherCAT 与网络通信",
+      "pixel_width": 1147,
+      "pixel_height": 1371,
+      "sha256": "ebf4b1dc0766c11b58a07e7e9c4a2593c3a3a9121a8a34243e8bb8d60c1911c9"
+    },
+    {
+      "file": "04-monitor-alarms.png",
+      "title": "设备监控与告警记录",
+      "pixel_width": 1148,
+      "pixel_height": 1371,
+      "sha256": "dd8112318738d7c1219ea9e8570f894f83fdd658220f5c7e541e6f387049cf73"
+    },
+    {
+      "file": "05-settings-updates.png",
+      "title": "系统设置与应用更新",
+      "pixel_width": 1148,
+      "pixel_height": 1371,
+      "sha256": "fb16f2b76af5987e54e943c7d5187a045335797bf54142154d38df01dabbda95"
+    }
+  ]
+}
