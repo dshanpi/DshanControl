@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T14:33:20.834331+00:00",
+  "repository": "dshanpi/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "previous_record": "2026-10-14-board-native-ota.json",
+  "scope": "Continuation of physical S4 full-application development pilot. Fixture contract, temporary system hooks, copied data; not production OTA qualification.",
+  "automatic_updates_qualified": false,
+  "source": {
+    "native_health_code_commit": "af4920ca105a58f1fa97bae0fad30bd6f613a822",
+    "active_application_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+    "csv_test_fix_commit": "59e895f",
+    "native_binary": {
+      "local_path": "dist/board-continue-20261014/native-arm/dshancontrol-runtime",
+      "sha256": "46e1bce4cc46bd7a4b4c62d42ae8841a5b7bbdbed7b20e633c05b9472fa5cc4f"
+    },
+    "hmi_binary": {
+      "local_path": "dist/board-continue-20261014/hmi-arm/omnigate-hmi",
+      "sha256": "26ff2284a466d935ab651ffeb4acfd2f46e2263ec500f6242d64d11799b6a0fd"
+    },
+    "temporary_boot_script": {
+      "local_path": "dist/board-continue-20261014/S70native-pilot-ready",
+      "sha256": "a36c758bd44a0e1022713c1365d6052c9a0f06c230a0a69f3faf4e90e617bf32"
+    }
+  },
+  "hardware": {
+    "device_id": 7,
+    "project_id": 7,
+    "uart": "COM44 115200 commands/logs only",
+    "usb_binding": "location:pciroot(0)#pci(1400)#usbroot(0)#usb(10)#usb(2)",
+    "compatible": "allwinner,t113_s4",
+    "physical_revision": "unverified",
+    "firmware_reflashed": false,
+    "system_image_sha256": "ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc",
+    "file_transfer": "All file payloads transferred over AIC8800D80 WiFi network"
+  },
+  "tests": {
+    "host_passed": 153,
+    "host_core": 5,
+    "host_other": 148,
+    "native_in_host_other": 26,
+    "qt_passed": 35,
+    "qt_failed": 0,
+    "qt_skipped": 0,
+    "native_cross_build_exit": 0,
+    "hmi_cross_build_exit": 0,
+    "csv_new_working_directory_runs": [
+      0,
+      0
+    ]
+  },
+  "physical": {
+    "health_exit_preservation": {
+      "sequence": 4,
+      "cli_exit": 1,
+      "stage": "health",
+      "code": "73",
+      "known_good_rollback": "releases/2-7a6fb9f86bdb662c",
+      "health_after_rollback": 0,
+      "original_code_survives_successful_rollback": true
+    },
+    "prepared_power_interruption": {
+      "sequence": 5,
+      "confirmed_phase": "prepared",
+      "old_current": "releases/2-7a6fb9f86bdb662c",
+      "one_cycle_off_ms": 1000,
+      "binding": "saved singleRelay GPIO6",
+      "boot_id_changed": true,
+      "cold_boot_logs": "local indexed chunks",
+      "final_current": "releases/2-7a6fb9f86bdb662c",
+      "health_exit": 0,
+      "transaction_cleared": true,
+      "high_water": 5,
+      "failed_version_quarantined": true,
+      "replay_exit": 1,
+      "replay_error": {
+        "stage": "verification",
+        "code": "rejected",
+        "message": "Replayed or downgraded release"
+      },
+      "early_observation": "An early boot check observed health=0 before transaction clearance; later durable terminal check confirmed clearance. Not treated as premature success."
+    },
+    "gui_check": {
+      "input": "Bounded synthetic Type A input events on fixed gt9xxnew_ts event4; not human touch-accuracy evidence",
+      "first_real_task_id": "adc492b8264349cdac957435ca507010",
+      "first_task_status": "success",
+      "first_elapsed_ms": 3724,
+      "candidate": null,
+      "empty_candidate_download": {
+        "exit": 1,
+        "stage": "verification",
+        "code": "rejected",
+        "message": "Invalid source task"
+      },
+      "discovered_ui_bug": "Completed no-candidate check retained pending preflight labels",
+      "fix": "Terminal no-candidate now shows no matching version and no candidate manifest; failures clear pending labels",
+      "fixed_app_task_id": "0fbfd50d7d6747cfadcd34fb3e23e7d1",
+      "fixed_task_status": "success",
+      "fixed_elapsed_ms": 1810,
+      "fixed_framebuffer_review": "1024x600 actual framebuffer reviewed after signed sequence6 install",
+      "download_install_buttons": "disabled with no candidate; no GUI install claimed"
+    },
+    "sequence6_install": {
+      "exit": 0,
+      "current": "releases/6-760bd63a2da7660a",
+      "application_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+      "health_exit": 0,
+      "transaction_cleared": true,
+      "delivery": "Full signed HMI/Web/resource bundle installed by independent native CLI outside the desktop"
+    },
+    "startup_lock_race": {
+      "observed": "After prepared recovery, display daemon exited resource-lock/resource-busy and restore preflight blocked on dead owned PID",
+      "old_boot_wait": "Fixed 1-second delay before starting updater recovery",
+      "fix": "Wait for successful fixed display.brightness.get RPC and live owned process before updater service startup; bounded wait, one launch, no automatic failed-hardware retry",
+      "scope": "Temporary system boot overlay only, outside application packages",
+      "normal_cold_boot_verified": true,
+      "boot_id_changed": true,
+      "active_sequence_after_cold_boot": 6,
+      "app_health_exit": 0,
+      "display_rpc_exit": 0,
+      "display_readback": 100,
+      "display_readback_source": "driver-configured-brightness",
+      "wifi_auto_dhcp": "192.168.1.64",
+      "web_native_brightness_values": [
+        140,
+        100
+      ],
+      "restore_preflight_exit": 0
+    },
+    "data_protection": {
+      "original_system_and_factory_identity_hash_checks": 0,
+      "original_user_data_hash_checks": 0,
+      "copied_data_sentinel_check": 0,
+      "active_data": "Pilot local copy of actual user data; original data frozen and untouched",
+      "production_migration_qualified": false
+    }
+  },
+  "current_device": {
+    "pilot_root": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014",
+    "current": "releases/6-760bd63a2da7660a",
+    "high_water": 6,
+    "failed_sequences": [
+      1,
+      3,
+      4,
+      5
+    ],
+    "system_overlay": "S70native-pilot active; originals remain backed up and hidden",
+    "restore_command": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014/restore-original-system.sh --restore",
+    "restore_preflight_passed": true,
+    "restore_executed": false,
+    "wifi_credentials": "Private mode0600 file outside application version trees; never included in tracked records/packages"
+  },
+  "trust_scope": "New ephemeral host-only signing keys for continuation and UI-final fixture drafts; private keys deleted after signing. Distinct public keys selected only in temporary pilot config. Original production contract/trust locations unchanged; formal key rotation not qualified.",
+  "remaining": [
+    "Verified board/module revision and production system contract/trust/maintenance integration",
+    "Real compatible GitHub package download and GUI install task chain",
+    "Functional industrial/HMI health, production data migration and least privilege",
+    "Full power-loss matrix and soak",
+    "Legacy Python Web/supervisor/health/storage replacement",
+    "Recoverable SDK input bundle and remote release asset verification",
+    "Other boards not qualified"
+  ],
+  "packages": [
+    {
+      "sequence": 4,
+      "application_commit": "af4920ca105a58f1fa97bae0fad30bd6f613a822",
+      "release_state": "draft",
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      },
+      "package_sha256": "9a3a48bb91f3d90eac807e02e447aef5cfddec256936886a34624f3607f8833c",
+      "package_size": 6350738,
+      "manifest_sha256": "66e356ef9aa26b83512061bebc24d29193699a978ef4526a75e5195c16ee2edc"
+    },
+    {
+      "sequence": 5,
+      "application_commit": "af4920ca105a58f1fa97bae0fad30bd6f613a822",
+      "release_state": "draft",
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      },
+      "package_sha256": "a8a961ab997b5413cc00cc9ff447d85c2a617ba8237903f403cae40899933974",
+      "package_size": 6350744,
+      "manifest_sha256": "4510e0b4599b6e8bea27c4c904d27f9665d2741bae8f7eec31ea41f5c9be2582"
+    },
+    {
+      "sequence": 6,
+      "application_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+      "release_state": "draft",
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      },
+      "package_sha256": "760bd63a2da7660a918f785848bdcb487b3cf2a048a9f100015cc90f15863f2b",
+      "package_size": 6351045,
+      "manifest_sha256": "54f5027ae978fbbffb13c2eef7972a2664e8991a65938d85de30644958b6ec5a"
+    }
+  ],
+  "local_evidence": [
+    {
+      "local_path": "dist/board-continue-20261014/make-test-final.log",
+      "sha256": "53a87f51d6d7a977c0d9c17b4779c276796f50c286f31ecf2c8e218057fb93f3"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/hmi-test-final.log",
+      "sha256": "2e701b89f92cdda6bb6ee16b0fb7f0af5d1d2cc81b4c13bb072319c1a1bf19e5"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/native-arm-build.log",
+      "sha256": "91aeb64dbacb5d02c4652255df64a8b2e48d805e8d06e3efa22ed86f840f20b1"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/hmi-arm-build.log",
+      "sha256": "11a0d704b8bcebf6613b40e567a55b4ab0d2e6cf8b02d8dacdfd5738aa700f6c"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/csv-clean-1.log",
+      "sha256": "8ee60a95f14128f38c030ce67b8d18543f4e1d73ebc6951943ef1712a4254c11"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/csv-clean-2.log",
+      "sha256": "a81186e737f0602fc103066eee340a6f127de621c7a6841b5e26e5a2b9d36e5f"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-sequence-4-status-again.json",
+      "sha256": "fbdf01c87401007d50c181c2e7679bc9c4e902280c0421d365d8736d5a3207ac"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-ui-check-final-task.json",
+      "sha256": "16942f88e97eceb8f10f29f209dfaef083a82c966dab3ef17622b51441049207"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-0.json",
+      "sha256": "937e491b42048b4d70b8e06d95408d752c8a44708ec630440cb42b42229276b0"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-1.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-10.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-11.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-12.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-13.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-14.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-15.json",
+      "sha256": "d95a3b9647055e00b43449710fd722e830977ff593a9cd8b4c8be2e9750f6835"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-16.json",
+      "sha256": "29211badd64475d86a0debca1161026ae0df215db27bebce1aceb1e79663f966"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-2.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-3.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-4.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-5.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-6.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-7.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-8.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-phase-9.json",
+      "sha256": "6a1e94ed931774d0c1c3fb740702c041df8b5e8d2c295d7d8b6a9342d0a28015"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-physical-power-cycle.json",
+      "sha256": "d06c61d1110f4a43c5e80631e0d93f6d927d1b23d6b8ceb3338ed482e2dcd5a9"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-final-postcheck.json",
+      "sha256": "1bc1a82f48cfbb6ce7ece1a1d5fcf5e209ffd8087bc45b55c873eee9e7027042"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-final-tail.json",
+      "sha256": "224f9697af0805f2fc4da87cd88b312d4b8999cc7eb9b48140f3716ad642efba"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-prepared-negative-and-data-checks.json",
+      "sha256": "577edd10d6d98e3b66ba38130ab4111daaf70cf1f8acabd9f1a36b0cee61a9fe"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-sequence-6-final-state.json",
+      "sha256": "26cfe7cf51b3e13028138c7740da65318f5b478935e1d291730d363128622ad3"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-sequence-6-final-tail.json",
+      "sha256": "31074d3100340a43c7133ed44c2db9c554d045e0c1f4c4d0907bcf010aa6198d"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-ui-fixed-check-task.json",
+      "sha256": "8d8cfdca9198ee5f1b9b940589bb72f3cc7bbd1a47ded3fe7a8719dfa400bf8a"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-display-boot-diagnosis.json",
+      "sha256": "ead31595239ebc2e06e5c8a9f1a691d05d64f86f6fc7d829376099bef449813c"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-restore-preflight-diagnosis-tail.json",
+      "sha256": "91ec3738de3bcfdb463f76acb8789bb43009dd7e5766b9c10f57eca87b967354"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-ready-normal-power-cycle.json",
+      "sha256": "d06c61d1110f4a43c5e80631e0d93f6d927d1b23d6b8ceb3338ed482e2dcd5a9"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-ready-cold-postcheck.json",
+      "sha256": "80925c933387d67c8067ea403359b24cad3286034f09879c740b0d5064f35f9c"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-ready-cold-postcheck-tail.json",
+      "sha256": "47b1d2a31f5a38303f70869b039de2da56f4b41421a626161aec3fd6553c4784"
+    },
+    {
+      "local_path": "dist/hardware-mcp/continue-final-brightness-data-tail.json",
+      "sha256": "a881ad4a49c501f9dd510b54e2ec663ca69fce6c6ad5640f849e2449a37038fb"
+    }
+  ],
+  "local_framebuffers": [
+    {
+      "local_path": "dist/board-continue-20261014/board-update-final-result.png",
+      "sha256": "dea91b4b1049eb2514cfd936c24f9d3fe9490d316e4380aa6a417c75ed3358ea"
+    },
+    {
+      "local_path": "dist/board-continue-20261014/board-ui-fixed-final.png",
+      "sha256": "3efcfa34d56ef38a6cd61e40ae139b8887b8f0534a97c343137b418804f2a93d"
+    }
+  ],
+  "remote_ci": {
+    "application_code_run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38579093670",
+    "application_code_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+    "application_code_conclusion": "success",
+    "historical_failure": {
+      "commit": "af4920c",
+      "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38577091188",
+      "stage": "make test-hmi",
+      "case": "alarmCsvExportAndAuditSemantics",
+      "cause": "Save dialog retained dshancontrol-alarms.csv instead of visible.csv; replaced programmatic selection with actual filename editor keyboard input, assertions retained"
+    },
+    "latest_test_run": {
+      "source_commit": "59e895f",
+      "status": "completed",
+      "conclusion": "success",
+      "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38581228668"
+    }
+  }
+}

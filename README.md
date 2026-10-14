@@ -122,9 +122,11 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标�
 [2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)。远端 CI 已补充
 Qt/OpenSSL/zlib 构建依赖及 Qt UI 验证步骤，使用本机已有 GitHub SSH 登录推送；
 实际运行结果见验收记录，不能用本机通过替代远端结果。
-最新代码远端 CI 已通过，主机测试共 151 项，Qt 测试 34 项。
+最新代码远端 CI 已通过，主机测试共 153 项，Qt 测试 35 项。
 [历史 CI 记录](docs/validation/2026-10-14-ci.json) 和
-[最新实板记录](docs/validation/2026-10-14-board-native-ota.json) 分别保留对应源码与证据。
-实板已完成完整签名应用包安装、健康失败回退、一次切换阶段真实断电恢复和冷启动自动连接 WiFi；
+[首轮实板记录](docs/validation/2026-10-14-board-native-ota.json)、
+[继续验证记录](docs/validation/2026-10-14-board-native-ota-continuation.json) 保留对应源码与证据。
+实板已完成完整签名应用包安装、健康原码/失败回退、prepared 和 switched 两处真实断电恢复，
+以及真实 Qt 检查按钮调用、终态显示修正、冷启动自动连接 WiFi 和亮度服务就绪检查；
 当前运行独立开发试验目录，采用 fixture 契约、用户数据副本和临时系统启动层。
 正式硬件版本匹配、GitHub 下载安装闭环及完整实板 OTA 仍待验收。
