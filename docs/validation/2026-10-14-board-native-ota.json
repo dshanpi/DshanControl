@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T13:46:52.899015+00:00",
+  "repository": "dshanpi/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "application_commit": "4f2a301fd9aeebb7337bafa99271a14b46d11346",
+  "scope": "Physical S4 development pilot with full HMI/Web payloads, fixture-only update contract and temporary system boot overlay. Not production OTA qualification.",
+  "automatic_updates_qualified": false,
+  "hardware": {
+    "project_id": 7,
+    "device_id": 7,
+    "mcp_endpoint": "http://127.0.0.1:38928/mcp",
+    "uart": "COM44 115200 commands and logs only",
+    "usb_binding": "location:pciroot(0)#pci(1400)#usbroot(0)#usb(10)#usb(2)",
+    "compatible": "allwinner,t113_s4",
+    "hardware_revision": "unverified; not substituted with production identity",
+    "udisk": "mmcblk0p9 writable ext4",
+    "display": "RGB50 1024x600, Goodix event4",
+    "network": "AIC8800D80 WiFi; all file payloads transferred over network",
+    "system_image_sha256": "ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc",
+    "firmware_reflashed_this_trial": false
+  },
+  "binaries": {
+    "native_runtime": {
+      "local_path": "dist/upload-20261014/native-arm/dshancontrol-runtime",
+      "sha256": "2ce162040811c28e8c18237cc8e2ea90d0b5a97759cd27fac9ba654c94e87cfd"
+    },
+    "hmi": {
+      "local_path": "dist/upload-20261014/hmi-arm/omnigate-hmi",
+      "sha256": "9feb11ee9807cb439c32569ab3e2a29c729713e1df43933eda917f56b2c87ade"
+    }
+  },
+  "packages": [
+    {
+      "sequence": 1,
+      "application_commit": "4f2a301fd9aeebb7337bafa99271a14b46d11346",
+      "release_state": "draft",
+      "manifest_sha256": "0a8eb577e3b3407ed419bde0a65f6b9487d73069bf2a531b67ccdec3efdfedb2",
+      "package_sha256": "a7201d35d9ebe8a94d5942e9a6fd0d9aea9b04391e5b5aa21c94c38d2bf8f76e",
+      "package_size": 6350745,
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      }
+    },
+    {
+      "sequence": 2,
+      "application_commit": "4f2a301fd9aeebb7337bafa99271a14b46d11346",
+      "release_state": "draft",
+      "manifest_sha256": "b4aa574ee76d8dbf9ead9e2b63e967fc3e8ededea93f10640557e0fa51276dcd",
+      "package_sha256": "7a6fb9f86bdb662ca0bf4f060775aa656edda160bfc2e7d4beb4f03072942f27",
+      "package_size": 6350734,
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      }
+    },
+    {
+      "sequence": 3,
+      "application_commit": "4f2a301fd9aeebb7337bafa99271a14b46d11346",
+      "release_state": "draft",
+      "manifest_sha256": "8b42a72bbfb4723cdfa648da4878a73cc9330ff35b45fae2cb96fa95fecb8b71",
+      "package_sha256": "66f4c81b86e6c58f103bf65caec24d01e96ec2af6c3b21661b198915c5ce4111",
+      "package_size": 6350767,
+      "target": {
+        "board_id": "fixture-only-native-ota",
+        "hardware_revision": "fixture-only-unverified",
+        "architecture": "armv7-a",
+        "float_abi": "softfp",
+        "libc": "glibc-2.21",
+        "runtime_id": "fixture-only-current-tina",
+        "contract_id": "dshancontrol-platform-1",
+        "updater_protocol": 1
+      }
+    }
+  ],
+  "tests": {
+    "host": {
+      "passed": 151,
+      "core": 5,
+      "other": 146,
+      "native_in_other": 24,
+      "log": {
+        "local_path": "dist/board-ota-20261014/make-test.log",
+        "sha256": "ffdae41132f0902c690850734813b43b773c65487b1576448e647db27ed40af0"
+      }
+    },
+    "qt": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "log": {
+        "local_path": "dist/board-ota-20261014/hmi-test-system-launcher.log",
+        "sha256": "70ae5c0282f98e1298cab221c99d44c93d14fe92bb69c7fd7b47598b00851cdb"
+      }
+    },
+    "cross_builds": {
+      "native_exit": 0,
+      "hmi_exit": 0,
+      "committed_hmi_clean_rebuild_matches_signed_binary": true
+    },
+    "remote_ci": {
+      "source_commit": "4f2a301fd9aeebb7337bafa99271a14b46d11346",
+      "status": "completed",
+      "conclusion": "success",
+      "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38556315919"
+    }
+  },
+  "physical_results": {
+    "native_brightness": {
+      "passed": true,
+      "backend": "sunxi-disp2 LCD0 /dev/disp",
+      "rpc_values": [
+        100,
+        160,
+        100
+      ],
+      "control_lock_conflict": "resource-busy; no write or retry",
+      "web_bridge_values": [
+        140,
+        100
+      ],
+      "readback_scope": "Driver configured brightness, not optical measurement"
+    },
+    "sequence_1": {
+      "result": "health-failed; known-good factory rollback passed",
+      "cli_exit": 1,
+      "error_stage": "health",
+      "error_code": "health-failed",
+      "actual_cause": "Bench lifecycle exported original factory commit instead of selected pilot commit; HTTP health correctly rejected the mismatch.",
+      "failed_version_not_retried": true
+    },
+    "sequence_2": {
+      "result": "Signed full-application install passed",
+      "cli_exit": 0,
+      "health_exit": 0,
+      "current": "releases/2-7a6fb9f86bdb662c",
+      "system_hook_correction": "Export pilot current installed commit; disable unused planned sequence2 health injection. Application packages unchanged."
+    },
+    "sequence_3": {
+      "result": "Real physical interruption recovery passed for one switched/start window",
+      "phase_before_cut": "switched",
+      "new": "3-66f4c81b86e6c58f",
+      "old": "2-7a6fb9f86bdb662c",
+      "bounded_window_seconds": 45,
+      "power": "Saved singleRelay GPIO6 cycle, offTimeMs1000, one command",
+      "physical_reset_evidence": "Cold boot log, changed boot_id, uptime reset",
+      "startup_recovery": "Independent C++ service rolled back to sequence2",
+      "health_exit": 0,
+      "transaction_cleared": true,
+      "high_water_after_recovery": 3,
+      "replay": "Explicit sequence3 replay rejected at verification; active2 unchanged"
+    },
+    "normal_cold_boot": {
+      "passed": true,
+      "boot_id_changed": true,
+      "health_exit": 0,
+      "wifi_auto_dhcp": "192.168.1.64",
+      "correction": "Initial DHCP preceded association. Bounded COMPLETED wait added to temporary boot script; subsequent real cold boot obtained a lease automatically."
+    },
+    "github_check_task": {
+      "task_id": "ec115b039ffa44fcacf1696f97ecdd03",
+      "status": "success",
+      "elapsed_ms": 1558,
+      "candidate": null,
+      "scope": "Physical native daemon queried fixed GitHub feed; no compatible fixture candidate. GitHub download/install not qualified."
+    },
+    "data": {
+      "original_system_and_preinstalled_identity_unchanged": true,
+      "original_user_data_hash_checks": "Passed after install, recovery and normal cold boot; filenames and per-file hashes remain board-private",
+      "active_pilot_data": "Local copy of actual user data plus sentinel outside version directories",
+      "sentinel_preserved": true,
+      "production_data_migration_qualified": false
+    }
+  },
+  "current_device": {
+    "application_root": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014/apps",
+    "data_root": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014/data",
+    "current": "releases/2-7a6fb9f86bdb662c",
+    "sequence": 2,
+    "high_water": 3,
+    "final_health_exit": 0,
+    "system_overlay": "S70native-pilot active; original S70/S71 backed up and hidden. Original contract and factory pointer unchanged.",
+    "restore_helper": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014/restore-original-system.sh",
+    "restore_helper_artifact": {
+      "local_path": "dist/board-ota-20261014/restore/restore-original-system.sh",
+      "sha256": "80bf6af3002587cbb2695f5b3a8327c9f2cf3f044da39dcf5f37a9e1f1835b6f"
+    },
+    "restore_preflight_exit": 0,
+    "restore_command": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014/restore-original-system.sh --restore",
+    "restore_executed": false,
+    "restore_limit": "Restores original boot entries, factory processes/data; pilot data remains separately preserved. Pilot WiFi autostart removed next boot."
+  },
+  "private_material": {
+    "signing_key": "Temporary private host key deleted after signing; only public key sent to board",
+    "wifi": "Private config outside app trees, mode0600, transferred over pinned mutual TLS; no credentials in repository/packages",
+    "clock": "Temporary UTC seed; RTC/NTP and freshness not qualified"
+  },
+  "remaining_gates": [
+    "Physical board/module revision and production system contract",
+    "Formal native system service, trust roots, maintenance checks and least privilege",
+    "Legacy Python Web/supervisor/health/storage migration",
+    "Real GitHub signed compatible download/install and GUI task chain",
+    "Full power-loss matrix, soak and industrial/functional HMI health",
+    "Production data migration/downgrade compatibility",
+    "Complete recoverable SDK/hardware inputs and remote asset verification",
+    "Additional board adapters and independent qualification"
+  ],
+  "local_evidence": [
+    {
+      "local_path": "dist/hardware-mcp/ota-native-display-physical-result.json",
+      "sha256": "3e2943a1a6f534981984d759c591aa2da66134e78d4de543bda5ecfcffeb823a"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-actual-install-1-status.json",
+      "sha256": "42b62cb33f99c99e1b030be88a13adec71262c18fe5fba8e20ebeb8f6e9443d8"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-actual-install-1-health-diagnosis.json",
+      "sha256": "cd7ca38fe7ac42aafe70d6477b295a506c4b0ebce7facb88be6409bcf48074b8"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-rollback-health-confirmed.json",
+      "sha256": "44c573810fae01d5b35a6f84d19885c017931f3f69cc981a313a3b9879481c0a"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-actual-install-2-result.json",
+      "sha256": "00063b2b5e956fb81400b89ac30ff8fd1af2bf569d5092eab32a4922a537d8bf"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-actual-app-postcheck-complete.json",
+      "sha256": "3040840a694ce19f497cab9fff8f781ac55f73b639f7333ff47ac1aa7a4edef9"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-native-web-brightness-result.json",
+      "sha256": "3a78e232aa749ed07b2529aabdc3875354f543ed77ee76a5ca08bb40f0f82f04"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-power-cut-phase-confirmed.json",
+      "sha256": "40505c515fa2eda5567a73f570499ac2c5609a58683718c64f5d927e631bf47d"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-controlled-power-cycle.json",
+      "sha256": "d06c61d1110f4a43c5e80631e0d93f6d927d1b23d6b8ceb3338ed482e2dcd5a9"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-after-power-recovery.json",
+      "sha256": "fc167dc64e139a0dfbfc550b53472bd1f0486460b9273f0d5553f10580eb9810"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-power-recovery-health-complete.json",
+      "sha256": "37c5b8d8275264c1143724cd13a9eecf20d4dbf0b9688b18cadc5b7285611a11"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-power-recovery-data.json",
+      "sha256": "ed9134807260dbcf9177c407a7aaa13107db4041d30b582dbd67b1ecf30f3cc0"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-normal-cold-safety.json",
+      "sha256": "1438e35b5764de525089060c895595a41615f4823ae333b9248a836b37ee8926"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-normal-cold-power-cycle.json",
+      "sha256": "d06c61d1110f4a43c5e80631e0d93f6d927d1b23d6b8ceb3338ed482e2dcd5a9"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-normal-cold-postcheck-final.json",
+      "sha256": "556750bb9448fd206fa7a4b6e281b9505ace4089063e5b22c4ba843b8a53e2c5"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-replay-and-normal-cold-ready.json",
+      "sha256": "664825b66830cd8016f2646ce019e46263890cff6a951ee6d9e5c214f7355842"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-native-github-check-terminal.json",
+      "sha256": "994e6755a2abecd6e13945e9711de916ddcde3f03019a936dbf2453a74d82cbf"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-final-board-state.json",
+      "sha256": "0ac7da5960f4875c6745609881ce0fb0e3f774643eb37198b13dddaff6fcc62e"
+    },
+    {
+      "local_path": "dist/hardware-mcp/ota-original-restore-network-success.json",
+      "sha256": "4f21e4612c049a4480b9eab77244d054bb0783dd58a6e6465f7d9076f0c23c22"
+    }
+  ]
+}

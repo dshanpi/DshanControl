@@ -29,7 +29,7 @@
       "signed_fixture_draft": "passed",
       "system_image": "vendor-development-image-built",
       "board_test": "development-smoke-passed-not-qualified",
-      "power_loss": "not-run",
+      "power_loss": "development-single-switched-phase-recovery-passed-not-qualified",
       "automatic_updates_qualified": false,
       "historical_build_evidence": {
         "application_build_commit": "378c5c3b1bda855a37daddc0d28d2b254499d1d2",
@@ -45,13 +45,16 @@
         "ext4_udisk_automatic_mount": "passed",
         "touch_input": "observed-and-user-confirmed",
         "wifi": "single-boot-connection-and-network-transfer-passed",
-        "wifi_persistence": "not-accepted",
+        "wifi_persistence": "development-boot-overlay-auto-association-and-dhcp-passed",
         "industrial_peripherals": "not-qualified",
-        "native_updater": "isolated-synthetic-package-test-passed",
-        "native_display_control": "host-tests-and-cross-build-only",
-        "real_application_ota": "not-accepted",
+        "native_updater": "full-application-fixture-contract-install-and-rollback-passed",
+        "native_display_control": "physical-rpc-lock-web-bridge-passed",
+        "real_application_ota": "development-local-signed-full-payload-install-passed-github-install-pending",
         "production_baseline": "pending",
-        "evidence_scope": "development observations; not production or full OTA acceptance"
+        "evidence_scope": "Temporary system overlay, fixture contract and copied data; not production or full GitHub OTA acceptance",
+        "native_github_check": "physical-daemon-task-success-no-compatible-candidate",
+        "normal_cold_start": "development-boot-overlay-application-health-passed",
+        "board_update_record": "docs/validation/2026-10-14-board-native-ota.json"
       }
     }
   }

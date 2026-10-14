@@ -104,7 +104,7 @@ SmartDesktopMimi 是独立项目。
 [S4 接入说明](boards/t113s4-sdnand/README.md) 包含隔离构建、运行目录及验收限制。
 [应用更新说明](components/updater/README.md) 描述签名清单、GitHub 检查、事务安装和恢复。
 [发布门禁](docs/RELEASING.md) 区分系统镜像与应用升级包；原源码打包命令不是应用升级包。
-S4 实板、断电、工业互操作和更新链路尚未验收，不提供已完成的系统镜像或生产 OTA 声明。
+S4 已有启动、触摸及应用升级开发试验；正式基线、工业互操作和完整更新链路尚未验收，不提供生产 OTA 声明。
 
 T113s3 与 S4 的名称关系仍待实板身份确认，不据此更改 BSP。
 A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标，
@@ -122,5 +122,9 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标�
 [2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)。远端 CI 已补充
 Qt/OpenSSL/zlib 构建依赖及 Qt UI 验证步骤，使用本机已有 GitHub SSH 登录推送；
 实际运行结果见验收记录，不能用本机通过替代远端结果。
-当前远端 CI 已通过 150 项主机测试及门禁、34 项 Qt 测试和差异检查，见
-[CI 验证记录](docs/validation/2026-10-14-ci.json)；完整实板 OTA 仍待验收。
+最新代码远端 CI 已通过，主机测试共 151 项，Qt 测试 34 项。
+[历史 CI 记录](docs/validation/2026-10-14-ci.json) 和
+[最新实板记录](docs/validation/2026-10-14-board-native-ota.json) 分别保留对应源码与证据。
+实板已完成完整签名应用包安装、健康失败回退、一次切换阶段真实断电恢复和冷启动自动连接 WiFi；
+当前运行独立开发试验目录，采用 fixture 契约、用户数据副本和临时系统启动层。
+正式硬件版本匹配、GitHub 下载安装闭环及完整实板 OTA 仍待验收。
