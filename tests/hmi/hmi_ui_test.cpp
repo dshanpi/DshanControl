@@ -1228,13 +1228,18 @@ class HmiUiTest : public QObject
                 // leaf name separately, then allow an event turn before accepting.
                 if (!dialog->property("exportFixturePrepared").toBool()) {
                     dialog->setDirectory(folder.path());
-                    dialog->selectFile("visible.csv");
                     dialog->setProperty("exportFixturePrepared", true);
                     return;
                 }
                 selectedDestination = dialog->selectedFiles().value(0);
                 if (selectedDestination != filename) {
-                    dialog->selectFile("visible.csv");
+                    // Exercise the editable filename as a user would. selectFile
+                    // can retain the default leaf while the save dialog is visible.
+                    auto *nameEdit = dialog->findChild<QLineEdit *>("fileNameEdit");
+                    if (!nameEdit) { dialog->reject(); return; }
+                    nameEdit->setFocus();
+                    QTest::keyClick(nameEdit, Qt::Key_A, Qt::ControlModifier);
+                    QTest::keyClicks(nameEdit, "visible.csv");
                     return;
                 }
                 dialogs << "save";
