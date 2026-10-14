@@ -10,6 +10,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
+      - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev libqt5charts5-dev libssl-dev zlib1g-dev
       - run: make test-bootstrap
       - run: make test
+      - run: make test-hmi
       - run: git diff --check

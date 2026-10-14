@@ -119,5 +119,6 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标�
 当前状态、历史实板证据和本机验证见 [验收记录](docs/ITERATION-ACCEPTANCE.md)，
 系统/应用双发布线和防错板门禁见 [落实方案](docs/APPLICATION-UPDATE-PLAN.md)。
 代码提交后本机测试及 S4 交叉构建结果见
-[2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)；远端 CI 的
-Qt 依赖补丁因当前 GitHub 凭据缺少 workflow 权限待上传，不能等同本机通过结果。
+[2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)。远端 CI 已补充
+Qt/OpenSSL/zlib 构建依赖及 Qt UI 验证步骤，使用本机已有 GitHub SSH 登录推送；
+实际运行结果见验收记录，不能用本机通过替代远端结果。
