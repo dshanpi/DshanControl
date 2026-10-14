@@ -118,3 +118,6 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标�
 其他硬件操作及旧 Web 运行栈仍在迁移，完整实板自动升级尚未验收。
 当前状态、历史实板证据和本机验证见 [验收记录](docs/ITERATION-ACCEPTANCE.md)，
 系统/应用双发布线和防错板门禁见 [落实方案](docs/APPLICATION-UPDATE-PLAN.md)。
+代码提交后本机测试及 S4 交叉构建结果见
+[2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)；远端 CI 的
+Qt 依赖补丁因当前 GitHub 凭据缺少 workflow 权限待上传，不能等同本机通过结果。

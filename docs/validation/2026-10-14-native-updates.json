@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T09:56:39.569079+00:00",
+  "tested_application_commit": "6dcd4b3d8e86e838de7fad866503b2a51fee28c9",
+  "repository": "dshanpi/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "scope": "local host tests and S4 cross-builds; not physical OTA qualification",
+  "tests": {
+    "make test": {
+      "exit_code": 0,
+      "core_count": 5,
+      "other_count": 145,
+      "native_cases_in_other_count": 23,
+      "repository_gates": "passed"
+    },
+    "make test-hmi": {
+      "exit_code": 0,
+      "qt_totals": {
+        "passed": 34,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "cross_builds": {
+    "qmake": "/home/ubuntu/T113-tina5v1.2-sdk/out/dshancontrol-s4-dev3/buildroot/host/bin/qmake",
+    "sysroot": "existing dshancontrol-s4-dev2 target sysroot",
+    "source_projects": [
+      "components/runtime/runtime.pro",
+      "components/hmi/src/omnigate-hmi.pro"
+    ],
+    "make_jobs": 3,
+    "exit_codes": [
+      0,
+      0
+    ]
+  },
+  "logs": {
+    "make-test.log": {
+      "local_path": "dist/upload-20261014/make-test.log",
+      "sha256": "85da6ac16a2b8176a25a3fb47e53f8d636e241125192bdaa80290c04bb21d0ac"
+    },
+    "make-test-hmi.log": {
+      "local_path": "dist/upload-20261014/make-test-hmi.log",
+      "sha256": "69ef92818cdb2351bb839e7dd5cc1ead9d70e73f64383228617bbf5b7305ba36"
+    },
+    "native-arm-build.log": {
+      "local_path": "dist/upload-20261014/native-arm-build.log",
+      "sha256": "6c63ede205a4b4c4fb566b430722f61ce1309ddfb2125381e29fa999ae82d3a3"
+    },
+    "hmi-arm-build.log": {
+      "local_path": "dist/upload-20261014/hmi-arm-build.log",
+      "sha256": "e2ae7c8a9a4d775c28ca7b2cb4bbcc5ed23db8bd9c933a915e14c7ea37c1eec9"
+    }
+  },
+  "artifacts": {
+    "native-arm/dshancontrol-runtime": {
+      "local_path": "dist/upload-20261014/native-arm/dshancontrol-runtime",
+      "sha256": "1d7be8d056ef2241bfef83a56386fb3777451ccc21e753202b76780612293717",
+      "size_bytes": 316796,
+      "format": "ARM ELF32 EABI5; /lib/ld-linux.so.3"
+    },
+    "hmi-arm/omnigate-hmi": {
+      "local_path": "dist/upload-20261014/hmi-arm/omnigate-hmi",
+      "sha256": "056beb525054e863bfd46945f5ae8599f9c3d6b02600ddea51930d77afc73d88",
+      "size_bytes": 7777704,
+      "format": "ARM ELF32 EABI5; /lib/ld-linux.so.3"
+    }
+  },
+  "working_tree_difference_at_test_start": [
+    ".github/workflows/host-gates.yml: dependency/UI-test patch retained locally because workflow permission is unavailable"
+  ],
+  "remote_ci": {
+    "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38545421668",
+    "tested_commit": "6dcd4b3d8e86e838de7fad866503b2a51fee28c9",
+    "conclusion": "failure",
+    "failed_step": "make test",
+    "observed_error": "qmake: not found",
+    "workflow_patch": "prepared locally; remote OAuth credential lacks workflow scope"
+  },
+  "physical_board_test_this_run": "not-performed",
+  "automatic_updates_qualified": false
+}

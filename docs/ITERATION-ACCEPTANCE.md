@@ -1012,3 +1012,20 @@ feat/t113s4-sdnand-application-updates；新预览、固件、原始本地日志
 上传后复跑 make test、make test-hmi，以及当前 T113 sysroot 下的原生运行端/HMI
 交叉构建；实际命令、退出码、被测提交及结果随后追加。本次代码推送不创建正式
 Release，不将实板完整 OTA、物理掉电回退或未来主板适配标成通过。
+
+上传后验证完成：代码提交 6dcd4b3d8e86e838de7fad866503b2a51fee28c9 已推送，
+git ls-remote 核对同一分支/提交。make test 退出0，5 核心 + 145 其余测试（含
+23 原生案例）及仓库门禁通过；make test-hmi 退出0，34 passed/0 failed/0 skipped。
+在新的 dist/upload-20261014/native-arm 与 hmi-arm 目录使用 dev3 qmake（dev2
+既有 sysroot）分别重新构建运行端和 HMI，均退出0，产物为 ARM ELF32/EABI5。
+运行端 SHA256：1d7be8d056ef2241bfef83a56386fb3777451ccc21e753202b76780612293717；
+HMI SHA256：056beb525054e863bfd46945f5ae8599f9c3d6b02600ddea51930d77afc73d88。
+
+被测提交、日志哈希、实际产物及剩余门禁见
+[本轮结构化验证记录](validation/2026-10-14-native-updates.json)。测试源代码匹配该提交，
+工作树仅 CI 工作流补丁另有本地改动；本次未新增实板烧录/应用升级/掉电操作。
+
+远端 [Actions 38545421668](https://github.com/dshanpi/DshanControl/actions/runs/38545421668)
+实际失败：make test 的原生构建报 qmake: not found。所需 Qt/OpenSSL/zlib 依赖和
+Qt UI 步骤已经在本地工作流中准备，但现有 OAuth 凭据缺少 workflow scope，GitHub
+拒绝上传工作流。该待办须补齐凭据权限后上传并复验，不能记成 CI 通过。
