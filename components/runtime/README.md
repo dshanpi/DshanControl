@@ -105,6 +105,13 @@ dshancontrol-runtime rpc display.brightness.set \
 返回 source=driver-configured-brightness，表示驱动配置读回，不冒充实测屏幕亮度。
 写入共用更新器 control_lock；维护占用时拒绝，不等待重放、不自动重试。
 
+S4 厂商系统实测没有标准 backlight 类和 lcdbl 属性，使用已核对的 /dev/disp LCD0
+ioctl。该板选择 `display={"channel":"display0","backend":"sunxi-disp2","screen":0}`；
+服务固定设备和操作码，确认输出类型为 LCD，再写入/读回 0..255 配置值，客户端
+不能指定路径、screen 或 ioctl。此后端仅开放给已审计的 S4 板型/SoC，不推断其他
+Allwinner 板也适用；原 sysfs 后端仍保留供各板独立适配。实板测试 100→160→100、
+维护占用拒绝以及应用健康/系统身份保留已通过，仍不代替完整 OTA 验收。
+
 旧 Web 仅在系统显式设置 DSHANCONTROL_NATIVE_PLATFORM_SOCKET 时通过 Unix RPC
 转发亮度；原生通道失败不回落到直接写 sysfs。未配置的旧 T153/S4 基线保持兼容。
 这仍是渐进迁移，尚未代替系统启动集成、硬件操作完整审计和非特权应用隔离验收。

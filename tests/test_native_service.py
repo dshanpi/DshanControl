@@ -111,6 +111,7 @@ class NativeServiceTests(fixtures.UpdateCliTests):
             'channel': 'display0', 'value': 120, 'confirmed': True})
         self.assertEqual('display-board-mismatch', response['error']['code'])
         self.assertEqual('200\n', (self.backlight / 'brightness').read_text())
+
         # Restore only this system fixture; a corrupt driver maximum remains a refusal.
         path = self.f.root / 'platform.json'
         manifest = json.loads(path.read_text())
@@ -120,6 +121,17 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         response = self.request('display.brightness.set', {
             'channel': 'display0', 'value': 120, 'confirmed': True})
         self.assertEqual('driver-value-invalid', response['error']['code'])
+        self.assertEqual('200\n', (self.backlight / 'brightness').read_text())
+
+    def test_sunxi_display_rejects_unaudited_screen_and_soc_before_device_open(self):
+        self.display_fixture()
+        config = json.loads(self.service_config.read_text())
+        config['display'] = {'channel': 'display0', 'backend': 'sunxi-disp2', 'screen': 1}
+        self.service_config.write_text(json.dumps(config))
+        self.start()
+        response = self.request('display.brightness.get', {'channel': 'display0'})
+        self.assertFalse(response['ok'])
+        self.assertEqual('display-backend-mismatch', response['error']['code'])
         self.assertEqual('200\n', (self.backlight / 'brightness').read_text())
 
     def source(self):

@@ -303,3 +303,24 @@ trial, not a signed application update. Reboot restores the preinstalled HMI;
 immediate restore command: `python3 /tmp/dshancontrol-brightness-trial/try-hmi.py restore`.
 Physical slider comfort still requires user feedback. Evidence:
 `dist/hardware-mcp/brightness-trial-health.json`. Nothing committed or pushed.
+
+## Native brightness interface — 2026-10-14
+
+The live vendor image has no /sys/class/backlight and no lcdbl attribute under
+the display class. /dev/disp is the real display character device. The audited
+S4 build's exported video/sunxi_display2.h defines GET_OUTPUT_TYPE=0x09,
+LCD_SET_BRIGHTNESS=0x102 and LCD_GET_BRIGHTNESS=0x103 using four unsigned-long
+arguments; LCD output type is 1. Header SHA256:
+bc51a3dee3cf5529f3e6c98afdc9e8eb418236bf0e929db90e12c7509f52eeb8.
+Source artifact: system-sources/bsp-out export recorded locally under
+/home/ubuntu/dshancontrol-s4-prepared-20261013-h02/bsp-out/kernel/build/user_headers/include/video/sunxi_display2.h.
+
+C++ platform-service testing read brightness 100, set/read 160 and restored/read
+100. Holding the shared updater control lock rejected a second write without
+changing 160. Product health=0 and original system/preinstalled identity hashes
+remained unchanged. Test receiver/archive bytes crossed WiFi only; UART carried
+commands and results. Evidence: dist/hardware-mcp/ota-native-display-physical-result.json.
+Archive SHA256: be4d35794515429a345c5067a4f08ee17caa9cd5fb107b3616a64de0b1e847da;
+ARM binary SHA256: 2ce162040811c28e8c18237cc8e2ea90d0b5a97759cd27fac9ba654c94e87cfd.
+This used an explicitly temporary diagnostic service with the actual still-pending
+system contract; it does not provision production update keys or qualify OTA.

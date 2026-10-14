@@ -5,7 +5,9 @@
 #include <QRegularExpression>
 #include <cerrno>
 #include <cmath>
+#include <cstring>
 #include <memory>
+#include <sys/ioctl.h>
 
 namespace {
 int driverValue(const QString &path) {
@@ -23,6 +25,51 @@ int driverValue(const QString &path) {
           "Invalid backlight driver value", "display", "driver-value-invalid");
   return bytes.toInt();
 }
+
+QJsonObject sunxiBrightness(const QJsonObject &binding,
+                            const QJsonObject &manifest, int requested,
+                            bool write) {
+  // Vendor t113_s4 Linux 5.4 UAPI: video/sunxi_display2.h (see
+  // hardware-inputs). This is a system-selected backend, never a
+  // caller-selected device/ioctl.
+  require(manifest["soc"] == "allwinner-t113s4" &&
+              manifest["board_id"] == "100ask-t113s4-sdnand" &&
+              binding["screen"].isDouble() && binding["screen"].toDouble() == 0,
+          "Sunxi display backend requires the audited S4 LCD0 binding",
+          "identity", "display-backend-mismatch");
+  QFile device("/dev/disp");
+  errno = 0;
+  if (!device.open(write ? QIODevice::ReadWrite : QIODevice::ReadOnly))
+    throw Failure(QString::number(errno), "display-open", device.errorString());
+  unsigned long args[4] = {0, 0, 0, 0};
+  auto command = [&](unsigned long operation) {
+    int result = ::ioctl(device.handle(), operation, args);
+    if (result < 0) {
+      int error = errno;
+      throw Failure(QString::number(error), "display-ioctl",
+                    QString::fromLocal8Bit(std::strerror(error)));
+    }
+    return result;
+  };
+  require(command(0x09) == 1, "Bound display is not an LCD", "display",
+          "display-output-mismatch");
+  if (write) {
+    args[1] = static_cast<unsigned long>(requested);
+    command(0x102);
+    args[1] = 0;
+  }
+  int actual = command(0x103);
+  require(actual >= 0 && actual <= 255, "Sunxi brightness readback invalid",
+          "display", "driver-value-invalid");
+  require(!write || actual == requested,
+          "Sunxi driver did not retain the requested value", "display",
+          "driver-readback-mismatch");
+  return {{"channel", binding["channel"]},
+          {"brightness", actual},
+          {"driver_brightness", actual},
+          {"driver_maximum", 255},
+          {"source", "driver-configured-brightness"}};
+}
 } // namespace
 
 QJsonObject displayBrightness(const QJsonObject &configuration,
@@ -31,10 +78,11 @@ QJsonObject displayBrightness(const QJsonObject &configuration,
   auto binding = configuration["display"].toObject();
   auto channel = binding["channel"].toString();
   auto name = binding["backlight"].toString();
-  require(
-      !channel.isEmpty() &&
-          QRegularExpression("^[a-zA-Z0-9_-]{1,64}$").match(name).hasMatch(),
-      "System backlight binding missing", "identity", "display-unbound");
+  auto backend = binding["backend"].toString("sysfs-backlight");
+  require(!channel.isEmpty() &&
+              (backend == "sysfs-backlight" || backend == "sunxi-disp2"),
+          "System backlight binding missing/unknown", "identity",
+          "display-unbound");
   auto manifest = readJson(configuration["platform_manifest"].toString());
   auto system = updater.systemContract();
   require(manifest["schema_version"].toDouble() == 1 &&
@@ -55,6 +103,13 @@ QJsonObject displayBrightness(const QJsonObject &configuration,
                 params["confirmed"].isBool() && params["confirmed"].toBool())),
           "Brightness requires a confirmed integer 10..255; no path overrides",
           "authorization", "display-request-invalid");
+  std::unique_ptr<FileLock> ownership;
+  if (write)
+    ownership.reset(new FileLock(updater.controlLock()));
+  if (backend == "sunxi-disp2")
+    return sunxiBrightness(binding, manifest, params["value"].toInt(), write);
+  require(QRegularExpression("^[a-zA-Z0-9_-]{1,64}$").match(name).hasMatch(),
+          "Invalid system backlight name", "identity", "display-unbound");
   auto root = configuration["backlight_root"].toString("/sys/class/backlight");
   auto updateConfig = readJson(configuration["updater_config"].toString());
   require(root == "/sys/class/backlight" ||
@@ -68,10 +123,8 @@ QJsonObject displayBrightness(const QJsonObject &configuration,
   int maximum = driverValue(root + '/' + name + "/max_brightness");
   require(maximum > 0 && maximum <= 65535, "Invalid backlight maximum",
           "display", "driver-value-invalid");
-  std::unique_ptr<FileLock> ownership;
   int requestedNative = -1;
   if (write) {
-    ownership.reset(new FileLock(updater.controlLock()));
     int native = static_cast<int>(
         std::lround(params["value"].toDouble() * maximum / 255.0));
     // Always keep an illuminated minimum even on low-resolution drivers.

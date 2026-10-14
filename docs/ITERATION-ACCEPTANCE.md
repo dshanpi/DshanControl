@@ -1073,3 +1073,16 @@ make test-hmi、git diff --check 均通过；实际日志为 5 + 145 项主机�
 路线参考 [GitHub 官方 SSH 443 说明](https://docs.github.com/zh/authentication/troubleshooting-ssh/using-ssh-over-the-https-port)。
 CI 配置创建、上传和远端软件验证均完成；真实桌面实板升级、重启持久性、物理掉电/
 失败回退、数据保护以及正式系统基线仍须按 H04/H05 验收，不由 CI 成功代替。
+
+### Actual-board update trial started（2026-10-14）
+
+用户要求继续实板操作。重新确认固定 MCP project/device 7、COM44 与 USB 位置，
+无并发硬件任务；实板仍为 allwinner,t113_s4/armv7l，WiFi 192.168.1.64，UDISK
+为 mmcblk0p9 可写 ext4，当前出厂应用提交 52d05e9，产品 health=0。真实硬件修订、
+正式公钥/维护接口仍未配置，不绕过生产匹配门禁。实机后续试验和生产验收分别记录。
+
+修复原生亮度对厂商系统的适配：S4 没有标准 backlight0，使用已核对 /dev/disp
+LCD0 UAPI。C++ RPC 实测 100→160→100，锁占用拒绝第二次控制且不重试；出厂应用
+与系统身份哈希保持一致，health=0，退出0。24 项原生测试、151 项主机测试及门禁、
+S4 交叉构建通过；证据 dist/board-ota-20261014/ 与 ota-native-display-physical-result.json。
+真实应用包安装/回退/重启试验继续进行，不能标成完整生产 OTA 通过。
