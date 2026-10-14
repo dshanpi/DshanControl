@@ -122,3 +122,5 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标�
 [2026-10-14 验证记录](docs/validation/2026-10-14-native-updates.json)。远端 CI 已补充
 Qt/OpenSSL/zlib 构建依赖及 Qt UI 验证步骤，使用本机已有 GitHub SSH 登录推送；
 实际运行结果见验收记录，不能用本机通过替代远端结果。
+当前远端 CI 已通过 150 项主机测试及门禁、34 项 Qt 测试和差异检查，见
+[CI 验证记录](docs/validation/2026-10-14-ci.json)；完整实板 OTA 仍待验收。

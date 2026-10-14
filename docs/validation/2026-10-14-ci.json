@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T10:19:29.576429+00:00",
+  "repository": "dshanpi/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "source_commit": "efe094a37d33b14491d0f08d2d562ef9b7c1f3a7",
+  "workflow": ".github/workflows/host-gates.yml",
+  "remote_ci": {
+    "run_id": 38548208873,
+    "job_id": 115799440631,
+    "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38548208873",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "checks": {
+    "dependencies": "passed",
+    "make test-bootstrap": "passed",
+    "make test": {
+      "passed": 150,
+      "core": 5,
+      "other": 145,
+      "native_cases_in_other": 23
+    },
+    "make test-hmi": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    },
+    "git diff --check": "passed"
+  },
+  "local_clean_ui": {
+    "full_test_count": 34,
+    "result": "passed",
+    "isolated_working_directory": true,
+    "isolated_xdg_config_home": true,
+    "log_sha256": "684c5ba48547972b69176ea9f25e8ea10b91a3684d6a3ab9c58a2e81527d9154"
+  },
+  "remote_log": {
+    "local_path": "dist/ci-fix-20261014/final-job.log",
+    "sha256": "8f6126b2a8b8824be5a82ac28e36fc13d830581f658b9a9dedc9b1e4f01d0694"
+  },
+  "resolution": {
+    "upload": "existing authenticated GitHub SSH key over port 443 with strict saved host-key validation",
+    "build": "install Qt/QtCharts/OpenSSL/zlib development dependencies before testing",
+    "test_fixtures": "initialize screenshot directory and explicitly verify CSV file-dialog destination; no assertions skipped"
+  },
+  "historical_failures": [
+    {
+      "run_id": 38545421668,
+      "reason": "qmake missing"
+    },
+    {
+      "run_id": 38546563546,
+      "reason": "screenshot directory created by a later test"
+    },
+    {
+      "run_id": 38547340340,
+      "reason": "CSV dialog did not produce the intended fixture file"
+    }
+  ],
+  "application_code_unchanged_from_local_test_commit": "6dcd4b3d8e86e838de7fad866503b2a51fee28c9",
+  "scope": "host CI and deterministic UI fixtures; not full physical OTA qualification",
+  "automatic_updates_qualified": false
+}

@@ -1060,3 +1060,16 @@ CSV 内容、导出快照、取消保留旧文件及写入失败断言均保持�
 XDG_CONFIG_HOME 的 CSV 专项验证退出0，未修改产品导出功能。
 同样独立的完整 Qt 验证退出0：34 passed/0 failed/0 skipped，日志为
 dist/ci-fix-20261014/all-clean-test.log，随后上传继续验证远端。
+
+CI 待办已解决。提交 efe094a37d33b14491d0f08d2d562ef9b7c1f3a7 的
+[远端运行 38548208873](https://github.com/dshanpi/DshanControl/actions/runs/38548208873)
+已完成且 conclusion=success。依赖安装、make test-bootstrap、make test、
+make test-hmi、git diff --check 均通过；实际日志为 5 + 145 项主机测试及门禁、
+34 passed/0 failed/0 skipped Qt 测试。此次修正没有改变此前本机及 ARM 验证的
+应用运行代码，Git diff 已核对 components/scripts/boards/platform/Makefile 无差异。
+结构化记录见 [CI 验证记录](validation/2026-10-14-ci.json)；原失败记录保留历史。
+
+现有 GitHub SSH 授权已用于该仓库的 push URL，主机密钥严格校验保持开启。
+路线参考 [GitHub 官方 SSH 443 说明](https://docs.github.com/zh/authentication/troubleshooting-ssh/using-ssh-over-the-https-port)。
+CI 配置创建、上传和远端软件验证均完成；真实桌面实板升级、重启持久性、物理掉电/
+失败回退、数据保护以及正式系统基线仍须按 H04/H05 验收，不由 CI 成功代替。

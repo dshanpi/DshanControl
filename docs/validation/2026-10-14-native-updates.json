@@ -79,5 +79,11 @@
     "workflow_patch": "prepared locally; remote OAuth credential lacks workflow scope"
   },
   "physical_board_test_this_run": "not-performed",
-  "automatic_updates_qualified": false
+  "automatic_updates_qualified": false,
+  "remote_ci_resolution": {
+    "record": "2026-10-14-ci.json",
+    "source_commit": "efe094a37d33b14491d0f08d2d562ef9b7c1f3a7",
+    "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38548208873",
+    "conclusion": "success"
+  }
 }
