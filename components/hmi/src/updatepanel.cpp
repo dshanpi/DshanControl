@@ -298,6 +298,14 @@ void UpdatePanel::requestNative(const QString &method, const QJsonObject &params
         QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))});
 }
 
+void UpdatePanel::resetPreflight(const QString &text)
+{
+    for (auto *label : preflightValues) {
+        label->setText(text);
+        label->setStyleSheet("color:#61758b;");
+    }
+}
+
 void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
 {
     const QByteArray output = process.readAllStandardOutput().trimmed();
@@ -307,6 +315,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         check->setEnabled(true);
         download->setEnabled(false);
         install->setEnabled(false);
+        resetPreflight("查看失败原因");
         const QJsonObject error = QJsonDocument::fromJson(errorOutput).object();
         status->setText(error.isEmpty() ? "系统更新服务未完成请求，请检查服务状态。" :
             QString("阶段：%1 · 错误码：%2\n%3").arg(error["stage"].toString(),
@@ -316,6 +325,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
     if (output == "null") {
         taskPoll.stop();
         check->setEnabled(true);
+        resetPreflight("未检查");
         status->setText("尚无系统更新任务，可以检查兼容应用版本。");
         return;
     }
@@ -327,6 +337,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         check->setEnabled(true);
         download->setEnabled(false);
         install->setEnabled(false);
+        resetPreflight("未验证");
         status->setText("系统返回的任务标识无效，未执行后续操作。");
         return;
     }
@@ -352,6 +363,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
     download->setEnabled(false);
     install->setEnabled(false);
     if (state == "failed") {
+        resetPreflight("查看失败原因");
         const auto error = task["error"].toObject();
         status->setText((historical ? "历史任务失败\n" : "更新任务失败\n") +
             QString("阶段：%1 · 错误码：%2\n%3").arg(error["stage"].toString(),
@@ -359,11 +371,14 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         return;
     }
     if (state != "success") {
+        resetPreflight("未验证");
         status->setText("系统任务状态无效，未启动后续操作。");
         return;
     }
     selectedRelease = task["candidate"].toObject();
     if (operation == "check" && selectedRelease.isEmpty()) {
+        resetPreflight("无匹配版本");
+        preflightValues.last()->setText("无候选清单");
         availableVersion->setText("无兼容更新");
         releaseSummary->setText("未发现匹配当前设备与应用版本的可信发布。");
         status->setText(historical ? "历史检查完成：无兼容更新。" : "检查完成：无兼容更新。");
@@ -378,6 +393,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         .match(selectedRelease["version"].toString()).hasMatch() &&
         QRegularExpression("^[a-f0-9]{64}$").match(selectedRelease["package_sha256"].toString()).hasMatch();
     if (!candidateValid) {
+        resetPreflight("未验证");
         status->setText("系统返回的发布身份无效，未启动后续操作。");
         return;
     }
@@ -393,6 +409,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         releaseSummary->setText("应用包已下载并校验，安装前需要设备允许维护。");
         preflightValues.last()->setText("清单与应用包已验证");
     } else {
+        resetPreflight("未验证");
         status->setText("系统返回了未知任务类型。");
         return;
     }

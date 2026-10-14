@@ -23,6 +23,7 @@ class UpdatePanel : public QWidget
     void checkUpdates();
     void requestNative(const QString &method, const QJsonObject &params);
     void nativeResult(int code, QProcess::ExitStatus exitStatus);
+    void resetPreflight(const QString &text);
     void downloadUpdate();
     void installUpdate();
     QString configPath = "/etc/dshancontrol/updater.json";

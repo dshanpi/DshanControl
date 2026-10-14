@@ -246,6 +246,54 @@ class HmiUiTest : public QObject
         QVERIFY(!panel.taskPoll.isActive()); // Failure does not start another request.
     }
 
+    void nativeEmptyAndFailedCheckClearPendingLabels()
+    {
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        auto write = [&](const QString &name, const QByteArray &bytes) {
+            QFile file(temp.path() + "/" + name);
+            return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
+        };
+        QVERIFY(QDir().mkpath(temp.path() + "/current"));
+        QVERIFY(write("current/installed.json", "{\"version\":\"0.1.0-dev\"}"));
+        QVERIFY(write("system.json", "{\"board_id\":\"fixture-board\",\"contract_id\":\"fixture-contract\"}"));
+        QVERIFY(write("public.pem", "fixture-only public key placeholder"));
+        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\ncat result\n"));
+        QVERIFY(QFile::setPermissions(temp.path() + "/updater", QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QJsonObject config{{"task_service", true}, {"application_root", temp.path()},
+            {"system_contract", temp.path() + "/system.json"}, {"public_key", temp.path() + "/public.pem"}};
+        QVERIFY(write("updater.json", QJsonDocument(config).toJson()));
+        QVERIFY(write("result", "null"));
+        UpdatePanel panel;
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
+        panel.configPath = temp.path() + "/updater.json";
+        panel.updaterExecutable = temp.path() + "/updater";
+        const QString id(32, 'e');
+        QJsonObject task{{"task_id", id}, {"operation", "check"}, {"status", "running"},
+                         {"stage", "checking"}, {"candidate", QJsonValue::Null}};
+        QVERIFY(write("result", QJsonDocument(task).toJson()));
+        panel.checkUpdates();
+        QTRY_VERIFY(panel.taskPoll.isActive());
+        for (auto *label : panel.preflightValues) QCOMPARE(label->text(), QString("检查中"));
+        task["status"] = "success";
+        task["stage"] = "completed";
+        QVERIFY(write("result", QJsonDocument(task).toJson()));
+        QTRY_COMPARE(panel.status->text(), QString("检查完成：无兼容更新。"));
+        QCOMPARE(panel.preflightValues[0]->text(), QString("无匹配版本"));
+        QCOMPARE(panel.preflightValues[1]->text(), QString("无匹配版本"));
+        QCOMPARE(panel.preflightValues[2]->text(), QString("无候选清单"));
+        QVERIFY(!panel.download->isEnabled() && !panel.install->isEnabled());
+        task["task_id"] = QString(32, 'f');
+        task["status"] = "failed";
+        task["error"] = QJsonObject{{"stage", "download"}, {"code", "network-timeout"}, {"message", "fixture timeout"}};
+        QVERIFY(write("result", QJsonDocument(task).toJson()));
+        panel.checkUpdates();
+        QTRY_VERIFY(panel.status->text().contains("network-timeout"));
+        for (auto *label : panel.preflightValues) QCOMPARE(label->text(), QString("查看失败原因"));
+        QVERIFY(!panel.taskPoll.isActive());
+        QVERIFY(!panel.download->isEnabled() && !panel.install->isEnabled());
+    }
+
     void responsiveScreens()
     {
         MainWindow w;
