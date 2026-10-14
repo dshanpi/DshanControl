@@ -46,6 +46,35 @@ class NativeUpdateCliTests(reference.UpdateCliTests):
         self.cli(expected=1, message='duplicate json key')
         self.assertEqual([], self.operations())
 
+    def test_health_failure_keeps_exit_code_after_successful_rollback(self):
+        self.hook.write_text(self.hook.read_text().replace(
+            "sys.exit(1)\n", "print('PRIVATE_HOOK_OUTPUT_MUST_NOT_LEAK'); sys.exit(73)\n"))
+        self.mode('bad-new')
+        result = self.cli(expected=1)
+        error = json.loads(result.stderr)
+        self.assertEqual('health', error['stage'])
+        self.assertEqual('73', error['code'])
+        self.assertNotIn('PRIVATE_HOOK_OUTPUT_MUST_NOT_LEAK', result.stderr + result.stdout)
+        self.assertEqual('factory', self.f.updater.current_path().name)
+        self.assertFalse((self.f.app / 'transaction.json').exists())
+        self.assertEqual(1, self.f.updater.state()['high_water'])
+        operations = self.operations()
+        self.cli(expected=1, message='replayed or downgraded')
+        self.assertEqual(operations, self.operations())
+
+    def test_failed_rollback_preserves_original_health_and_recovery_exit_codes(self):
+        self.hook.write_text(self.hook.read_text().replace(
+            "sys.exit(1)\n", "sys.exit(74 if current == 'factory' else 73)\n"))
+        self.mode('bad-all')
+        error = json.loads(self.cli(expected=1).stderr)
+        self.assertEqual('health', error['stage'])
+        self.assertEqual('73', error['code'])
+        self.assertIn('74 at rollback', error['message'])
+        self.assertTrue((self.f.app / 'transaction.json').exists())
+        self.mode('ok')
+        self.cli('recover')
+        self.assertFalse((self.f.app / 'transaction.json').exists())
+
     def test_production_refuses_unknown_storage_before_writing_or_hooks(self):
         self.f.config['development_mode'] = False
         reference.fixtures.atomic_json(self.config, self.f.config)

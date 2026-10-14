@@ -242,12 +242,17 @@ bool NativeUpdater::hook(const QString &operation, bool checked) {
   bool ok = started && !timeout &&
             process.exitStatus() == QProcess::NormalExit &&
             process.exitCode() == 0;
+  hookFailureCode = ok ? QString()
+                      : !started ? QString("hook-start-failed")
+                      : timeout ? QString("hook-timeout")
+                      : process.exitStatus() != QProcess::NormalExit
+                          ? QString("hook-crashed")
+                          : QString::number(process.exitCode());
   // Do not echo hook stdout/stderr; it can contain site credentials. Keep the
   // raw exit code.
   if (checked && !ok)
-    throw Failure(timeout ? "hook-timeout"
-                          : QString::number(process.exitCode()),
-                  operation, "System hook failed: " + operation);
+    throw Failure(hookFailureCode, operation,
+                  "System hook failed: " + operation);
   return ok;
 }
 bool NativeUpdater::healthy() {
@@ -291,8 +296,9 @@ void NativeUpdater::rollback(const QJsonObject &tx) {
   hook("stop");
   switchTo(tx["old"].toString());
   hook("start");
-  require(healthy(), "Rollback health failed; transaction retained", "rollback",
-          "rollback-health-failed");
+  if (!healthy())
+    throw Failure(hookFailureCode, "rollback",
+                  "Rollback health failed; transaction retained");
   auto value = state();
   auto failed = value["failed"].toArray();
   if (!failed.contains(tx["new"]))
@@ -400,8 +406,8 @@ QString NativeUpdater::install(const QString &manifestPath,
     progress("starting");
     hook("start");
     progress("health");
-    require(healthy(), "New application health failed", "health",
-            "health-failed");
+    if (!healthy())
+      throw Failure(hookFailureCode, "health", "New application health failed");
     tx["phase"] = "committed";
     durableJson(root + "/transaction.json", tx);
     removeFile(root + "/transaction.json");
@@ -412,7 +418,7 @@ QString NativeUpdater::install(const QString &manifestPath,
     } catch (const Failure &recovery) {
       throw Failure(original.code, original.stage,
                     original.detail + "; recovery failed: " + recovery.code +
-                        " (transaction retained)");
+                        " at " + recovery.stage + " (transaction retained)");
     }
     throw;
   }
