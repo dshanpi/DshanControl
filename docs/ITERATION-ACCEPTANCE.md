@@ -1052,3 +1052,11 @@ initTestCase 显式创建输出目录并检查成功，所有截图/触摸断言
 
 修正后本机在全新空目录执行完整 Qt 测试，34 passed/0 failed/0 skipped，退出0。
 证据 dist/ci-fix-20261014/clean-ui-test.log；未复用原 dist/ui-test/screenshots。
+
+后续远端运行 38547340340 的亮度案例已通过，make test 仍通过；Qt 的 CSV 导出
+案例失败（提示完成但指定文件未出现）。固定测试为 Qt 文件对话框，分开设置输出
+目录/文件名，等待一个事件轮次并确认 selectedFiles 精确匹配后接受；增加有界等待，
+CSV 内容、导出快照、取消保留旧文件及写入失败断言均保持。全新工作目录及独立
+XDG_CONFIG_HOME 的 CSV 专项验证退出0，未修改产品导出功能。
+同样独立的完整 Qt 验证退出0：34 passed/0 failed/0 skipped，日志为
+dist/ci-fix-20261014/all-clean-test.log，随后上传继续验证远端。

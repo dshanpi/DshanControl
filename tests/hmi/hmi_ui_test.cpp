@@ -115,6 +115,7 @@ class HmiUiTest : public QObject
         // Each clean test run, including a single selected test, owns its output.
         // Do not depend on a later layout test to create this directory.
         QVERIFY(QDir().mkpath("screenshots"));
+        QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     }
 
     void brightnessTouchInteraction()
@@ -1160,11 +1161,26 @@ class HmiUiTest : public QObject
         const QString filename = folder.path() + "/visible.csv";
         auto *exportButton = w.findChild<QPushButton *>("alarmExport"); QVERIFY(exportButton);
         QStringList dialogs;
+        QString selectedDestination;
+        int dialogTicks = 0;
         QTimer dialogTimer;
         connect(&dialogTimer, &QTimer::timeout, &w, [&]() {
             if (auto *dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) {
+                if (++dialogTicks > 500) { dialog->reject(); return; }
+                // QFileSystemModel loads asynchronously. Set the directory and
+                // leaf name separately, then allow an event turn before accepting.
+                if (!dialog->property("exportFixturePrepared").toBool()) {
+                    dialog->setDirectory(folder.path());
+                    dialog->selectFile("visible.csv");
+                    dialog->setProperty("exportFixturePrepared", true);
+                    return;
+                }
+                selectedDestination = dialog->selectedFiles().value(0);
+                if (selectedDestination != filename) {
+                    dialog->selectFile("visible.csv");
+                    return;
+                }
                 dialogs << "save";
-                dialog->selectFile(filename);
                 // A timer refresh while choosing a filename must not change the export selection.
                 w.handleReply(new FixtureReply({{"ok", true}, {"alarms", QJsonArray{hidden}}}, "alarms"));
                 QMetaObject::invokeMethod(dialog, "accept");
@@ -1173,6 +1189,7 @@ class HmiUiTest : public QObject
             }
         });
         dialogTimer.start(10); exportButton->click(); dialogTimer.stop();
+        QCOMPARE(selectedDestination, filename);
         QVERIFY(dialogs.contains("导出完成"));
         QFile file(filename); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), expected); file.close();
         const QString output = qEnvironmentVariable("HMI_ALARM_CSV_OUT");
@@ -1188,7 +1205,8 @@ class HmiUiTest : public QObject
         connect(&dialogTimer, &QTimer::timeout, &w, [&]() {
             if (auto *dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) {
                 dialog->setOption(QFileDialog::DontConfirmOverwrite);
-                dialog->selectFile("/proc/version");
+                dialog->setDirectory("/proc");
+                dialog->selectFile("version");
                 QMetaObject::invokeMethod(dialog, "accept");
             } else if (auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
                 dialogs << box->windowTitle(); box->accept();
