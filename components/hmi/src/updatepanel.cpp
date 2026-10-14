@@ -40,6 +40,9 @@ QLabel *valueLabel()
 
 UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
 {
+    // Selected by the system launcher; RPC still enforces its fixed system scope.
+    configPath = qEnvironmentVariable("DSHANCONTROL_UPDATER_CONFIG", configPath);
+    updaterExecutable = qEnvironmentVariable("DSHANCONTROL_UPDATER_EXECUTABLE", updaterExecutable);
     auto *layout = new PageLayout(this);
     layout->setContentsMargins(12, 10, 12, 8);
     layout->setSpacing(6);

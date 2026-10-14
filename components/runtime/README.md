@@ -57,6 +57,9 @@ dshancontrol-runtime --config /etc/dshancontrol/updater.json recover
 原生 UI 模式由系统 updater.json 中的 JSON 布尔 `task_service=true` 启用；
 系统同时需要部署原生服务及将 `/usr/bin/dshancontrol-update` 指向原生运行端。
 没有该标记的旧基线继续保持原检查界面，不能仅设置标记就宣称基线可升级。
+系统启动器可用 DSHANCONTROL_UPDATER_CONFIG/DSHANCONTROL_UPDATER_EXECUTABLE
+选择系统拥有的配置和客户端，缺省路径保持兼容；HMI 的路径选择不改变原生服务的
+身份、签名和权限门禁。原生任务的 Unix socket 仍由系统固定，不接受 GUI 的网络目标。
 
 ## 独立任务服务
 
