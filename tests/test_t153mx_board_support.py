@@ -78,6 +78,23 @@ class T153mxBoardSupportTests(unittest.TestCase):
             for canonical, snapshot in pairs:
                 destination = sdk / snapshot.relative_to(BOARD / "overlay")
                 self.assertEqual(canonical.read_bytes(), destination.read_bytes())
+            package = sdk / 'buildroot/buildroot-202205/package/omnigate-hmi'
+            source = package / 'src'
+            self.assertEqual((ROOT / 'components/hmi/LICENSE').read_bytes(),
+                             (source / 'LICENSE').read_bytes())
+            (source / 'omnigate-hmi').write_text('test-only native placeholder')
+            target = sdk / 'test-target'
+            makefile = sdk / 'test-install.mk'
+            makefile.write_text('TOPDIR := ' + str(sdk / 'buildroot/buildroot-202205') + '\n'
+                                'TARGET_DIR := ' + str(target) + '\nINSTALL := install\n'
+                                'include ' + str(package / 'omnigate-hmi.mk') + '\n'
+                                'all: ' + str(source / 'install') + '\n'
+                                + str(source / 'install') + ':\n\t$(OMNIGATE_HMI_INSTALL_TARGET_CMDS)\n')
+            subprocess.run(['make', '-f', str(makefile), 'all'], check=True, stdout=subprocess.DEVNULL)
+            for original, installed in [('OFL.txt', 'DshanSans-OFL.txt'),
+                                        ('manifest.json', 'DshanSans-manifest.json')]:
+                self.assertEqual((source / 'fonts' / original).read_bytes(),
+                                 (target / 'usr/share/licenses/dshancontrol' / installed).read_bytes())
 
 
 

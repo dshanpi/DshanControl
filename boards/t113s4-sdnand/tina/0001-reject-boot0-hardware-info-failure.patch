@@ -1,0 +1,22 @@
+--- a/pack
++++ b/pack
+@@ -1176,7 +1176,7 @@
+ 		#card sprite
+ 		if [ -f "boot0_sdcard.fex" ]; then
+ 			update_boot0 boot0_sdcard.fex   sys_config.bin SDMMC_CARD > /dev/null
+-			update_chip boot0_sdcard.fex > /dev/null
++			update_chip boot0_sdcard.fex || LOGF "Boot0 SD hardware information generation failed; check buildserver"
+ 		fi
+ 
+ 		# Fixup boot mode for SPINor, just can bootm
+@@ -1192,8 +1192,8 @@
+ 		update_boot0 boot0_nand.fex     sys_config.bin NAND > /dev/null
+ 		update_boot0 boot0_sdcard.fex   sys_config.bin SDMMC_CARD > /dev/null
+ 		update_boot0 boot0_ufs.fex   sys_config.bin UFS > /dev/null
+-		update_chip boot0_nand.fex >/dev/null
+-		update_chip boot0_sdcard.fex >/dev/null
++		update_chip boot0_nand.fex || LOGF "Boot0 NAND hardware information generation failed; check buildserver"
++		update_chip boot0_sdcard.fex || LOGF "Boot0 SD hardware information generation failed; check buildserver"
+ 		update_chip boot0_ufs.fex >/dev/null
+ 
+ 		if [ -f pmboot_nand.fex ]; then

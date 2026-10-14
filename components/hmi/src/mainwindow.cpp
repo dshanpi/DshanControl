@@ -1,10 +1,14 @@
 #include "mainwindow.h"
+#include "updatepanel.h"
+#include "visuals.h"
 
 #include <QAbstractItemView>
 #include <QBoxLayout>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGroupBox>
@@ -15,30 +19,74 @@
 #include <QJsonValue>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMap>
 #include <QMessageBox>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
+#include <QResizeEvent>
+#include <QRegularExpression>
+#include <QSaveFile>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QScroller>
 #include <QSlider>
 #include <QSpinBox>
 #include <QStackedWidget>
-#include <QTableWidget>
+#include <QStyle>
+#include <QTabBar>
 #include <QTabWidget>
-#include <QtCharts/QChart>
-#include <QtCharts/QChartView>
-#include <QtCharts/QValueAxis>
+#include <QTableWidget>
 #include <QtMath>
+#include <cmath>
 
-namespace {
+namespace
+{
 const char *kBaseUrl = "http://127.0.0.1/api/hmi/v1";
-const QColor kPanel("#22292f");
-const QColor kGrid("#3b464e");
-const QColor kText("#e6ecef");
-const QColor kMuted("#a8b3ba");
-const QColor kSuccess("#4fc38d");
-const QColor kWarning("#e0a84b");
-const QColor kDanger("#e06b6b");
+const QColor kGrid("#d9e3ef");
+const QColor kText("#18324f");
+const QColor kMuted("#61758b");
+const QColor kSuccess("#168366");
+const QColor kWarning("#a3650c");
+const QColor kDanger("#cf4555");
+
+QStringList controlDevices(const QJsonObject &snapshot, const QString &kind, const QString &role)
+{
+    const auto platform = snapshot["platform"].toObject();
+    if (!platform["capabilities"].toArray().contains(role))
+        return {};
+    QStringList devices;
+    const auto channels = platform["channels"].toObject();
+    for (const auto &value : channels) {
+        const auto channel = value.toObject();
+        const QString device = channel["device"].toString();
+        if (channel["kind"].toString() == kind && channel["role"].toString() == role &&
+            !device.trimmed().isEmpty())
+            devices << device;
+    }
+    return devices;
+}
+
+QJsonObject cellularMapping(const QJsonObject &snapshot, const QString &profile)
+{
+    const auto platform = snapshot["platform"].toObject();
+    const auto mapping = snapshot["cellular"].toObject()[profile].toObject();
+    const QString device = mapping["device"].toString();
+    const QString interface = mapping["interface"].toString();
+    if (!platform["capabilities"].toArray().contains("dual-cellular") ||
+        device.trimmed().isEmpty() || interface.trimmed().isEmpty())
+        return {};
+    const auto channels = platform["channels"].toObject();
+    for (const auto &value : channels) {
+        const auto channel = value.toObject();
+        const auto role = channel["role"].toString();
+        if (channel["kind"].toString() == "cellular" && channel["device"].toString() == device &&
+            (role == "wan" || role == "wan-backup"))
+            return {{"device", device}, {"interface", interface}};
+    }
+    return {};
+}
 
 QLabel *titleLabel(const QString &text)
 {
@@ -51,23 +99,28 @@ QLabel *captionLabel(const QString &text)
 {
     QLabel *label = new QLabel(text);
     label->setObjectName("caption");
+    label->setWordWrap(true);
     return label;
 }
 
-QFrame *rule(Qt::Orientation orientation)
+QWidget *iconLabel(const QString &symbol, const QString &title)
 {
-    QFrame *line = new QFrame;
-    line->setObjectName("rule");
-    line->setFrameShape(orientation == Qt::Horizontal ? QFrame::HLine : QFrame::VLine);
-    if (orientation == Qt::Horizontal) line->setFixedHeight(1);
-    else line->setFixedWidth(1);
-    return line;
+    auto *label = new QWidget;
+    auto *row = new QHBoxLayout(label);
+    row->setContentsMargins(0, 0, 6, 0);
+    row->setSpacing(10);
+    auto *icon = new QLabel;
+    icon->setPixmap(Visuals::icon(symbol).pixmap(24, 24));
+    row->addWidget(icon);
+    row->addWidget(new QLabel(title));
+    return label;
 }
 
 QTableWidgetItem *cell(const QString &text, const QColor &color = kText)
 {
     QTableWidgetItem *item = new QTableWidgetItem(text);
     item->setForeground(color);
+    item->setToolTip(text);
     item->setTextAlignment(Qt::AlignVCenter | Qt::AlignLeft);
     return item;
 }
@@ -76,63 +129,51 @@ QLineEdit *edit(const QString &value, const QString &placeholder = QString())
 {
     QLineEdit *e = new QLineEdit(value);
     e->setPlaceholderText(placeholder);
-    e->setMinimumHeight(42);
+    e->setMinimumHeight(44);
+    e->setMinimumWidth(60);
     return e;
 }
 
-}
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    resize(1024, 768);
-    setWindowTitle("OmniGate 工业边缘网关");
+    resize(1024, 600);
+    setWindowTitle("DshanControl 工业控制桌面");
+    Visuals::initializeFonts();
     applyTheme();
 
     QWidget *root = new QWidget;
     QVBoxLayout *rootLayout = new QVBoxLayout(root);
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
-
     QFrame *header = new QFrame;
     header->setObjectName("header");
-    header->setFixedHeight(56);
+    header->setFixedHeight(40);
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
-    headerLayout->setContentsMargins(18, 0, 18, 0);
-    QLabel *mark = new QLabel("OG");
+    headerLayout->setContentsMargins(16, 0, 16, 0);
+    headerLayout->setSpacing(10);
+    QLabel *mark = new QLabel("D");
     mark->setObjectName("brandMark");
-    mark->setFixedSize(34, 34);
+    mark->setFixedSize(27, 27);
     mark->setAlignment(Qt::AlignCenter);
-    QLabel *brand = new QLabel("OMNIGATE   工业边缘网关");
-    brand->setObjectName("brand");
     headerLayout->addWidget(mark);
-    headerLayout->addSpacing(10);
+    QLabel *brand = new QLabel("DshanControl");
+    brand->setObjectName("brand");
     headerLayout->addWidget(brand);
-    headerLayout->addSpacing(24);
-    cpuValue = new QLabel("CPU --");
-    memoryValue = new QLabel("内存 --");
-    temperatureValue = new QLabel("温度 --");
-    storageValue = new QLabel("存储 --");
-    for (QLabel *label : {cpuValue, memoryValue, temperatureValue, storageValue}) {
-        label->setObjectName("headerMetric");
-        headerLayout->addWidget(label);
-        headerLayout->addSpacing(14);
-    }
+    QLabel *brandSubtitle = new QLabel("工业控制桌面");
+    brandSubtitle->setObjectName("brandSubtitle");
+    headerLayout->addWidget(brandSubtitle);
     headerLayout->addStretch();
-    demoBadge = new QLabel("演示");
+    demoBadge = new QLabel("演示数据");
     demoBadge->setObjectName("demoBadge");
-    demoBadge->setVisible(false);
-    alarmSummaryLabel = new QLabel("报警 --");
-    alarmSummaryLabel->setObjectName("alarmSummary");
+    demoBadge->hide();
+    headerLayout->addWidget(demoBadge);
     connectionLabel = new QLabel("● 正在连接");
     connectionLabel->setObjectName("connection");
+    headerLayout->addWidget(connectionLabel);
     clockLabel = new QLabel;
     clockLabel->setObjectName("clock");
-    headerLayout->addWidget(demoBadge);
-    headerLayout->addSpacing(14);
-    headerLayout->addWidget(alarmSummaryLabel);
-    headerLayout->addSpacing(18);
-    headerLayout->addWidget(connectionLabel);
-    headerLayout->addSpacing(18);
     headerLayout->addWidget(clockLabel);
     rootLayout->addWidget(header);
 
@@ -140,51 +181,73 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QHBoxLayout *bodyLayout = new QHBoxLayout(body);
     bodyLayout->setContentsMargins(0, 0, 0, 0);
     bodyLayout->setSpacing(0);
-    QFrame *nav = new QFrame;
+    nav = new QFrame;
     nav->setObjectName("nav");
-    nav->setFixedWidth(158);
+    nav->setFixedWidth(140);
     QVBoxLayout *navLayout = new QVBoxLayout(nav);
-    navLayout->setContentsMargins(0, 14, 0, 12);
-    navLayout->setSpacing(4);
-    QLabel *navTitle = new QLabel("功能导航");
-    navTitle->setObjectName("navTitle");
-    navLayout->addWidget(navTitle);
-    navLayout->addSpacing(6);
-    const QStringList names = {"01  运行总览", "02  现场总线", "03  网络通信", "04  设备监控", "05  告警记录", "06  系统设置"};
+    navLayout->setContentsMargins(5, 11, 5, 12);
+    navLayout->setSpacing(6);
+    const QStringList names = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置"};
+    const QStringList symbols = {"bars", "topology", "globe", "monitor", "bell", "settings"};
     for (int i = 0; i < names.size(); ++i) {
-        QPushButton *button = new QPushButton(names[i]);
+        QPushButton *button = new NavigationButton(names[i], symbols[i]);
         button->setObjectName("navButton");
+        button->setAccessibleName(names[i]);
+        button->setToolTip(names[i]);
         button->setCheckable(true);
-        button->setMinimumHeight(54);
+        button->setMinimumHeight(44);
         connect(button, &QPushButton::clicked, this, [this, i]() { showPage(i); });
         navButtons << button;
         navLayout->addWidget(button);
     }
     navLayout->addStretch();
-    QLabel *model = new QLabel("T153MX\nEDGE CONTROLLER");
-    model->setObjectName("navModel");
-    navLayout->addWidget(model);
+    navModel = new QLabel("▣   工程预览");
+    navModel->setObjectName("navModel");
+    navModel->setWordWrap(true);
+    navLayout->addWidget(navModel);
+    navModel->hide();
     bodyLayout->addWidget(nav);
-
     pages = new QStackedWidget;
     pages->setObjectName("pages");
-    pages->addWidget(buildOverview());
-    pages->addWidget(buildFieldbus());
-    pages->addWidget(buildNetwork());
-    pages->addWidget(buildDevices());
-    pages->addWidget(buildAlarms());
-    pages->addWidget(buildSettings());
+    for (QWidget *page :
+         {buildOverview(), buildFieldbus(), buildNetwork(), buildDevices(), buildAlarms(), buildSettings()}) {
+        pages->addWidget(scrollPage(page));
+    }
     bodyLayout->addWidget(pages, 1);
     rootLayout->addWidget(body, 1);
 
+    QFrame *footer = new QFrame;
+    footer->setObjectName("footer");
+    footer->setFixedHeight(32);
+    QHBoxLayout *footerLayout = new QHBoxLayout(footer);
+    footerLayout->setContentsMargins(14, 0, 14, 0);
+    cpuValue = new QLabel("CPU --");
+    memoryValue = new QLabel("内存 --");
+    temperatureValue = new QLabel("温度 --");
+    storageValue = new QLabel("存储 --");
+    for (QLabel *label : {cpuValue, memoryValue, storageValue}) {
+        label->setObjectName("headerMetric");
+        footerLayout->addWidget(label);
+        auto *separator = new QLabel("│");
+        separator->setObjectName("caption");
+        footerLayout->addWidget(separator);
+    }
+    temperatureValue->hide();
+    refreshValue = new QLabel("数据刷新  --");
+    refreshValue->setObjectName("headerMetric");
+    footerLayout->addWidget(refreshValue);
+    footerLayout->addStretch();
+    alarmSummaryLabel = new QLabel("活动告警 --");
+    footerLayout->addWidget(alarmSummaryLabel);
+    rootLayout->addWidget(footer);
     setCentralWidget(root);
+    for (const auto &control : capabilityControls)
+        control.first->setEnabled(false);
 
-    connect(&networkManager, &QNetworkAccessManager::finished,
-            this, &MainWindow::handleReply);
+    connect(&networkManager, &QNetworkAccessManager::finished, this, &MainWindow::handleReply);
     connect(&refreshTimer, &QTimer::timeout, this, &MainWindow::requestSnapshot);
-    connect(&pageTimer, &QTimer::timeout, this, [this]() {
-        showPage((pages->currentIndex() + 1) % pages->count());
-    });
+    connect(&pageTimer, &QTimer::timeout, this,
+            [this]() { showPage((pages->currentIndex() + 1) % pages->count()); });
     refreshTimer.start(1000);
     showPage(0);
     requestSnapshot();
@@ -193,91 +256,122 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::applyTheme()
 {
     setStyleSheet(R"(
-        * { font-family: "WenQuanYi Zen Hei"; font-size: 14px; color: #e6ecef; }
-        QMainWindow, QWidget#pages, QStackedWidget { background: #171c20; }
-        QFrame#header { background: #1b2126; border-bottom: 1px solid #3b464e; }
-        QFrame#nav { background: #1b2126; border-right: 1px solid #3b464e; }
-        QLabel#brandMark { color: #e6ecef; background: transparent; border: 1px solid #59656e; font-weight: 700; font-size: 15px; }
-        QLabel#brand { font-size: 18px; font-weight: 700; color: #e6ecef; }
-        QLabel#clock { font-size: 13px; color: #e6ecef; }
-        QLabel#connection, QLabel#alarmSummary { color: #e6ecef; }
-        QLabel#headerMetric { font-size: 12px; color: #e6ecef; }
-        QLabel#demoBadge { color: #f2c879; background: #3a3020; border: 1px solid #806b3c; padding: 3px 7px; }
-        QLabel#navTitle { color: #a8b3ba; font-size: 12px; padding-left: 20px; }
-        QLabel#navModel { color: #a8b3ba; font-size: 11px; padding: 12px 20px; border-top: 1px solid #3b464e; }
-        QLabel#sectionTitle { font-size: 17px; font-weight: 700; color: #e6ecef; }
-        QLabel#caption { font-size: 12px; color: #a8b3ba; }
-        QLabel#panelTitle { font-size: 13px; font-weight: 700; color: #e6ecef; }
-        QLabel#statusName { font-size: 12px; color: #a8b3ba; }
-        QLabel#statusValue { font-size: 16px; font-weight: 700; color: #e6ecef; }
-        QLabel#nodeName { font-size: 15px; font-weight: 700; color: #e6ecef; }
-        QLabel#nodeState { font-size: 12px; color: #a8b3ba; }
-        QLabel#gatewayTitle { font-size: 18px; font-weight: 700; color: #e6ecef; }
-        QLabel#gatewaySub { font-size: 12px; color: #a8b3ba; }
-        QPushButton#navButton { border: none; border-radius: 0; text-align: left; padding-left: 24px;
-                                color: #d6dde1; background: transparent; font-size: 14px; font-weight: 400; }
-        QPushButton#navButton:checked { background: #2c353c; color: #ffffff; border-left: 5px solid #e0a84b; font-weight: 700; }
-        QPushButton#navButton:pressed { background: #3b464e; color: #ffffff; }
-        QPushButton { min-height: 38px; border-radius: 2px; padding: 0 14px; font-weight: 600;
-                      color: #f2f4f5; background: #505c65; border: 1px solid #69757e; }
-        QPushButton:pressed { background: #3b464e; }
-        QPushButton[kind="danger"] { background: #493438; border-color: #e06b6b; }
-        QPushButton[kind="secondary"] { color: #e6ecef; background: #30383e; border-color: #59656e; }
-        QFrame#card, QFrame#panel, QGroupBox { background: #22292f; border: 1px solid #3b464e; border-radius: 1px; }
-        QFrame#gateway { background: #1b2126; border: 2px solid #e0a84b; }
-        QFrame#ioNode { background: #22292f; border: 1px solid #3b464e; border-left: 4px solid #e0a84b; }
-        QFrame#ioNode[online="true"] { border-left: 4px solid #4fc38d; }
-        QFrame#rule { color: #3b464e; background: #3b464e; border: none; }
-        QGroupBox { margin-top: 14px; padding: 12px; font-weight: 700; font-size: 15px; }
-        QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 7px; }
-        QTableWidget { background: #22292f; alternate-background-color: #293138; border: 1px solid #3b464e;
-                       border-radius: 0; gridline-color: #3b464e; selection-background-color: #46525b; }
-        QHeaderView::section { background: #30383e; color: #e6ecef; border: none; border-right: 1px solid #3b464e;
-                               border-bottom: 1px solid #3b464e; min-height: 36px; padding: 4px; font-weight: 700; }
+        * { font-family: "Dshan Sans"; font-size: 14px; color: #092650; }
+        QMainWindow, QWidget#pages, QStackedWidget, QWidget#pageSurface { background: #f2f7fd; }
+        QFrame#header, QFrame#footer { background: white; border-bottom: 1px solid #d9e3ef; }
+        QFrame#footer { border-top: 1px solid #d9e3ef; }
+        QFrame#nav { background: #e8f3ff; border-right: 1px solid #d9e3ef; }
+        QLabel#brandMark { color: white; background: #0062ff; border-radius: 5px; font-size: 23px; font-weight: 700; }
+        QLabel#brand { font-size: 20px; font-weight: 700; }
+        QLabel#brandSubtitle { font-size: 13px; color: #193960; }
+        QLabel#clock, QLabel#headerMetric, QLabel#navModel { color: #395784; font-size: 12px; }
+        QLabel#navModel { padding: 8px 2px; border-top: 1px solid #d9e3ef; }
+        QLabel#infoNote { color: #0062ff; background: #e9f4ff; border-radius: 4px; padding: 12px; font-size: 12px; }
+        QLabel#warningNote { color: #b86c00; background: #fff7e7; border: 1px solid #f4d9a3; border-radius: 4px; padding: 10px; font-size: 12px; }
+        QLabel#demoBadge { color: #935a09; background: #fff1d7; padding: 4px 8px; border-radius: 4px; }
+        QLabel#sectionTitle { font-size: 27px; font-weight: 700; }
+        QLabel#caption, QLabel#nodeState, QLabel#gatewaySub, QLabel#statusName { color: #61758b; font-size: 13px; }
+        QLabel#panelTitle, QLabel#nodeName { font-size: 17px; font-weight: 700; }
+        QLabel#statusValue, QLabel#gatewayTitle { font-size: 18px; font-weight: 700; }
+        QPushButton { min-height: 44px; border-radius: 4px; padding: 0 12px;
+                      color: white; background: #0062ff; border: 1px solid #0062ff; }
+        QPushButton:pressed { background: #0d46a0; }
+        QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border: 2px solid #0062ff; }
+        QPushButton:disabled { color: #718096; background: #e8edf4; border-color: #d9e3ef; }
+        QPushButton[kind="secondary"] { color: #0062ff; background: white; border-color: #bbcde4; }
+        QPushButton[kind="danger"] { color: #b52f40; background: #fff4f5; border-color: #e9b9c0; }
+        QPushButton[kind="secondary"]:disabled, QPushButton[kind="danger"]:disabled { color: #8190a5; background: #e8edf4; border-color: #d9e3ef; }
+        QPushButton#navButton { color: #385371; background: transparent; border: 1px solid transparent; padding: 0 4px; }
+        QPushButton#navButton:checked { background: #0062ff; color: white; font-weight: 700; }
+        QPushButton#navButton:focus { border: 2px solid #719ce0; }
+        QFrame#card, QFrame#panel, QGroupBox { background: white; border: 1px solid #d9e3ef; border-radius: 5px; }
+        QFrame#gateway { background: #eaf2ff; border: 1px solid #8db5ef; border-radius: 5px; }
+        QFrame#ioNode { background: #f7faff; border: 1px solid #d9e3ef; border-left: 3px solid #0062ff; border-radius: 4px; }
+        QFrame#rule { background: #d9e3ef; border: none; }
+        QGroupBox { margin-top: 0; padding: 34px 12px 12px 12px; font-weight: 700; font-size: 16px; }
+        QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; top: 10px; left: 12px; padding: 0; }
+        QTableWidget { background: white; alternate-background-color: #f5f8fd; border: 1px solid #d9e3ef;
+                       gridline-color: #e6edf5; selection-background-color: #dbeaff; selection-color: #123c70; }
+        QHeaderView::section { background: #edf3fb; color: #49627d; border: none;
+                               border-bottom: 1px solid #d9e3ef; min-height: 24px; padding: 4px; }
         QTableWidget::item { padding: 5px; }
-        QLineEdit, QComboBox, QSpinBox { background: #1b2126; border: 1px solid #59656e; border-radius: 2px;
-                                        min-height: 38px; padding: 0 9px; }
-        QComboBox QAbstractItemView { background: #22292f; selection-background-color: #46525b; }
-        QTabWidget::pane { border: 1px solid #3b464e; background: #22292f; }
-        QTabBar::tab { background: #293138; color: #a8b3ba; padding: 10px 22px; border-right: 1px solid #3b464e; }
-        QTabBar::tab:selected { color: #ffffff; background: #46525b; }
-        QCheckBox { spacing: 10px; }
-        QSlider::groove:horizontal { height: 7px; background: #3b464e; border-radius: 1px; }
-        QSlider::handle:horizontal { width: 20px; margin: -7px 0; background: #8c989f; border-radius: 2px; }
-        QSlider::sub-page:horizontal { background: #e0a84b; border-radius: 1px; }
-        QScrollArea { border: none; background: transparent; }
+        QLabel#valueText { color: #0062ff; font-weight: 700; }
+        QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled { background: #edf3fb; color: #8197b2; border-color: #d9e3ef; }
+        QLineEdit, QComboBox, QSpinBox { background: white; border: 1px solid #bbcde4; border-radius: 4px;
+                                        min-height: 42px; padding: 0 8px; }
+        QComboBox::drop-down { width: 28px; border-left: 1px solid #d9e3ef; }
+        QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 25px; height: 17px; border-left: 1px solid #d9e3ef; }
+        QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 25px; height: 17px; border-left: 1px solid #d9e3ef; }
+        QSpinBox::up-arrow { image: url(:/hmi/icons/up.xpm); width: 9px; height: 5px; }
+        QSpinBox::down-arrow { image: url(:/hmi/icons/down.xpm); width: 9px; height: 5px; }
+        QComboBox::down-arrow { image: url(:/hmi/icons/down.xpm); width: 9px; height: 5px; }
+        QComboBox QAbstractItemView { background: white; selection-background-color: #dbeaff; selection-color: #092650; }
+        QTabWidget::pane { border: 1px solid #d9e3ef; background: white; border-radius: 4px; }
+        QTabBar::tab { background: white; color: #395784; min-height: 42px; padding: 0 22px; border-bottom: 1px solid #d9e3ef; }
+        QTabBar::tab:selected { color: #0062ff; background: white; border-bottom: 3px solid #0062ff; font-weight: 700; }
+        QTabBar::tab:focus { border: 1px solid #0062ff; }
+        QCheckBox { spacing: 8px; min-height: 44px; }
+        QCheckBox::indicator { width: 24px; height: 24px; }
+        QSlider { min-height: 48px; }
+        QSlider::groove:horizontal { height: 6px; background: #d9e3ef; border-radius: 3px; }
+        QSlider::handle:horizontal { width: 28px; margin: -12px 0; background: white; border: 2px solid #0062ff; border-radius: 15px; }
+        QSlider::sub-page:horizontal { background: #0062ff; }
+        QScrollArea { border: none; background: #f2f7fd; }
+        QScrollBar:vertical { background: #edf3fb; width: 14px; margin: 0; }
+        QScrollBar::handle:vertical { background: #a6bbd6; min-height: 44px; border-radius: 5px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        QToolTip { background: white; color: #092650; border: 1px solid #bbcde4; }
     )");
 }
 
-QWidget *MainWindow::metricCard(const QString &title, QLabel **value, const QString &color)
+QWidget *MainWindow::scrollPage(QWidget *page)
 {
-    Q_UNUSED(color);
-    QFrame *card = new QFrame;
-    card->setObjectName("card");
-    card->setMinimumHeight(72);
-    QVBoxLayout *layout = new QVBoxLayout(card);
-    layout->setContentsMargins(14, 8, 14, 8);
-    QLabel *name = new QLabel(title);
-    name->setObjectName("cardTitle");
-    *value = new QLabel("--");
-    (*value)->setObjectName("cardValue");
-    (*value)->setStyleSheet("color:#e6ecef;");
-    layout->addWidget(name);
-    layout->addWidget(*value);
-    return card;
+    QScrollArea *scroll = new QScrollArea;
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    if (page->objectName().isEmpty())
+        page->setObjectName(qobject_cast<QGroupBox *>(page) ? "formPanel" : "pageSurface");
+    scroll->setWidget(page);
+    QScroller::grabGesture(scroll->viewport(), QScroller::TouchGesture);
+    return scroll;
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    screenResolution->setText(QString("%1 × %2（已检测）").arg(width()).arg(height()));
+    const bool compact = width() < 900;
+    const bool narrow = width() < 700;
+    nav->setFixedWidth(compact ? 68 : 140);
+    const QStringList full = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置"};
+    const QStringList shortNames = {"总览", "总线", "网络", "监控", "告警", "设置"};
+    for (int i = 0; i < navButtons.size(); ++i)
+        navButtons[i]->setText(compact ? shortNames[i] : full[i]);
+    navModel->setVisible(!compact);
+    if (auto *label = findChild<QLabel *>("brandSubtitle"))
+        label->setVisible(!compact);
+    clockLabel->setVisible(!narrow);
+    temperatureValue->hide();
+    storageValue->setVisible(!narrow);
+    for (QBoxLayout *layout : responsiveRows)
+        layout->setDirection(narrow ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
 }
 
 QTableWidget *MainWindow::makeTable(const QStringList &headers)
 {
-    QTableWidget *table = new QTableWidget(0, headers.size());
+    QTableWidget *table = new DataTable(headers.size());
     table->setHorizontalHeaderLabels(headers);
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table->verticalHeader()->hide();
     table->setAlternatingRowColors(true);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    table->setFocusPolicy(Qt::NoFocus);
-    table->verticalHeader()->setDefaultSectionSize(38);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setMinimumSize(0, 130);
+    table->setSizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored);
+    table->horizontalHeader()->setMinimumSectionSize(60);
+    QScroller::grabGesture(table->viewport(), QScroller::TouchGesture);
+    table->verticalHeader()->setDefaultSectionSize(44);
     return table;
 }
 
@@ -288,544 +382,1619 @@ QPushButton *MainWindow::actionButton(const QString &text, const QString &kind)
     return button;
 }
 
-static QChartView *createTrend(QList<QLineSeries *> &seriesOut, bool compact)
-{
-    QChart *chart = new QChart;
-    chart->setBackgroundBrush(kPanel);
-    chart->setPlotAreaBackgroundBrush(kPanel);
-    chart->setPlotAreaBackgroundVisible(true);
-    chart->legend()->setLabelColor(kText);
-    chart->setMargins(QMargins(8, 4, 8, 4));
-    const QStringList names = {"温度", "压力", "流量"};
-    const QList<QColor> colors = {kWarning, kSuccess, kDanger};
-    for (int i = 0; i < 3; ++i) {
-        QLineSeries *series = new QLineSeries;
-        series->setName(names[i]);
-        QPen pen(colors[i]);
-        pen.setWidth(2);
-        if (i == 1) pen.setStyle(Qt::DashLine);
-        if (i == 2) pen.setStyle(Qt::DotLine);
-        series->setPen(pen);
-        chart->addSeries(series);
-        seriesOut << series;
-    }
-    QValueAxis *axisX = new QValueAxis;
-    axisX->setRange(0, 59); axisX->setLabelFormat("%d"); axisX->setTickCount(7);
-    QValueAxis *axisY = new QValueAxis;
-    axisY->setRange(0, 100); axisY->setTickCount(5);
-    for (QValueAxis *axis : {axisX, axisY}) {
-        axis->setLabelsColor(kMuted);
-        axis->setGridLineColor(kGrid);
-        axis->setLinePenColor(kGrid);
-    }
-    chart->addAxis(axisX, Qt::AlignBottom);
-    chart->addAxis(axisY, Qt::AlignLeft);
-    for (QLineSeries *series : seriesOut) { series->attachAxis(axisX); series->attachAxis(axisY); }
-    QChartView *view = new QChartView(chart);
-    view->setFrameShape(QFrame::NoFrame);
-    view->setBackgroundBrush(kPanel);
-    view->viewport()->setStyleSheet("background:#22292f; border:none;");
-    view->setRenderHint(QPainter::Antialiasing, false);
-    view->setMinimumHeight(compact ? 190 : 280);
-    return view;
-}
-
 QWidget *MainWindow::buildOverview()
 {
-    QWidget *page = new QWidget;
-    QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(16, 12, 16, 12);
-    layout->setSpacing(9);
-
-    QHBoxLayout *pageHead = new QHBoxLayout;
-    pageHead->addWidget(titleLabel("运行总览"));
-    pageHead->addSpacing(12);
-    pageHead->addWidget(captionLabel("现场接口、网关和上行链路的实时运行关系"));
-    pageHead->addStretch();
-    pageHead->addWidget(captionLabel("数据刷新：1 秒"));
-    layout->addLayout(pageHead);
-
-    auto ioNode = [](const QString &name, const QString &detail, QLabel **state) {
-        QFrame *node = new QFrame;
-        node->setObjectName("ioNode");
-        node->setMinimumHeight(55);
-        QHBoxLayout *row = new QHBoxLayout(node);
-        row->setContentsMargins(11, 6, 10, 6);
-        QVBoxLayout *text = new QVBoxLayout;
-        text->setSpacing(1);
-        QLabel *nodeName = new QLabel(name); nodeName->setObjectName("nodeName");
-        QLabel *nodeDetail = new QLabel(detail); nodeDetail->setObjectName("nodeState");
-        text->addWidget(nodeName); text->addWidget(nodeDetail);
-        *state = new QLabel("--");
-        (*state)->setObjectName("nodeState");
-        (*state)->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        row->addLayout(text, 1); row->addWidget(*state);
-        return node;
-    };
-
-    QFrame *topology = new QFrame; topology->setObjectName("panel");
-    QVBoxLayout *topologyLayout = new QVBoxLayout(topology);
-    topologyLayout->setContentsMargins(12, 9, 12, 11);
-    topologyLayout->setSpacing(7);
-    QLabel *topologyTitle = new QLabel("通信拓扑"); topologyTitle->setObjectName("panelTitle");
-    topologyLayout->addWidget(topologyTitle);
-    QHBoxLayout *flow = new QHBoxLayout;
-    flow->setSpacing(10);
-
-    QVBoxLayout *inputs = new QVBoxLayout; inputs->setSpacing(6);
-    const QStringList inputNames = {"CAN 0 / CAN 1", "RS485", "EtherCAT"};
-    const QStringList inputDetails = {"CAN / CAN-FD / CANopen", "Modbus RTU", "CoE 实时总线"};
-    for (int i = 0; i < inputNames.size(); ++i) {
-        QLabel *state = nullptr;
-        inputs->addWidget(ioNode(inputNames[i], inputDetails[i], &state));
-        overviewBusStates << state;
-    }
-    flow->addLayout(inputs, 3);
-
-    QLabel *leftArrow = new QLabel("▶"); leftArrow->setStyleSheet("color:#e0a84b;font-size:18px;");
-    flow->addWidget(leftArrow, 0, Qt::AlignCenter);
-    QFrame *gateway = new QFrame; gateway->setObjectName("gateway"); gateway->setMinimumWidth(220);
-    QVBoxLayout *gatewayLayout = new QVBoxLayout(gateway);
-    gatewayLayout->setContentsMargins(16, 14, 16, 12);
-    QLabel *gatewayTitle = new QLabel("OmniGate T153MX"); gatewayTitle->setObjectName("gatewayTitle");
-    QLabel *gatewaySub = new QLabel("工业协议转换与边缘计算"); gatewaySub->setObjectName("gatewaySub");
-    gatewayLayout->addWidget(gatewayTitle); gatewayLayout->addWidget(gatewaySub); gatewayLayout->addStretch();
-    QGridLayout *gatewayStatus = new QGridLayout; gatewayStatus->setHorizontalSpacing(12); gatewayStatus->setVerticalSpacing(5);
-    const QStringList statusNames = {"系统", "设备", "告警", "运行"};
-    QLabel **statusValues[] = {&systemValue, &devicesValue, &alarmsValue, &uptimeValue};
-    for (int i = 0; i < 4; ++i) {
-        QLabel *name = new QLabel(statusNames[i]); name->setObjectName("gatewaySub");
-        *statusValues[i] = new QLabel("--"); (*statusValues[i])->setStyleSheet("color:#e6ecef;font-weight:700;");
-        gatewayStatus->addWidget(name, i, 0); gatewayStatus->addWidget(*statusValues[i], i, 1, Qt::AlignRight);
-    }
-    gatewayLayout->addLayout(gatewayStatus);
-    flow->addWidget(gateway, 3);
-    QLabel *rightArrow = new QLabel("▶"); rightArrow->setStyleSheet("color:#e0a84b;font-size:18px;");
-    flow->addWidget(rightArrow, 0, Qt::AlignCenter);
-
-    QVBoxLayout *outputs = new QVBoxLayout; outputs->setSpacing(6);
-    const QStringList outputNames = {"以太网", "4G / Wi-Fi", "ThingsBoard"};
-    const QStringList outputDetails = {"ETH0 本地网络", "无线广域连接", "工业物联网平台"};
-    for (int i = 0; i < outputNames.size(); ++i) {
-        QLabel *state = nullptr;
-        outputs->addWidget(ioNode(outputNames[i], outputDetails[i], &state));
-        overviewNetworkStates << state;
-    }
-    flow->addLayout(outputs, 3);
-    topologyLayout->addLayout(flow);
-    layout->addWidget(topology, 3);
-
-    QFrame *measurements = new QFrame; measurements->setObjectName("panel");
-    QHBoxLayout *measurementLayout = new QHBoxLayout(measurements);
-    measurementLayout->setContentsMargins(12, 7, 12, 7); measurementLayout->setSpacing(0);
-    QLabel *measureTitle = new QLabel("关键测量"); measureTitle->setObjectName("panelTitle");
-    measureTitle->setMinimumWidth(92); measurementLayout->addWidget(measureTitle);
-    const QStringList sensorNames = {"温度", "压力", "流量"};
-    for (int i = 0; i < sensorNames.size(); ++i) {
-        measurementLayout->addWidget(rule(Qt::Vertical));
-        QVBoxLayout *metric = new QVBoxLayout; metric->setContentsMargins(16, 0, 16, 0); metric->setSpacing(1);
-        QLabel *name = new QLabel(sensorNames[i]); name->setObjectName("statusName");
-        QLabel *value = new QLabel("--"); value->setObjectName("statusValue");
-        metric->addWidget(name); metric->addWidget(value);
-        measurementLayout->addLayout(metric, 1); overviewSensorValues << value;
-    }
-    layout->addWidget(measurements);
-
-    QHBoxLayout *bottom = new QHBoxLayout; bottom->setSpacing(9);
-    QFrame *chartPanel = new QFrame; chartPanel->setObjectName("panel");
-    QVBoxLayout *chartLayout = new QVBoxLayout(chartPanel); chartLayout->setContentsMargins(10, 7, 10, 7);
-    QLabel *chartTitle = new QLabel("实时趋势  /  最近 60 秒"); chartTitle->setObjectName("panelTitle");
-    chartLayout->addWidget(chartTitle); chartLayout->addWidget(createTrend(overviewSeries, true));
-    bottom->addWidget(chartPanel, 3);
-    QFrame *alarmPanel = new QFrame; alarmPanel->setObjectName("panel");
-    QVBoxLayout *alarmLayout = new QVBoxLayout(alarmPanel); alarmLayout->setContentsMargins(10, 7, 10, 8);
-    QLabel *alarmTitle = new QLabel("活动告警"); alarmTitle->setObjectName("panelTitle"); alarmLayout->addWidget(alarmTitle);
-    overviewAlarmTable = makeTable({"时间", "级别 / 内容"}); alarmLayout->addWidget(overviewAlarmTable);
-    bottom->addWidget(alarmPanel, 2);
-    layout->addLayout(bottom, 3);
-
-    // Compatibility tables retain the existing snapshot update path but stay off-screen.
-    overviewBusTable = makeTable({"接口", "状态"}); overviewBusTable->hide();
-    overviewNetworkTable = makeTable({"接口", "状态"}); overviewNetworkTable->hide();
-    return page;
+    dashboard = new OverviewDashboard;
+    connect(dashboard, &OverviewDashboard::alarmsRequested, this, [this]() { showPage(4); });
+    return dashboard;
 }
 
 QWidget *MainWindow::buildFieldbus()
 {
-    QWidget *page = new QWidget;
-    QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(18, 14, 18, 14);
-    layout->addWidget(titleLabel("现场总线"));
-    QTabWidget *tabs = new QTabWidget;
+    QWidget *page = new LayoutPage;
+    QVBoxLayout *layout = new PageLayout(page);
+    layout->setContentsMargins(14, 6, 14, 6);
+    auto *pageHeading = new QHBoxLayout;
+    pageHeading->addWidget(titleLabel("现场总线"));
+    pageHeading->addWidget(captionLabel("接口状态与节点控制"), 1);
+    layout->addLayout(pageHeading);
+    QTabWidget *tabs = new SectionTabs;
 
-    QWidget *canPage = new QWidget; QVBoxLayout *canLayout = new QVBoxLayout(canPage);
+    QWidget *canPage = new QWidget;
+    QVBoxLayout *canLayout = new PageLayout(canPage);
+    canLayout->setContentsMargins(0, 8, 0, 0);
     busTable = makeTable({"接口", "链路", "波特率", "数据来源"});
-    canLayout->addWidget(busTable);
-    QGroupBox *canCfg = new QGroupBox("CAN / CAN-FD 配置");
-    QHBoxLayout *canCfgLayout = new QHBoxLayout(canCfg);
-    QComboBox *canIf = new QComboBox; canIf->addItems({"can0", "can1"});
+    auto *interfacePanel = new QGroupBox("接口状态");
+    interfacePanel->setStyleSheet("QGroupBox { padding-top: 26px; padding-bottom: 0; } QGroupBox::title { top: 4px; }");
+    auto *interfaceLayout = new QVBoxLayout(interfacePanel);
+    interfaceLayout->setContentsMargins(0, 0, 0, 0);
+    interfaceLayout->addWidget(busTable);
+    canLayout->addWidget(interfacePanel);
+    busTable->setMinimumHeight(124);
+    busTable->setMaximumHeight(124);
+    busTable->setMinimumWidth(250);
+    QGroupBox *canCfg = new QGroupBox("CAN 参数");
+    QFormLayout *canCfgLayout = new QFormLayout(canCfg);
+    canCfgLayout->setContentsMargins(0, 0, 0, 0);
+    canCfgLayout->setVerticalSpacing(4);
+    canCfg->setStyleSheet(
+        "QGroupBox { padding-top: 30px; padding-bottom: 0; } QGroupBox::title { top: 6px; }");
+    canCfgLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    QComboBox *canIf = new QComboBox;
+    canInterfaces << canIf;
     QLineEdit *bitrate = edit("500000");
     QLineEdit *dbitrate = edit("2000000");
-    QCheckBox *fd = new QCheckBox("CAN-FD");
+    QCheckBox *fd = new ToggleSwitch;
+    canFdCheck = fd;
+    capabilityControls << qMakePair<QWidget *, QString>(fd, "can-fd");
     QPushButton *applyCan = actionButton("应用配置");
-    canCfgLayout->addWidget(canIf); canCfgLayout->addWidget(bitrate); canCfgLayout->addWidget(dbitrate);
-    canCfgLayout->addWidget(fd); canCfgLayout->addWidget(applyCan);
+    bitrate->setObjectName("canBitrate");
+    dbitrate->setObjectName("canDataBitrate");
+    fd->setObjectName("canFd");
+    applyCan->setObjectName("canApply");
+    auto *canInterfaceRow = new QHBoxLayout;
+    canInterfaceRow->addWidget(canIf, 1);
+    fd->setText("CAN-FD");
+    fd->setMinimumWidth(108);
+    canInterfaceRow->addWidget(fd);
+    canCfgLayout->addRow("接口", canInterfaceRow);
+    canCfgLayout->addRow("仲裁波特率", bitrate);
+    canCfgLayout->addRow("数据波特率", dbitrate);
+    dbitrate->setEnabled(false);
+    connect(fd, &QCheckBox::toggled, dbitrate, &QWidget::setEnabled);
     connect(applyCan, &QPushButton::clicked, this, [=]() {
-        QJsonObject p{{"interface", canIf->currentText()}, {"bitrate", bitrate->text().toInt()},
-                      {"data_bitrate", dbitrate->text().toInt()}, {"fd", fd->isChecked()}, {"restart_ms", 100}};
+        bool rateOk = false, dataOk = false;
+        const int rate = bitrate->text().toInt(&rateOk);
+        const int dataRate = dbitrate->text().toInt(&dataOk);
+        if (!rateOk || rate < 10000 || rate > 1000000 ||
+            (fd->isChecked() && (!dataOk || dataRate < rate || dataRate > 8000000))) {
+            QMessageBox::warning(this, "参数错误", "仲裁波特率须为 10000..1000000；CAN-FD 数据波特率须不低于仲裁波特率且不超过 8000000");
+            return;
+        }
+        QJsonObject p{{"interface", canIf->currentText()},
+                      {"bitrate", rate},
+                      {"fd", fd->isChecked()},
+                      {"restart_ms", 100}};
+        if (fd->isChecked())
+            p["data_bitrate"] = dataRate;
         postAction("can_apply", p, "确认重新配置 " + canIf->currentText() + "？接口会短暂中断。");
     });
-    canLayout->addWidget(canCfg);
+    QTabWidget *canControls = new SectionTabs;
+    canControls->setObjectName("canControls");
+    QWidget *linkPage = new QWidget;
+    QVBoxLayout *linkLayout = new QVBoxLayout(linkPage);
+    linkLayout->setContentsMargins(0, 0, 0, 0);
+    linkLayout->addWidget(canCfg, 1);
+    linkLayout->addWidget(applyCan);
 
-    QGroupBox *co = new QGroupBox("CANopen 控制"); QGridLayout *coGrid = new QGridLayout(co);
-    QComboBox *coIf = new QComboBox; coIf->addItems({"can0", "can1"});
-    QSpinBox *node = new QSpinBox; node->setRange(0, 127); node->setValue(1);
-    QComboBox *nmt = new QComboBox; nmt->addItems({"OPERATIONAL", "PRE-OPERATIONAL", "STOPPED", "RESET"});
+    auto *co = new QFrame;
+    co->setObjectName("panel");
+    QFormLayout *coGrid = new QFormLayout(co);
+    coGrid->setContentsMargins(12, 4, 12, 4);
+    coGrid->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    QComboBox *coIf = new QComboBox;
+    canInterfaces << coIf;
+    QSpinBox *node = new QSpinBox;
+    node->setRange(0, 127);
+    node->setValue(1);
+    QComboBox *nmt = new QComboBox;
+    nmt->addItems({"OPERATIONAL", "PRE-OPERATIONAL", "STOPPED", "RESET"});
     QPushButton *sendNmt = actionButton("发送 NMT", "danger");
-    coGrid->addWidget(new QLabel("接口"), 0, 0); coGrid->addWidget(coIf, 0, 1);
-    coGrid->addWidget(new QLabel("节点"), 0, 2); coGrid->addWidget(node, 0, 3);
-    coGrid->addWidget(nmt, 0, 4); coGrid->addWidget(sendNmt, 0, 5);
-    QLineEdit *coIndex = edit("0x2000"); QSpinBox *coSub = new QSpinBox; coSub->setRange(0, 255);
-    QLineEdit *coValue = edit("0"); QPushButton *sdoWrite = actionButton("SDO 写入", "danger");
-    coGrid->addWidget(new QLabel("索引"), 1, 0); coGrid->addWidget(coIndex, 1, 1);
-    coGrid->addWidget(new QLabel("子索引"), 1, 2); coGrid->addWidget(coSub, 1, 3);
-    coGrid->addWidget(coValue, 1, 4); coGrid->addWidget(sdoWrite, 1, 5);
+    coGrid->addRow("接口", coIf);
+    coGrid->addRow("节点", node);
+    coGrid->addRow("目标状态", nmt);
+    QLineEdit *coIndex = edit("0x2000");
+    QSpinBox *coSub = new QSpinBox;
+    coSub->setRange(0, 255);
+    QLineEdit *coValue = edit("0");
+    QPushButton *sdoWrite = actionButton("SDO 写入", "danger");
+    sendNmt->setObjectName("canNmtSend");
+    node->setObjectName("canNmtNode");
+    nmt->setObjectName("canNmtState");
+    coIndex->setObjectName("canSdoIndex");
+    coSub->setObjectName("canSdoSubindex");
+    coValue->setObjectName("canSdoValue");
+    sdoWrite->setObjectName("canSdoWrite");
+    auto *sdo = new QFrame;
+    sdo->setObjectName("panel");
+    auto *sdoForm = new QGridLayout(sdo);
+    sdoForm->setContentsMargins(12, 4, 12, 4);
+    QComboBox *sdoIf = new QComboBox;
+    canInterfaces << sdoIf;
+    QSpinBox *sdoNode = new QSpinBox;
+    sdoNode->setRange(1, 127);
+    sdoNode->setValue(1);
+    sdoNode->setObjectName("canSdoNode");
+    sdoForm->addWidget(new QLabel("接口"), 0, 0);
+    sdoForm->addWidget(sdoIf, 0, 1);
+    sdoForm->addWidget(new QLabel("节点"), 0, 2);
+    sdoForm->addWidget(sdoNode, 0, 3);
+    sdoForm->addWidget(new QLabel("索引"), 1, 0);
+    sdoForm->addWidget(coIndex, 1, 1);
+    sdoForm->addWidget(new QLabel("子索引"), 1, 2);
+    sdoForm->addWidget(coSub, 1, 3);
+    sdoForm->addWidget(new QLabel("写入值"), 2, 0);
+    sdoForm->addWidget(coValue, 2, 1, 1, 3);
     connect(sendNmt, &QPushButton::clicked, this, [=]() {
-        postAction("canopen_nmt", {{"interface", coIf->currentText()}, {"node_id", node->value()},
-                   {"state", nmt->currentText()}}, "确认向节点发送 NMT " + nmt->currentText() + "？");
+        postAction(
+            "canopen_nmt",
+            {{"interface", coIf->currentText()}, {"node_id", node->value()}, {"state", nmt->currentText()}},
+            QString("确认通过 %1 向%2发送 NMT %3？")
+                .arg(coIf->currentText(), node->value() == 0 ? "所有节点（广播）" : QString("节点 %1 ").arg(node->value()), nmt->currentText()));
     });
     connect(sdoWrite, &QPushButton::clicked, this, [=]() {
-        bool ok = false; int index = coIndex->text().toInt(&ok, 0);
-        if (!ok) { QMessageBox::warning(this, "参数错误", "对象索引格式错误"); return; }
-        postAction("canopen_sdo_write", {{"interface", coIf->currentText()}, {"node_id", node->value()},
-                   {"index", index}, {"subindex", coSub->value()}, {"value", coValue->text().toInt()}, {"size", 4}},
+        bool ok = false;
+        int index = coIndex->text().toInt(&ok, 0);
+        if (!ok || index < 0 || index > 0xffff) {
+            QMessageBox::warning(this, "参数错误", "对象索引必须是 0..65535，可使用 0x 十六进制格式");
+            return;
+        }
+        bool valueOk = false;
+        const qlonglong value = coValue->text().toLongLong(&valueOk, 0);
+        if (!valueOk || value < -2147483648LL || value > 4294967295LL) {
+            QMessageBox::warning(this, "参数错误", "写入值必须是 32 位整数，可使用 0x 十六进制格式");
+            return;
+        }
+        postAction("canopen_sdo_write",
+                   {{"interface", sdoIf->currentText()},
+                    {"node_id", sdoNode->value()},
+                    {"index", index},
+                    {"subindex", coSub->value()},
+                    {"value", QString::number(value)},
+                    {"size", 4}},
                    "确认写入 CANopen SDO？错误值可能改变设备行为。");
     });
-    canLayout->addWidget(co);
+    for (auto pane : {qMakePair<QWidget *, QPushButton *>(co, sendNmt),
+                      qMakePair<QWidget *, QPushButton *>(sdo, sdoWrite)}) {
+        QWidget *body = new QWidget;
+        QVBoxLayout *bodyLayout = new QVBoxLayout(body);
+        bodyLayout->setContentsMargins(0, 0, 0, 0);
+        bodyLayout->setSpacing(4);
+        bodyLayout->addWidget(pane.first, 1);
+        bodyLayout->addWidget(pane.second);
+        canControls->addTab(body, pane.first == co ? "NMT 控制" : "SDO 写入");
+    }
+    QHBoxLayout *canColumns = new QHBoxLayout;
+    responsiveRows << canColumns;
+    canColumns->addWidget(linkPage, 1);
+    canColumns->addWidget(canControls, 1);
+    canLayout->addLayout(canColumns, 1);
+    capabilityControls << qMakePair<QWidget *, QString>(linkPage, "can");
+    tabs->setObjectName("protocolTabs");
     tabs->addTab(canPage, "CAN / CANopen");
+    capabilityControls << qMakePair<QWidget *, QString>(canControls, "canopen");
 
-    QWidget *rsPage = new QWidget; QVBoxLayout *rsLayout = new QVBoxLayout(rsPage);
-    QGroupBox *rs = new QGroupBox("Modbus RTU 配置"); QFormLayout *rsForm = new QFormLayout(rs);
-    QLineEdit *rsPort = edit("/dev/ttyAS5"); QLineEdit *rsBaud = edit("9600");
-    QSpinBox *rsUnit = new QSpinBox; rsUnit->setRange(1, 247); rsUnit->setValue(1);
-    QLineEdit *rsPoll = edit("1000"); QPushButton *saveRs = actionButton("保存并应用");
-    rsForm->addRow("串口", rsPort); rsForm->addRow("波特率", rsBaud); rsForm->addRow("站号", rsUnit);
-    rsForm->addRow("轮询周期(ms)", rsPoll); rsForm->addRow(saveRs);
+    QWidget *rsPage = new QWidget;
+    QVBoxLayout *rsLayout = new PageLayout(rsPage);
+    rsLayout->setContentsMargins(0, 10, 0, 0);
+    rsStatus = new StatusStrip;
+    rsStatus->setMetrics({{"topology", "链路", "未获取"},
+                          {"server", "从站状态", "未获取"},
+                          {"clock", "采集状态", "等待数据"}});
+    rsLayout->addWidget(rsStatus);
+    QGroupBox *rs = new QGroupBox("串口参数");
+    QFormLayout *rsForm = new QFormLayout(rs);
+    QLineEdit *rsPort = edit("");
+    serialPort = rsPort;
+    QLineEdit *rsBaud = edit("9600");
+    QSpinBox *rsUnit = new QSpinBox;
+    rsUnit->setRange(1, 247);
+    rsUnit->setValue(1);
+    QLineEdit *rsPoll = edit("1000");
+    QPushButton *saveRs = actionButton("保存配置");
+    rsPort->setObjectName("rsPort");
+    rsBaud->setObjectName("rsBaud");
+    rsUnit->setObjectName("rsUnit");
+    rsPoll->setObjectName("rsPoll");
+    saveRs->setObjectName("rsSave");
+    rsForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    rsForm->setContentsMargins(0, 0, 0, 0);
+    rsForm->setVerticalSpacing(6);
+    rsForm->addRow("端口", rsPort);
+    rsForm->addRow("波特率", rsBaud);
+    rsForm->addRow("站号", rsUnit);
+    rsForm->addRow("轮询周期(ms)", rsPoll);
+    rsForm->addRow(saveRs);
+    auto *serialNote = captionLabel("帧格式由系统管理。仅保存首个从站配置；运行生效状态未验证。");
+    serialNote->setObjectName("infoNote");
+    rsForm->addRow(serialNote);
     connect(saveRs, &QPushButton::clicked, this, [=]() {
-        postAction("rs485_config", {{"port", rsPort->text()}, {"baudrate", rsBaud->text().toInt()},
-                   {"unit_id", rsUnit->value()}, {"poll_ms", rsPoll->text().toInt()}}, "确认修改 Modbus RTU 参数？");
+        bool baudOk = false, pollOk = false;
+        const int baud = rsBaud->text().toInt(&baudOk);
+        const int poll = rsPoll->text().toInt(&pollOk);
+        if (!baudOk || baud < 300 || baud > 4000000 || !pollOk || poll < 50 || poll > 3600000 ||
+            !controlDevices(latestSnapshot, "serial", "modbus-rtu").contains(rsPort->text())) {
+            QMessageBox::warning(this, "参数错误", "请选择板级串口，波特率须为300..4000000，轮询周期须为50..3600000毫秒");
+            return;
+        }
+        postAction("rs485_config",
+                   {{"port", rsPort->text()},
+                    {"baudrate", baud},
+                    {"unit_id", rsUnit->value()},
+                    {"poll_ms", poll}},
+                   "确认保存首个从站的 Modbus RTU 参数？运行生效状态未验证。");
     });
-    rsLayout->addWidget(rs); rsLayout->addStretch(); tabs->addTab(rsPage, "RS485 / Modbus");
+    capabilityControls << qMakePair<QWidget *, QString>(rs, "serial");
+    auto *rsColumns = new QHBoxLayout;
+    responsiveRows << rsColumns;
+    rsColumns->addWidget(rs, 1);
+    auto *registers = new QGroupBox("从站与寄存器");
+    auto *registerLayout = new QVBoxLayout(registers);
+    auto *registerTable = makeTable({"地址", "类型", "数值", "单位"});
+    static_cast<DataTable *>(registerTable)->setEmptyText("尚未获取寄存器明细");
+    registerLayout->addWidget(registerTable, 1);
+    registerLayout->addWidget(captionLabel("请先完成串口参数与采集点配置。"));
+    rsColumns->addWidget(registers, 1);
+    rsLayout->addLayout(rsColumns, 1);
+    tabs->addTab(scrollPage(rsPage), "RS485 / Modbus");
 
-    QWidget *ecPage = new QWidget; QVBoxLayout *ecLayout = new QVBoxLayout(ecPage);
-    QGroupBox *ec = new QGroupBox("EtherCAT CoE 控制"); QFormLayout *ecForm = new QFormLayout(ec);
-    QSpinBox *slave = new QSpinBox; slave->setRange(1, 65535); slave->setValue(1);
-    QLineEdit *ecIndex = edit("0x6040"); QSpinBox *ecSub = new QSpinBox; ecSub->setRange(0, 255);
-    QLineEdit *ecValue = edit("06 00"); QPushButton *ecWrite = actionButton("CoE SDO 写入", "danger");
+    QWidget *ecPage = new QWidget;
+    QVBoxLayout *ecLayout = new PageLayout(ecPage);
+    ecLayout->setContentsMargins(0, 10, 0, 0);
+    ecStatus = new StatusStrip;
+    ecStatus->setMetrics(
+        {{"topology", "主站", "未获取"}, {"server", "从站状态", "未获取"}, {"clock", "诊断周期", "未测量"}});
+    ecLayout->addWidget(ecStatus);
+    QGroupBox *ec = new QGroupBox("CoE 对象访问");
+    QGridLayout *ecForm = new QGridLayout(ec);
+    ecForm->setContentsMargins(0, 0, 0, 0);
+    QSpinBox *slave = new QSpinBox;
+    slave->setRange(1, 65535);
+    slave->setValue(1);
+    QLineEdit *ecIndex = edit("0x6040");
+    QSpinBox *ecSub = new QSpinBox;
+    ecSub->setRange(0, 255);
+    QLineEdit *ecValue = edit("06 00");
+    QPushButton *ecWrite = actionButton("CoE SDO 写入", "danger");
     QPushButton *ecCycle = actionButton("执行 1000 次周期测试");
-    ecForm->addRow("从站", slave); ecForm->addRow("索引", ecIndex); ecForm->addRow("子索引", ecSub);
-    ecForm->addRow("十六进制数据", ecValue); ecForm->addRow(ecWrite); ecForm->addRow(ecCycle);
+    slave->setObjectName("ecSlave");
+    ecIndex->setObjectName("ecIndex");
+    ecSub->setObjectName("ecSub");
+    ecValue->setObjectName("ecValue");
+    ecWrite->setObjectName("ecWrite");
+    ecCycle->setObjectName("ecCycle");
+    ecForm->addWidget(new QLabel("从站"), 0, 0);
+    ecForm->addWidget(slave, 0, 1);
+    ecForm->addWidget(new QLabel("子索引"), 0, 2);
+    ecForm->addWidget(ecSub, 0, 3);
+    ecForm->addWidget(new QLabel("索引"), 1, 0);
+    ecForm->addWidget(ecIndex, 1, 1);
+    ecForm->addWidget(new QLabel("数据"), 1, 2);
+    ecForm->addWidget(ecValue, 1, 3);
+    ecForm->addWidget(ecWrite, 2, 0, 1, 4);
     connect(ecWrite, &QPushButton::clicked, this, [=]() {
-        bool ok = false; int index = ecIndex->text().toInt(&ok, 0);
-        if (!ok) { QMessageBox::warning(this, "参数错误", "对象索引格式错误"); return; }
-        postAction("ethercat_sdo_write", {{"slave", slave->value()}, {"index", index},
-                   {"subindex", ecSub->value()}, {"value", ecValue->text()}},
+        bool ok = false;
+        int index = ecIndex->text().toInt(&ok, 0);
+        const QRegularExpression bytes("\\A[0-9A-Fa-f]{2}(?:\\s+[0-9A-Fa-f]{2}){0,31}\\z");
+        if (!ok || index < 0 || index > 65535 || !bytes.match(ecValue->text().trimmed()).hasMatch()) {
+            QMessageBox::warning(this, "参数错误", "对象索引须为0..65535，数据须为1到32字节十六进制");
+            return;
+        }
+        postAction("ethercat_sdo_write",
+                   {{"slave", slave->value()},
+                    {"index", index},
+                    {"subindex", ecSub->value()},
+                    {"value", ecValue->text()}},
                    "确认写入 EtherCAT 从站？错误控制字可能导致设备动作。");
     });
     connect(ecCycle, &QPushButton::clicked, this, [=]() {
         postAction("ethercat_cycle", {{"count", 1000}, {"period_us", 1000}},
-                   "确认执行 1 秒 EtherCAT 周期测试？");
+                   "确认执行 1000 次 EtherCAT 周期测试？周期设定为1毫秒，实际耗时取决于现场响应。");
     });
-    ecLayout->addWidget(ec); ecLayout->addStretch(); tabs->addTab(ecPage, "EtherCAT");
+    capabilityControls << qMakePair<QWidget *, QString>(ec, "ethercat");
+    auto *ecColumns = new QHBoxLayout;
+    responsiveRows << ecColumns;
+    auto *ecLeft = new QVBoxLayout;
+    auto *slaves = new QGroupBox("从站状态");
+    auto *slaveLayout = new QVBoxLayout(slaves);
+    slaveLayout->setContentsMargins(0, 0, 0, 0);
+    auto *slaveTable = makeTable({"从站", "名称", "状态", "数据"});
+    slaveTable->setMinimumHeight(104);
+    static_cast<DataTable *>(slaveTable)->setEmptyText("尚未获取从站明细");
+    slaveLayout->addWidget(slaveTable, 1);
+    ecLeft->addWidget(slaves, 1);
+    ecLeft->addWidget(ec);
+    ecColumns->addLayout(ecLeft, 3);
+    auto *diagnostics = new QGroupBox("周期诊断");
+    auto *diagnosticLayout = new QVBoxLayout(diagnostics);
+    diagnosticLayout->setContentsMargins(0, 0, 0, 0);
+    auto *emptyPlot = new QLabel("等待周期诊断数据");
+    emptyPlot->setObjectName("infoNote");
+    emptyPlot->setMinimumHeight(100);
+    emptyPlot->setAlignment(Qt::AlignCenter);
+    diagnosticLayout->addWidget(emptyPlot, 1);
+    auto *measurements = new QHBoxLayout;
+    for (const QString &name : {QString("最新周期"), QString("最大抖动")}) {
+        auto *card = new QFrame;
+        card->setObjectName("card");
+        auto *metric = new QVBoxLayout(card);
+        metric->addWidget(captionLabel(name));
+        auto *value = new QLabel("未测量");
+        value->setObjectName("statusValue");
+        metric->addWidget(value);
+        measurements->addWidget(card, 1);
+    }
+    diagnosticLayout->addLayout(measurements);
+    diagnosticLayout->addWidget(ecCycle);
+    auto *warning = captionLabel("诊断操作会访问现场总线，请确认现场状态。");
+    warning->setObjectName("warningNote");
+    diagnosticLayout->addWidget(warning);
+    capabilityControls << qMakePair<QWidget *, QString>(ecCycle, "ethercat");
+    ecColumns->addWidget(diagnostics, 2);
+    ecLayout->addLayout(ecColumns, 1);
+    tabs->addTab(scrollPage(ecPage), "EtherCAT");
     layout->addWidget(tabs, 1);
     return page;
 }
 
 QWidget *MainWindow::buildNetwork()
 {
-    QWidget *page = new QWidget; QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(18, 14, 18, 14); layout->addWidget(titleLabel("网络通信"));
-    networkTable = makeTable({"接口", "链路", "IPv4 地址", "数据来源"});
-    layout->addWidget(networkTable, 1);
-    QHBoxLayout *controls = new QHBoxLayout;
-    for (const QString &profile : {QString("ec20a"), QString("ec20b")}) {
-        QGroupBox *box = new QGroupBox(profile.toUpper()); QHBoxLayout *row = new QHBoxLayout(box);
-        QPushButton *connectButton = actionButton("拨号"); QPushButton *disconnectButton = actionButton("断开", "danger");
-        row->addWidget(connectButton); row->addWidget(disconnectButton);
-        connect(connectButton, &QPushButton::clicked, this, [=]() {
-            postAction("ec20", {{"profile", profile}, {"operation", "connect"}}, "确认启动 " + profile + " 拨号？");
-        });
-        connect(disconnectButton, &QPushButton::clicked, this, [=]() {
-            postAction("ec20", {{"profile", profile}, {"operation", "disconnect"}}, "确认断开 " + profile + "？");
-        });
-        controls->addWidget(box);
+    auto *page = new LayoutPage;
+    auto *layout = new PageLayout(page);
+    layout->setContentsMargins(12, 10, 12, 12);
+    layout->setSpacing(10);
+    auto *head = new QHBoxLayout;
+    head->addWidget(titleLabel("网络通信"));
+    head->addWidget(captionLabel("本地网络与上行连接"), 1);
+    layout->addLayout(head);
+    auto *tabs = new SectionTabs;
+    tabs->setObjectName("networkTabs");
+    for (int kind = 0; kind < 2; ++kind) {
+        auto *interfaces = new LayoutPage;
+        auto *columns = new PageRowLayout(interfaces);
+        columns->setContentsMargins(0, 10, 0, 0);
+        responsiveRows << columns;
+        auto *left = new QGroupBox(kind == 0 ? "有线网络接口" : "无线网络接口");
+        auto *leftLayout = new QVBoxLayout(left);
+        leftLayout->setContentsMargins(0, 0, 0, 0);
+        auto *table = makeTable({"接口", "状态", "IPv4 地址", "来源"});
+        table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+        table->horizontalHeader()->setMinimumSectionSize(60);
+        static_cast<DataTable *>(table)->setEmptyText(kind == 0 ? "尚未发现有线接口" : "尚未发现无线接口");
+        leftLayout->addWidget(table, 1);
+        auto *description = new QLabel("选中接口信息");
+        description->setObjectName("panelTitle");
+        leftLayout->addWidget(description);
+        auto *form = new QFormLayout;
+        form->setVerticalSpacing(12);
+        form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+        QList<QLabel *> fields;
+        for (const QString &name :
+             {QString("接口名称"), QString("IPv4 地址"), QString("链路状态"), QString("数据来源")}) {
+            auto *value = new QLabel("--");
+            value->setTextFormat(Qt::PlainText);
+            value->setObjectName("valueText");
+            value->setWordWrap(true);
+            form->addRow(name, value);
+            fields << value;
+        }
+        leftLayout->addLayout(form);
+        auto *refresh = actionButton("刷新接口状态", "secondary");
+        refresh->setIcon(Visuals::icon("globe", Visuals::blue));
+        connect(refresh, &QPushButton::clicked, this, &MainWindow::requestSnapshot);
+        leftLayout->addWidget(refresh);
+        columns->addWidget(left, 3);
+        auto *details = new QGroupBox(kind == 0 ? "本地链路" : "无线链路");
+        auto *detailsLayout = new QVBoxLayout(details);
+        detailsLayout->setContentsMargins(0, 0, 0, 0);
+        detailsLayout->setSpacing(18);
+        auto *symbol = new QLabel;
+        symbol->setPixmap(Visuals::icon(kind == 0 ? "chip" : "globe").pixmap(54, 54));
+        symbol->setAlignment(Qt::AlignCenter);
+        detailsLayout->addWidget(symbol);
+        auto *detail = new QLabel("等待接口数据");
+        detail->setObjectName("panelTitle");
+        detail->setWordWrap(true);
+        detail->setAlignment(Qt::AlignCenter);
+        detailsLayout->addWidget(detail);
+        auto *note = captionLabel(kind == 0 ? "地址由系统网络服务管理。此处显示设备实际接口信息。"
+                                            : "无线连接由系统网络服务管理。接入后可在这里查看接口与地址。");
+        note->setObjectName("infoNote");
+        detailsLayout->addWidget(note);
+        detailsLayout->addStretch();
+        columns->addWidget(details, 1);
+        networkTables << table;
+        networkFieldGroups << fields;
+        networkDetails << detail;
+        connect(table, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateNetworkDetails);
+        tabs->addTab(scrollPage(interfaces), kind == 0 ? "有线网络" : "无线网络");
     }
-    layout->addLayout(controls);
+    networkTable = networkTables.first();
+    networkFields = networkFieldGroups.first();
+    networkDetail = networkDetails.first();
+    auto *cellular = new LayoutPage;
+    auto *controls = new PageLayout(cellular);
+    controls->setContentsMargins(0, 10, 0, 0);
+    auto *cards = new QHBoxLayout;
+    responsiveRows << cards;
+    for (const QString &profile : {QString("ec20a"), QString("ec20b")}) {
+        auto *box = new QGroupBox(profile == "ec20a" ? "蜂窝链路 A" : "蜂窝链路 B");
+        auto *body = new QVBoxLayout(box);
+        auto *symbol = new QLabel;
+        symbol->setPixmap(Visuals::icon("cloud").pixmap(48, 48));
+        symbol->setAlignment(Qt::AlignCenter);
+        body->addWidget(symbol);
+        auto *state = new QLabel("等待板级能力信息");
+        state->setWordWrap(true);
+        state->setAlignment(Qt::AlignCenter);
+        state->setObjectName("statusValue");
+        state->setProperty("profile", profile);
+        cellularStates << state;
+        body->addWidget(state);
+        auto *form = new QFormLayout;
+        form->addRow("拨号配置", new QLabel(profile.toUpper()));
+        auto *interface = new QLabel("--");
+        auto *address = new QLabel("-- / 未获取");
+        interface->setTextFormat(Qt::PlainText);
+        address->setTextFormat(Qt::PlainText);
+        address->setWordWrap(true);
+        cellularInterfaces << interface;
+        cellularAddresses << address;
+        form->addRow("网络接口", interface);
+        form->addRow("地址 / 信号", address);
+        body->addLayout(form);
+        body->addStretch();
+        auto *row = new QHBoxLayout;
+        auto *start = actionButton("启动拨号");
+        auto *stop = actionButton("断开连接", "secondary");
+        start->setObjectName(profile + "Connect");
+        stop->setObjectName(profile + "Disconnect");
+        start->setProperty("profile", profile);
+        stop->setProperty("profile", profile);
+        row->addWidget(start);
+        row->addWidget(stop);
+        body->addLayout(row);
+        connect(start, &QPushButton::clicked, this, [=]() {
+            postAction("ec20", {{"profile", profile}, {"operation", "connect"}},
+                       "确认启动 " + profile + " 拨号？");
+        });
+        connect(stop, &QPushButton::clicked, this, [=]() {
+            postAction("ec20", {{"profile", profile}, {"operation", "disconnect"}},
+                       "确认断开 " + profile + "？");
+        });
+        capabilityControls << qMakePair<QWidget *, QString>(start, "dual-cellular");
+        capabilityControls << qMakePair<QWidget *, QString>(stop, "dual-cellular");
+        cards->addWidget(box, 1);
+    }
+    controls->addLayout(cards, 1);
+    auto *notice = captionLabel(
+        "拨号仅在支持双蜂窝模块的板卡上可用。断开连接前请确认当前远程会话与上行数据已妥善处理。");
+    notice->setObjectName("warningNote");
+    controls->addWidget(notice);
+    tabs->addTab(scrollPage(cellular), "蜂窝网络");
+    layout->addWidget(tabs, 1);
     return page;
+}
+
+void MainWindow::updateNetworkDetails()
+{
+    const int indices[] = {0, 2, 1, 3};
+    for (int kind = 0; kind < networkTables.size(); ++kind) {
+        auto *table = networkTables[kind];
+        const int row = table->currentRow();
+        for (int i = 0; i < networkFieldGroups[kind].size(); ++i)
+            networkFieldGroups[kind][i]->setText(
+                row >= 0 && table->item(row, indices[i]) ? table->item(row, indices[i])->text() : "--");
+        auto *state = row >= 0 ? table->item(row, 1) : nullptr;
+        networkDetails[kind]->setText(state ? state->text() + "\n" + table->item(row, 0)->text()
+                                            : "尚未获取链路信息");
+        networkDetails[kind]->setStyleSheet(state && state->data(Qt::UserRole).toBool() ? "color:#168345;"
+                                                                                        : "color:#61758b;");
+    }
+}
+
+void MainWindow::updateNetworkTables(const QJsonObject &root)
+{
+    const auto channels = root["platform"].toObject()["channels"].toObject();
+    const auto networks = root["networks"].toArray();
+    for (int kind = 0; kind < networkTables.size(); ++kind) {
+        auto *table = networkTables[kind];
+        const QString selected = table->currentRow() >= 0 && table->item(table->currentRow(), 0)
+                                     ? table->item(table->currentRow(), 0)->text()
+                                     : QString();
+        table->blockSignals(true);
+        table->setRowCount(0);
+        int selectRow = -1;
+        for (const auto &value : networks) {
+            const auto item = value.toObject();
+            const QString name = item["name"].toString();
+            QString type;
+            for (const auto &channel : channels) {
+                auto ch = channel.toObject();
+                if (ch["device"].toString() == name)
+                    type = ch["kind"].toString();
+            }
+            // Board mappings determine category; cellular netdev names can look like Ethernet.
+            if (name.trimmed().isEmpty() || item["kind"].toString() == "cellular")
+                continue;
+            if (type != (kind == 0 ? "ethernet" : "wifi"))
+                continue;
+            const int row = table->rowCount();
+            table->insertRow(row);
+            const bool online = item["online"].toBool();
+            QString state = item["state"].toString("未知");
+            if (state == "up")
+                state = "已连接";
+            else if (state == "down")
+                state = "未连接";
+            else if (state == "unknown")
+                state = "未知";
+            auto *status = cell(state, online ? kSuccess : kMuted);
+            status->setData(Qt::UserRole, online);
+            if (online)
+                status->setIcon(Visuals::icon("check", kSuccess));
+            table->setItem(row, 0, cell(name));
+            table->setItem(row, 1, status);
+            table->setItem(row, 2,
+                           cell(item["address"].toString().isEmpty() ? "--" : item["address"].toString()));
+            const QString source = item["source"].toString();
+            table->setItem(row, 3, cell(source == "demo" ? "样例" : (source == "real" ? "设备" : "未获取")));
+            if (name == selected)
+                selectRow = row;
+        }
+        // Once a selection disappears, leave details empty until the user chooses again.
+        if (selected.isEmpty() && !table->property("selectionLost").toBool() && table->rowCount())
+            selectRow = 0;
+        table->setProperty("selectionLost", selectRow < 0 && (!selected.isEmpty() || table->property("selectionLost").toBool()));
+        table->setCurrentCell(selectRow, selectRow >= 0 ? 0 : -1);
+        table->blockSignals(false);
+    }
+    updateNetworkDetails();
 }
 
 QWidget *MainWindow::buildDevices()
 {
-    QWidget *page = new QWidget; QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(18, 14, 18, 14); layout->addWidget(titleLabel("设备监控"));
-    deviceTable = makeTable({"指标", "实时值", "状态", "数据来源"});
-    layout->addWidget(deviceTable, 1);
-    QFrame *chartCard = new QFrame; chartCard->setObjectName("card"); QVBoxLayout *chartLayout = new QVBoxLayout(chartCard);
-    chartLayout->addWidget(titleLabel("设备趋势（最近60秒）")); chartLayout->addWidget(createTrend(deviceSeries, false));
-    layout->addWidget(chartCard, 2);
+    auto *page = new LayoutPage;
+    auto *layout = new PageLayout(page);
+    layout->setContentsMargins(12, 10, 12, 10);
+    layout->setSpacing(8);
+    auto *heading = new QHBoxLayout;
+    heading->addWidget(titleLabel("设备监控"));
+    heading->addWidget(captionLabel("采集读数与实时趋势"), 1);
+    auto *period = new QLabel("最近 60 秒");
+    period->setObjectName("valueText");
+    heading->addWidget(period);
+    layout->addLayout(heading);
+    monitorStatus = new StatusStrip;
+    monitorStatus->setMetrics(
+        {{"thermometer", "温度", "--"}, {"gauge", "压力", "--"}, {"monitor", "数据状态", "等待数据"}});
+    layout->addWidget(monitorStatus);
+    deviceTrend = new OverviewDashboard(true);
+    deviceTrend->setMinimumHeight(150);
+    layout->addWidget(deviceTrend, 3);
+    auto *points = new QGroupBox("数据点");
+    auto *pointLayout = new QVBoxLayout(points);
+    pointLayout->setContentsMargins(0, 0, 0, 0);
+    deviceTable = makeTable({"名称", "当前值", "单位", "状态"});
+    deviceTable->setMinimumHeight(124);
+    deviceTable->verticalHeader()->setDefaultSectionSize(44);
+    static_cast<DataTable *>(deviceTable)->setEmptyText("尚未获取采集读数");
+    pointLayout->addWidget(deviceTable);
+    layout->addWidget(points, 2);
+    auto *actions = new QHBoxLayout;
+    pauseMonitor = actionButton("暂停监控显示", "secondary");
+    pauseMonitor->setCheckable(true);
+    pauseMonitor->setObjectName("pauseMonitor");
+    pauseMonitor->setToolTip("仅冻结此页的读数和趋势；现场采集、告警与其他页面继续刷新");
+    connect(pauseMonitor, &QPushButton::toggled, this, [this](bool checked) {
+        monitorPaused = checked;
+        pauseMonitor->setText(checked ? "继续显示 · 当前已暂停" : "暂停监控显示");
+        if (!checked && !latestSnapshot.isEmpty()) {
+            // Paused display may have missed missing readings or clock resets.
+            // Start a fresh segment instead of joining across that interval.
+            deviceTrend->setOffline();
+            updateSnapshot(latestSnapshot);
+        }
+    });
+    actions->addWidget(pauseMonitor, 1);
+    auto *settings = actionButton("刷新与显示设置", "secondary");
+    settings->setIcon(Visuals::icon("settings", Visuals::blue));
+    connect(settings, &QPushButton::clicked, this, [this]() {
+        showPage(5);
+        findChild<QTabWidget *>("settingsTabs")->setCurrentIndex(0);
+    });
+    actions->addWidget(settings, 1);
+    layout->addLayout(actions);
     return page;
+}
+
+void MainWindow::updatePageMetrics(const QJsonObject &root)
+{
+    QJsonObject rs, ec;
+    for (const auto &value : root["buses"].toArray()) {
+        auto bus = value.toObject();
+        if (bus["name"].toString().startsWith("RS485", Qt::CaseInsensitive))
+            rs = bus;
+        if (bus["name"].toString().startsWith("EtherCAT", Qt::CaseInsensitive))
+            ec = bus;
+    }
+    auto busMetrics = [](const QJsonObject &bus, bool ethercat) {
+        const bool available = !bus.isEmpty() && bus["source"].toString() != "unavailable";
+        const bool online = available && bus["online"].toBool();
+        return QList<StatusMetric>{
+            {"topology", ethercat ? "主站链路" : "通信链路",
+             available ? (online ? "在线" : "未连接") : "未获取", online ? kSuccess : kMuted},
+            {"server", "从站状态", bus["state"].toString("未获取"), kMuted},
+            {"clock", "数据来源",
+             bus["source"].toString() == "demo" ? "样例数据" : (available ? "设备数据" : "等待采集"),
+             Visuals::blue}};
+    };
+    rsStatus->setMetrics(busMetrics(rs, false));
+    ecStatus->setMetrics(busMetrics(ec, true));
+    const auto capabilities = root["platform"].toObject()["capabilities"].toArray();
+    for (int i = 0; i < cellularStates.size(); ++i) {
+        auto *state = cellularStates[i];
+        const auto mapping = cellularMapping(root, state->property("profile").toString());
+        QString text = root.isEmpty() ? "数据服务离线" : "板级能力或拨号映射未就绪";
+        QString address = "--";
+        if (!mapping.isEmpty()) {
+            text = "拨号控制可用\n链路状态未获取";
+            for (const auto &value : root["networks"].toArray()) {
+                const auto item = value.toObject();
+                if (item["name"] != mapping["interface"] || item["source"].toString() != "real")
+                    continue;
+                const auto status = item["state"].toString();
+                text = status == "up" ? "链路已连接\n拨号状态未验证"
+                       : status == "down" ? "链路未连接" : "链路状态未获取";
+                if (!item["address"].toString().isEmpty()) address = item["address"].toString();
+            }
+        }
+        state->setText(text);
+        cellularInterfaces[i]->setText(mapping["interface"].toString("--"));
+        cellularAddresses[i]->setText(address + " / 未获取");
+    }
+    const auto services = root["services"].toObject();
+    const QStringList names = {"thingsboard", "bluetooth", "ntp"};
+    for (int i = 0; i < serviceStates.size(); ++i) {
+        const auto service = services[names[i]].toObject();
+        const bool known = service["running"].isBool();
+        const bool running = service["running"].toBool();
+        serviceStates[i]->setText(known ? (running ? "● 运行中" : "● 未运行") : "● 状态未获取");
+        serviceStates[i]->setStyleSheet(known && running ? "color:#168345;" : "color:#61758b;");
+        serviceStates[i]->setToolTip(service["detail"].toString());
+    }
+    if (monitorPaused && !root.isEmpty())
+        return;
+    QString temperature = "--", pressure = "--";
+    int readings = 0;
+    for (const auto &value : root["sensors"].toArray()) {
+        const auto sensor = value.toObject();
+        if (!Visuals::sensorAvailable(sensor))
+            continue;
+        ++readings;
+        double reading;
+        if (Visuals::physicalReading(sensor, "温度", &reading))
+            temperature = QString::number(reading, 'f', 1) + " °C";
+        if (Visuals::physicalReading(sensor, "压力", &reading))
+            pressure = QString::number(reading, 'f', 2) + " MPa";
+    }
+    monitorStatus->setMetrics(
+        {{"thermometer", "温度", temperature},
+         {"gauge", "压力", pressure},
+         {"monitor", "数据状态", readings ? QString("%1 项读数").arg(readings) : "等待采集",
+          readings ? kSuccess : kMuted}});
 }
 
 QWidget *MainWindow::buildAlarms()
 {
-    QWidget *page = new QWidget; QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(18, 14, 18, 14);
-    QHBoxLayout *top = new QHBoxLayout; top->addWidget(titleLabel("告警记录")); top->addStretch();
-    QPushButton *ack = actionButton("确认选中告警"); top->addWidget(ack); layout->addLayout(top);
+    QWidget *page = new LayoutPage;
+    QVBoxLayout *layout = new PageLayout(page);
+    layout->setContentsMargins(12, 10, 12, 12);
+    layout->setSpacing(9);
+    QHBoxLayout *top = new QHBoxLayout;
+    top->addWidget(titleLabel("告警记录"));
+    top->addStretch();
+    QPushButton *exportButton = actionButton("导出记录", "secondary");
+    exportButton->setObjectName("alarmExport");
+    exportButton->setIcon(Visuals::icon("document", Visuals::blue));
+    top->addWidget(exportButton);
+    layout->addLayout(top);
+    alarmTabs = new QTabBar;
+    alarmTabs->addTab("全部");
+    alarmTabs->addTab("未确认");
+    alarmTabs->addTab("已确认");
+    alarmTabs->setExpanding(false);
+    layout->addWidget(alarmTabs);
+    connect(alarmTabs, &QTabBar::currentChanged, this, [this]() { applyAlarmFilter(); });
+    QFrame *content = new QFrame;
+    content->setObjectName("panel");
+    QVBoxLayout *contentLayout = new QVBoxLayout(content);
+    contentLayout->setContentsMargins(0, 8, 0, 0);
+    QHBoxLayout *filters = new QHBoxLayout;
+    filters->setContentsMargins(12, 0, 12, 0);
+    filters->addWidget(new QLabel("级别"));
+    alarmSeverity = new QComboBox;
+    alarmSeverity->addItem("全部", "");
+    alarmSeverity->addItem("警告", "warning");
+    alarmSeverity->addItem("错误", "error");
+    alarmSeverity->addItem("提示", "info");
+    filters->addWidget(alarmSeverity);
+    filters->addSpacing(16);
+    filters->addWidget(new QLabel("来源"));
+    alarmSource = new QComboBox;
+    alarmSource->addItem("全部", "");
+    filters->addWidget(alarmSource, 1);
+    filters->addSpacing(16);
+    filters->addWidget(new QLabel("时间"));
+    alarmTime = new QComboBox;
+    alarmTime->addItem("全部记录", 0);
+    alarmTime->addItem("最近 24 小时", 86400);
+    alarmTime->addItem("最近 7 天", 7 * 86400);
+    filters->addWidget(alarmTime);
+    connect(alarmSource, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this]() { applyAlarmFilter(); });
+    connect(alarmTime, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this]() { applyAlarmFilter(); });
+    contentLayout->addLayout(filters);
+    connect(alarmSeverity, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this]() { applyAlarmFilter(); });
     alarmTable = makeTable({"ID", "时间", "级别", "来源", "内容", "状态"});
-    layout->addWidget(alarmTable, 1);
-    connect(ack, &QPushButton::clicked, this, [this]() {
-        int row = alarmTable->currentRow();
-        if (row < 0) { QMessageBox::information(this, "告警", "请先选择一条告警"); return; }
-        int id = alarmTable->item(row, 0)->text().toInt();
+    alarmTable->hideColumn(0);
+    alarmTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    alarmTable->setColumnWidth(1, 150);
+    alarmTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    alarmTable->setColumnWidth(2, 80);
+    contentLayout->addWidget(alarmTable, 1);
+    layout->addWidget(content, 1);
+    QFrame *details = new QFrame;
+    details->setObjectName("panel");
+    QHBoxLayout *row = new QHBoxLayout(details);
+    QVBoxLayout *description = new QVBoxLayout;
+    QLabel *title = new QLabel("选中告警详情");
+    title->setObjectName("panelTitle");
+    description->addWidget(title);
+    alarmDetail = captionLabel("选择一条告警查看详情");
+    description->addWidget(alarmDetail);
+    row->addLayout(description, 1);
+    alarmDetail->setTextFormat(Qt::PlainText);
+    alarmAck = actionButton("确认选中告警");
+    alarmAck->setObjectName("alarmAck");
+    alarmAck->setEnabled(false);
+    alarmAck->setIcon(Visuals::icon("check", Qt::white));
+    row->addWidget(alarmAck);
+    layout->addWidget(details);
+    connect(alarmTable, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateAlarmSelection);
+    connect(alarmTable, &QTableWidget::currentCellChanged, this, &MainWindow::updateAlarmSelection);
+    connect(alarmAck, &QPushButton::clicked, this, [this]() {
+        applyAlarmFilter();
+        if (!alarmAck->isEnabled())
+            return;
+        const QString id = alarmTable->item(alarmTable->currentRow(), 0)->text();
+        alarmAckPending = true;
+        updateAlarmSelection();
         sendJson("POST", QString("/alarms/%1/ack").arg(id), {}, "ack");
+    });
+    connect(exportButton, &QPushButton::clicked, this, [this]() {
+        applyAlarmFilter();
+        // Freeze the visible records before the file dialog runs its event loop.
+        const QByteArray output = visibleAlarmCsv();
+        const QString name = QFileDialog::getSaveFileName(
+            this, "导出当前可见告警", QDir::homePath() + "/dshancontrol-alarms.csv", "CSV (*.csv)");
+        if (name.isEmpty())
+            return;
+        QSaveFile file(name);
+        if (!file.open(QIODevice::WriteOnly)) {
+            QMessageBox::warning(this, "导出失败", file.errorString());
+            return;
+        }
+        if (file.write(output) != output.size() || !file.commit())
+            QMessageBox::warning(this, "导出失败", file.errorString());
+        else
+            QMessageBox::information(this, "导出完成", "当前可见告警已保存。");
     });
     return page;
 }
 
+QByteArray MainWindow::visibleAlarmCsv() const
+{
+    QByteArray output("\xef\xbb\xbf");
+    auto quote = [](QString value) {
+        if (!value.trimmed().isEmpty() && QString("=+-@").contains(value.trimmed().left(1)))
+            value.prepend('\'');
+        value.replace('"', "\"\"");
+        return '"' + value + '"';
+    };
+    for (int row = -1; row < alarmTable->rowCount(); row++) {
+        if (row >= 0 && alarmTable->isRowHidden(row))
+            continue;
+        QStringList fields;
+        for (int col = 0; col < alarmTable->columnCount(); col++) {
+            const auto *item =
+                row < 0 ? alarmTable->horizontalHeaderItem(col) : alarmTable->item(row, col);
+            fields << quote(item ? item->text() : QString());
+        }
+        output += (fields.join(',') + "\r\n").toUtf8();
+    }
+    return output;
+}
+
+void MainWindow::updateAlarmSelection()
+{
+    const int row = alarmTable->currentRow();
+    const bool selected = row >= 0 && !alarmTable->isRowHidden(row) &&
+                          !alarmTable->selectedItems().isEmpty() && alarmTable->item(row, 5);
+    if (!selected) {
+        alarmDetail->setText("选择一条告警查看详情");
+        alarmAck->setEnabled(false);
+        return;
+    }
+    const QString id = alarmTable->item(row, 0)->text();
+    alarmDetail->setText(QString("ID %1 · %2\n%3").arg(id, alarmTable->item(row, 1)->text(),
+                                                     alarmTable->item(row, 4)->text()));
+    alarmAck->setEnabled(alarmsAvailable && !latestSnapshot.isEmpty() && !alarmAckPending && id != "--" &&
+                        alarmTable->item(row, 5)->data(Qt::UserRole).toString() == "active");
+}
+
+void MainWindow::applyAlarmFilter()
+{
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    int active = 0, acknowledged = 0;
+    for (int row = 0; row < alarmTable->rowCount(); row++) {
+        const auto *state = alarmTable->item(row, 5);
+        const auto *severity = alarmTable->item(row, 2);
+        if (!state || !severity)
+            continue;
+        const QString rawState = state->data(Qt::UserRole).toString(),
+                      rawSeverity = severity->data(Qt::UserRole).toString();
+        active += rawState == "active";
+        acknowledged += rawState == "acknowledged";
+        const bool matchState =
+            alarmTabs->currentIndex() == 0 ||
+            (alarmTabs->currentIndex() == 1 ? rawState == "active" : rawState == "acknowledged");
+        const QString filter = alarmSeverity->currentData().toString();
+        const QString source = alarmSource->currentData().toString();
+        const auto *sourceItem = alarmTable->item(row, 3);
+        const int seconds = alarmTime->currentData().toInt();
+        const auto *timeItem = alarmTable->item(row, 1);
+        const bool matchesTime =
+            seconds == 0 || (timeItem && timeItem->data(Qt::UserRole).isValid() &&
+                            timeItem->data(Qt::UserRole).toLongLong() >= now - seconds &&
+                            timeItem->data(Qt::UserRole).toLongLong() <= now);
+        const bool matchesSource =
+            source.isEmpty() || (sourceItem && sourceItem->data(Qt::UserRole).toString() == source);
+        alarmTable->setRowHidden(row, !matchState || (!filter.isEmpty() && rawSeverity != filter) ||
+                                          !matchesSource || !matchesTime);
+    }
+    alarmTabs->setTabText(0, QString("全部（%1）").arg(alarmTable->rowCount()));
+    alarmTabs->setTabText(1, QString("未确认（%1）").arg(active));
+    alarmTabs->setTabText(2, QString("已确认（%1）").arg(acknowledged));
+    if (alarmTable->currentRow() >= 0 && alarmTable->isRowHidden(alarmTable->currentRow())) {
+        alarmTable->clearSelection();
+        alarmTable->setCurrentCell(-1, -1);
+    }
+    updateAlarmSelection();
+}
+
 QWidget *MainWindow::buildSettings()
 {
-    QWidget *page = new QWidget; QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(18, 14, 18, 14); layout->addWidget(titleLabel("系统设置"));
+    QWidget *page = new LayoutPage;
+    QVBoxLayout *layout = new PageLayout(page);
+    layout->setContentsMargins(12, 10, 12, 12);
+    layout->setSpacing(10);
+    QHBoxLayout *heading = new QHBoxLayout;
+    heading->addWidget(titleLabel("系统设置"));
+    heading->addWidget(captionLabel("配置系统显示、服务、日志与应用更新"), 1);
+    layout->addLayout(heading);
+    QTabWidget *settingsTabs = new SectionTabs;
+    settingsTabs->setObjectName("settingsTabs");
+    QWidget *display = new LayoutPage;
+    QVBoxLayout *displayLayout = new PageLayout(display);
+    displayLayout->setContentsMargins(0, 10, 0, 0);
+    displayLayout->setSpacing(10);
     QHBoxLayout *columns = new QHBoxLayout;
-    QGroupBox *display = new QGroupBox("显示与数据"); QFormLayout *form = new QFormLayout(display);
-    brightnessSlider = new QSlider(Qt::Horizontal); brightnessSlider->setRange(10, 255); brightnessSlider->setValue(220);
-    demoCheck = new QCheckBox("启用工业数据演示（人工）"); demoCheck->setChecked(false);
-    refreshCombo = new QComboBox; refreshCombo->addItem("0.5 秒", 500); refreshCombo->addItem("1 秒", 1000);
-    refreshCombo->addItem("2 秒", 2000); refreshCombo->addItem("5 秒", 5000); refreshCombo->setCurrentIndex(1);
-    form->addRow("背光亮度", brightnessSlider); form->addRow("演示数据", demoCheck); form->addRow("刷新周期", refreshCombo);
-    QPushButton *save = actionButton("保存设置"); form->addRow(save);
-    connect(save, &QPushButton::clicked, this, [this]() {
-        QJsonObject body{{"brightness", brightnessSlider->value()}, {"demo_mode", demoCheck->isChecked()},
-                         {"refresh_ms", refreshCombo->currentData().toInt()}, {"page_cycle_seconds", 0}};
-        sendJson("PUT", "/settings", body, "settings");
-        postAction("brightness", {{"value", brightnessSlider->value()}}, "确认应用新的背光亮度？");
-    });
-    columns->addWidget(display, 1);
-
-    QGroupBox *services = new QGroupBox("服务与系统"); QVBoxLayout *serviceLayout = new QVBoxLayout(services);
-    for (const QString &name : {QString("thingsboard"), QString("bluetooth"), QString("ntp")}) {
-        QHBoxLayout *row = new QHBoxLayout; row->addWidget(new QLabel(name)); row->addStretch();
-        QPushButton *start = actionButton("启动", "secondary"); QPushButton *restart = actionButton("重启", "secondary");
-        QPushButton *stop = actionButton("停止", "danger"); row->addWidget(start); row->addWidget(restart); row->addWidget(stop);
-        connect(start, &QPushButton::clicked, this, [=]() { postAction("service", {{"service", name}, {"operation", "start"}}, "确认启动 " + name + "？"); });
-        connect(restart, &QPushButton::clicked, this, [=]() { postAction("service", {{"service", name}, {"operation", "restart"}}, "确认重启 " + name + "？"); });
-        connect(stop, &QPushButton::clicked, this, [=]() { postAction("service", {{"service", name}, {"operation", "stop"}}, "确认停止 " + name + "？"); });
-        serviceLayout->addLayout(row);
+    responsiveRows << columns;
+    auto *screen = new QGroupBox("显示");
+    auto *screenForm = new QFormLayout(screen);
+    screenForm->setVerticalSpacing(18);
+    screenResolution = new QLabel;
+    screenResolution->setObjectName("valueText");
+    screenForm->addRow(iconLabel("monitor", "屏幕分辨率"), screenResolution);
+    brightnessSlider = new TouchSlider;
+    brightnessSlider->setObjectName("brightnessSlider");
+    brightnessSlider->setAccessibleName("屏幕亮度");
+    brightnessSlider->setRange(10, 255);
+    brightnessSlider->setSingleStep(3);
+    brightnessSlider->setValue(220);
+    auto *brightnessRow = new QHBoxLayout;
+    brightnessRow->setSpacing(6);
+    auto *dimmer = new QPushButton("-");
+    auto *brighter = new QPushButton("+");
+    dimmer->setObjectName("brightnessDecrease");
+    brighter->setObjectName("brightnessIncrease");
+    dimmer->setAccessibleName("降低亮度");
+    brighter->setAccessibleName("提高亮度");
+    for (auto *button : {dimmer, brighter}) {
+        button->setStyleSheet("padding: 0; min-width: 44px; max-width: 44px;"
+                             "min-height: 48px; max-height: 48px;");
     }
-    QPushButton *reboot = actionButton("重启整机", "danger");
-    connect(reboot, &QPushButton::clicked, this, [this]() {
-        postAction("system_reboot", {}, "确认重启 OmniGate？所有现场通信将暂时中断。");
+    connect(dimmer, &QPushButton::clicked, brightnessSlider, [this]() {
+        brightnessSlider->triggerAction(QAbstractSlider::SliderSingleStepSub);
     });
-    serviceLayout->addStretch(); serviceLayout->addWidget(reboot);
-    columns->addWidget(services, 1); layout->addLayout(columns);
-    layout->addWidget(titleLabel("最近控制审计"));
-    auditTable = makeTable({"时间", "动作", "目标", "结果"}); layout->addWidget(auditTable, 1);
+    connect(brighter, &QPushButton::clicked, brightnessSlider, [this]() {
+        brightnessSlider->triggerAction(QAbstractSlider::SliderSingleStepAdd);
+    });
+    brightnessRow->addWidget(dimmer);
+    brightnessRow->addWidget(brightnessSlider, 1);
+    brightnessRow->addWidget(brighter);
+    auto *brightnessValue =
+        new QLabel(QString::number(qRound(brightnessSlider->value() * 100.0 / 255)) + "%");
+    brightnessValue->setMinimumWidth(36);
+    connect(brightnessSlider, &QSlider::valueChanged, this, [brightnessValue](int value) {
+        brightnessValue->setText(QString::number(qRound(value * 100.0 / 255)) + "%");
+    });
+    brightnessRow->addWidget(brightnessValue);
+    screenForm->addRow(iconLabel("sun", "屏幕亮度"), brightnessRow);
+    screenForm->addRow(iconLabel("type", "界面字体"), new QLabel("标准 · 思源黑体"));
+    screenForm->addRow(iconLabel("topology", "布局模式"), new QLabel("根据屏幕自动调整"));
+    screenForm->addRow(iconLabel("globe", "语言"), new QLabel("简体中文"));
+    auto *interaction = new QGroupBox("数据与交互");
+    auto *form = new QFormLayout(interaction);
+    form->setVerticalSpacing(12);
+    refreshCombo = new QComboBox;
+    refreshCombo->addItem("0.5 秒", 500);
+    refreshCombo->addItem("1 秒", 1000);
+    refreshCombo->addItem("2 秒", 2000);
+    refreshCombo->addItem("5 秒", 5000);
+    refreshCombo->setCurrentIndex(1);
+    demoCheck = new ToggleSwitch;
+    form->addRow(iconLabel("clock", "数据刷新"), refreshCombo);
+    form->addRow(iconLabel("server", "演示数据"), demoCheck);
+    auto *notice = new QLabel("演示模式使用样例数据；控制操作仍需确认。");
+    notice->setObjectName("warningNote");
+    notice->setWordWrap(true);
+    form->addRow(notice);
+    QPushButton *viewServices = actionButton("查看服务", "secondary");
+    connect(viewServices, &QPushButton::clicked, this,
+            [settingsTabs]() { settingsTabs->setCurrentIndex(1); });
+    form->addRow(iconLabel("settings", "系统服务"), viewServices);
+    columns->addWidget(screen, 1);
+    columns->addWidget(interaction, 1);
+    displayLayout->addLayout(columns, 1);
+    QFrame *footer = new QFrame;
+    footer->setObjectName("panel");
+    auto *footerLayout = new QHBoxLayout(footer);
+    footerLayout->addWidget(captionLabel("配置仅影响当前设备，不改变业务数据。"), 1);
+    QPushButton *save = actionButton("保存设置");
+    save->setObjectName("saveSettings");
+    save->setMinimumWidth(126);
+    footerLayout->addWidget(save);
+    displayLayout->addWidget(footer);
+    connect(brightnessSlider, &QSlider::valueChanged, this, [this]() {
+        if (!loadingSettings) {
+            settingsDirty = true;
+            ++settingsRevision;
+        }
+    });
+    connect(demoCheck, &QCheckBox::toggled, this, [this]() {
+        if (!loadingSettings) {
+            settingsDirty = true;
+            ++settingsRevision;
+        }
+    });
+    connect(refreshCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+        if (!loadingSettings) {
+            settingsDirty = true;
+            ++settingsRevision;
+        }
+    });
+    connect(save, &QPushButton::clicked, this, [this]() {
+        if (settingsPending || latestSnapshot.isEmpty()) return;
+        const QJsonObject values{{"brightness", brightnessSlider->value()},
+                                 {"demo_mode", demoCheck->isChecked()},
+                                 {"refresh_ms", refreshCombo->currentData().toInt()}};
+        const auto revision = settingsRevision;
+        if (QMessageBox::question(this, "保存设置", "确认保存显示设置并应用背光亮度？",
+                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+            return;
+        if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision) return;
+        savedSettingsRevision = revision;
+        submittedSettings = values;
+        settingsPending = true;
+        updateSettingsControls();
+        sendJson("PUT", "/settings", values, "settings");
+    });
+    save->setEnabled(false);
+    settingsTabs->addTab(scrollPage(display), "显示与交互");
+    auto *services = new LayoutPage;
+    auto *serviceLayout = new PageLayout(services);
+    serviceLayout->setContentsMargins(0, 10, 0, 0);
+    serviceLayout->setSpacing(10);
+    const QStringList serviceNames = {"thingsboard", "bluetooth", "ntp"};
+    const QStringList titles = {"工业数据采集", "蓝牙连接服务", "网络时间同步"};
+    const QStringList descriptions = {"ThingsBoard · 采集与上行", "Bluetooth · 近场设备连接",
+                                      "NTP · 设备时钟同步"};
+    for (int i = 0; i < serviceNames.size(); ++i) {
+        const QString name = serviceNames[i];
+        auto *card = new QFrame;
+        card->setObjectName("panel");
+        auto *row = new QHBoxLayout(card);
+        row->setContentsMargins(14, 10, 14, 10);
+        auto *symbol = new QLabel;
+        symbol->setPixmap(Visuals::icon(i == 0 ? "server" : (i == 1 ? "globe" : "clock")).pixmap(30, 30));
+        row->addWidget(symbol);
+        auto *description = new QVBoxLayout;
+        auto *title = new QLabel(titles[i]);
+        title->setObjectName("panelTitle");
+        description->addWidget(title);
+        description->addWidget(captionLabel(descriptions[i]));
+        row->addLayout(description, 1);
+        auto *state = new QLabel("● 状态未获取");
+        state->setMinimumWidth(100);
+        state->setObjectName("caption");
+        row->addWidget(state);
+        serviceStates << state;
+        auto *actions = new QHBoxLayout;
+        for (const QString &operation : {QString("start"), QString("restart"), QString("stop")}) {
+            auto *button =
+                actionButton(operation == "start" ? "启动" : (operation == "restart" ? "重启" : "停止"),
+                             operation == "stop" ? "danger" : "secondary");
+            button->setProperty("serviceName", name);
+            button->setObjectName("service-" + name + "-" + operation);
+            button->setEnabled(false);
+            button->setToolTip("服务可用性尚未获取");
+            serviceButtons << button;
+            actions->addWidget(button);
+            connect(button, &QPushButton::clicked, this, [=]() {
+                postAction("service", {{"service", name}, {"operation", operation}},
+                           "确认" + button->text() + " " + name + "？");
+            });
+        }
+        // Keep controls reachable on portrait displays without tiny touch targets.
+        row->addLayout(actions);
+        responsiveRows << row;
+        serviceLayout->addWidget(card);
+    }
+    auto *serviceNotice = captionLabel("重启或停止采集服务会中断相应数据链路，请在允许维护时操作。");
+    serviceNotice->setObjectName("warningNote");
+    serviceLayout->addWidget(serviceNotice);
+    serviceLayout->addStretch();
+    auto *system = new QFrame;
+    system->setObjectName("panel");
+    auto *systemRow = new QHBoxLayout(system);
+    auto *systemText = new QVBoxLayout;
+    auto *systemTitle = new QLabel("设备电源管理");
+    systemTitle->setObjectName("panelTitle");
+    systemText->addWidget(systemTitle);
+    systemText->addWidget(captionLabel("重启整机将暂时中断所有现场通信。"));
+    systemRow->addLayout(systemText, 1);
+    auto *reboot = actionButton("重启整机", "danger");
+    rebootButton = reboot;
+    reboot->setEnabled(false);
+    connect(reboot, &QPushButton::clicked, this,
+            [this]() { postAction("system_reboot", {}, "确认重启 DshanControl？所有现场通信将暂时中断。"); });
+    systemRow->addWidget(reboot);
+    serviceLayout->addWidget(system);
+    settingsTabs->addTab(scrollPage(services), "服务管理");
+    auto *audit = new LayoutPage;
+    auto *auditLayout = new PageLayout(audit);
+    auditLayout->setContentsMargins(0, 10, 0, 0);
+    auto *auditPanel = new QGroupBox("操作记录");
+    auto *auditBody = new QVBoxLayout(auditPanel);
+    auto *auditHeader = new QHBoxLayout;
+    auditHeader->addWidget(new QLabel("执行结果"));
+    auditResult = new QComboBox;
+    auditResult->addItem("全部", "");
+    auditResult->addItem("成功", "success");
+    auditResult->addItem("失败", "failed");
+    auditHeader->addWidget(auditResult);
+    auditHeader->addStretch();
+    auto *reload = actionButton("刷新记录", "secondary");
+    reload->setObjectName("reloadAudit");
+    connect(reload, &QPushButton::clicked, this, [this]() { sendJson("GET", "/audit", {}, "audit"); });
+    auditHeader->addWidget(reload);
+    auditBody->addLayout(auditHeader);
+    auditTable = makeTable({"时间", "动作", "目标", "结果"});
+    static_cast<DataTable *>(auditTable)->setEmptyText("暂无操作记录");
+    auditBody->addWidget(auditTable, 1);
+    auditCount = captionLabel("显示最近 200 条操作记录");
+    auditBody->addWidget(auditCount);
+    auditLayout->addWidget(auditPanel, 1);
+    auto *auditNote = captionLabel("记录来自当前设备，便于核对参数修改与服务操作结果。");
+    auditNote->setObjectName("infoNote");
+    auditLayout->addWidget(auditNote);
+    connect(auditResult, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this]() { updateAuditFilter(); });
+    settingsTabs->addTab(scrollPage(audit), "操作日志");
+    settingsTabs->addTab(scrollPage(new UpdatePanel), "应用更新");
+    layout->addWidget(settingsTabs, 1);
     return page;
 }
 
 void MainWindow::showPage(int index)
 {
-    if (index < 0 || index >= pages->count()) return;
+    if (index < 0 || index >= pages->count())
+        return;
     pages->setCurrentIndex(index);
-    for (int i = 0; i < navButtons.size(); ++i) navButtons[i]->setChecked(i == index);
-    if (index == 4) sendJson("GET", "/alarms?limit=500", {}, "alarms");
-    if (index == 5) sendJson("GET", "/audit", {}, "audit");
+    for (int i = 0; i < navButtons.size(); ++i)
+        navButtons[i]->setChecked(i == index);
+    if (index == 4 && !alarmRequestActive) {
+        alarmRequestActive = true;
+        sendJson("GET", "/alarms?limit=500", {}, "alarms");
+    }
+    if (index == 5)
+        sendJson("GET", "/audit", {}, "audit");
 }
 
 void MainWindow::requestSnapshot()
 {
-    if (requestActive) return;
+    if (requestActive)
+        return;
     requestActive = true;
     QNetworkRequest req(QUrl(QString(kBaseUrl) + "/snapshot"));
     QNetworkReply *reply = networkManager.get(req);
     reply->setProperty("kind", "snapshot");
+    QTimer::singleShot(4000, reply, [reply]() {
+        if (reply->isRunning())
+            reply->abort();
+    });
 }
 
-void MainWindow::sendJson(const QByteArray &method, const QString &path,
-                          const QJsonObject &body, const QString &kind)
+void MainWindow::sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,
+                          const QString &kind)
 {
     QNetworkRequest req(QUrl(QString(kBaseUrl) + path));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply *reply = networkManager.sendCustomRequest(req, method, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    QNetworkReply *reply =
+        networkManager.sendCustomRequest(req, method, QJsonDocument(body).toJson(QJsonDocument::Compact));
     reply->setProperty("kind", kind);
+    QTimer::singleShot(30000, reply, [reply]() {
+        if (reply->isRunning())
+            reply->abort();
+    });
 }
 
-void MainWindow::postAction(const QString &action, const QJsonObject &params,
-                            const QString &description)
+void MainWindow::postAction(const QString &action, const QJsonObject &params, const QString &description)
 {
-    if (QMessageBox::warning(this, "操作确认", description,
-                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) return;
-    sendJson("POST", "/actions", {{"action", action}, {"params", params}, {"confirmed", true}}, "action");
+    QJsonObject actionParams = params;
+    const auto cellular = action == "ec20" ? cellularMapping(latestSnapshot, params["profile"].toString()) : QJsonObject();
+    if (action == "ec20") {
+        actionParams["device"] = cellular["device"];
+        actionParams["interface"] = cellular["interface"];
+    }
+    const bool ethercat = action == "ethercat_sdo_write" || action == "ethercat_cycle";
+    if (ethercat) {
+        const auto devices = controlDevices(latestSnapshot, "ethernet", "ethercat");
+        if (devices.size() != 1)
+            return;
+        actionParams["interface"] = devices.first();
+    }
+    const auto allowed = [this, &action, &params, &actionParams, ethercat, cellular]() {
+        if (latestSnapshot.isEmpty()) return false;
+        if (action == "service")
+            return latestSnapshot["services"].toObject()[params["service"].toString()]
+                .toObject()["available"] == QJsonValue(true);
+        if (action == "ec20")
+            return !cellular.isEmpty() && cellularMapping(latestSnapshot, params["profile"].toString()) == cellular;
+        if (action == "rs485_config")
+            return controlDevices(latestSnapshot, "serial", "modbus-rtu").contains(params["port"].toString());
+        if (ethercat) {
+            const auto devices = controlDevices(latestSnapshot, "ethernet", "ethercat");
+            return devices.size() == 1 && devices.first() == actionParams["interface"].toString();
+        }
+        if (action != "can_apply" && action != "canopen_nmt" && action != "canopen_sdo_write")
+            return true;
+        const QString device = params["interface"].toString();
+        if (device.trimmed().isEmpty())
+            return false;
+        const auto platform = latestSnapshot["platform"].toObject();
+        const auto capabilities = platform["capabilities"].toArray();
+        if ((action != "can_apply" && !capabilities.contains("canopen")) ||
+            (params["fd"].toBool() && !capabilities.contains("can-fd")))
+            return false;
+        const auto channels = platform["channels"].toObject();
+        for (const auto &value : channels) {
+            const auto channel = value.toObject();
+            if (channel["kind"].toString() == "can" && channel["device"].toString() == device)
+                return true;
+        }
+        return false;
+    };
+    if (!allowed())
+        return;
+    if (QMessageBox::warning(this, "操作确认", description, QMessageBox::Yes | QMessageBox::No,
+                             QMessageBox::No) != QMessageBox::Yes)
+        return;
+    // The modal confirmation runs an event loop; a snapshot may revoke access.
+    if (!allowed())
+        return;
+    sendJson("POST", "/actions", {{"action", action}, {"params", actionParams}, {"confirmed", true}}, "action");
 }
 
 void MainWindow::handleReply(QNetworkReply *reply)
 {
     const QString kind = reply->property("kind").toString();
-    if (kind == "snapshot") requestActive = false;
+    if (kind == "snapshot")
+        requestActive = false;
+    if (kind == "alarms")
+        alarmRequestActive = false;
+    if (kind == "ack")
+        alarmAckPending = false;
+    if (kind == "alarms" || kind == "ack") {
+        alarmsAvailable = false;
+        updateAlarmSelection();
+    }
     const QByteArray raw = reply->readAll();
     const QJsonDocument doc = QJsonDocument::fromJson(raw);
+    if (kind == "settings" || kind == "brightness") {
+        const bool ok = reply->error() == QNetworkReply::NoError && doc.isObject() &&
+                        doc.object()["ok"] == QJsonValue(true);
+        bool valid = ok;
+        if (ok && kind == "settings") {
+            const auto received = doc.object()["settings"].toObject();
+            for (auto it = submittedSettings.begin(); it != submittedSettings.end(); ++it)
+                valid = valid && received[it.key()] == it.value();
+        }
+        if (ok && kind == "brightness")
+            valid = doc.object()["result"].toObject()["brightness"] == submittedSettings["brightness"];
+        if (valid && kind == "settings") {
+            if (settingsRevision == savedSettingsRevision) settingsDirty = false;
+            sendJson("POST", "/actions", {{"action", "brightness"},
+                {"params", QJsonObject{{"value", submittedSettings["brightness"]}}},
+                {"confirmed", true}}, "brightness");
+        } else {
+            settingsPending = false;
+            updateSettingsControls();
+            const QString message = valid ? "显示设置已保存，背光已应用" :
+                (kind == "brightness" ? "显示设置已保存，背光应用未确认。请重试并检查背光设备。" :
+                                        "设置保存未确认；保留当前编辑，请重试。");
+            if (valid) QMessageBox::information(this, "操作完成", message);
+            else QMessageBox::warning(this, "操作失败", message);
+            requestSnapshot();
+        }
+        reply->deleteLater();
+        return;
+    }
     if (reply->error() != QNetworkReply::NoError || !doc.isObject()) {
-        connectionLabel->setText("● 数据服务离线");
-        connectionLabel->setStyleSheet(QString());
-        if (kind != "snapshot") QMessageBox::critical(this, "操作失败", QString::fromUtf8(raw.isEmpty() ? reply->errorString().toUtf8() : raw));
-        reply->deleteLater(); return;
+        if (kind == "snapshot")
+            markOffline();
+        if (kind != "snapshot")
+            QMessageBox::critical(this, "操作失败",
+                                  QString::fromUtf8(raw.isEmpty() ? reply->errorString().toUtf8() : raw));
+        reply->deleteLater();
+        return;
     }
     const QJsonObject root = doc.object();
-    if (!root.value("ok").toBool(true)) {
+    if (!root.value("ok").toBool(false)) {
+        if (kind == "snapshot") {
+            markOffline();
+            reply->deleteLater();
+            return;
+        }
         QMessageBox::warning(this, "操作失败", root.value("error").toString("未知错误"));
     } else if (kind == "snapshot") {
         updateSnapshot(root);
     } else if (kind == "alarms") {
-        const QJsonArray rows = root.value("alarms").toArray(); alarmTable->setRowCount(rows.size());
+        alarmsAvailable = true;
+        QString selectedId;
+        if (alarmTable->currentRow() >= 0 && alarmTable->item(alarmTable->currentRow(), 0))
+            selectedId = alarmTable->item(alarmTable->currentRow(), 0)->text();
+        const QJsonArray rows = root.value("alarms").toArray();
+        alarmTable->clearSelection();
+        alarmTable->setCurrentCell(-1, -1);
+        alarmTable->setRowCount(rows.size());
         for (int i = 0; i < rows.size(); ++i) {
             const QJsonObject x = rows[i].toObject();
-            const QString timeText = QDateTime::fromSecsSinceEpoch(x.value("ts").toVariant().toLongLong()).toString("yyyy-MM-dd hh:mm:ss");
-            alarmTable->setItem(i, 0, cell(QString::number(x.value("id").toInt())));
-            alarmTable->setItem(i, 1, cell(timeText));
-            alarmTable->setItem(i, 2, cell(x.value("severity").toString()));
-            alarmTable->setItem(i, 3, cell(x.value("source").toString()));
+            const double id = x["id"].toDouble();
+            const bool validId = Visuals::finiteNumber(x["id"]) && id >= 1 &&
+                                 id <= 9007199254740991.0 && std::floor(id) == id;
+            alarmTable->setItem(i, 0, cell(validId ? QString::number(qint64(id)) : "--"));
+            const double timestamp = x["ts"].toDouble();
+            const bool validTime = Visuals::finiteNumber(x["ts"]) && timestamp >= 0 &&
+                                   timestamp <= 253402300799.0 && std::floor(timestamp) == timestamp;
+            auto *timeCell = cell(validTime ? QDateTime::fromSecsSinceEpoch(qint64(timestamp))
+                                                .toString("yyyy-MM-dd hh:mm:ss") : "--");
+            if (validTime)
+                timeCell->setData(Qt::UserRole, qint64(timestamp));
+            alarmTable->setItem(i, 1, timeCell);
+            const QString severity = x.value("severity").toString();
+            auto *level =
+                cell(severity == "warning"
+                         ? "警告"
+                         : (severity == "error" ? "错误" : (severity == "info" ? "提示" : severity)),
+                     severity == "warning" ? QColor("#d18a00") : kText);
+            level->setData(Qt::UserRole, severity);
+            level->setIcon(Visuals::icon(severity == "warning" ? "warning" : "info", Visuals::blue));
+            alarmTable->setItem(i, 2, level);
+            const QString source = x.value("source").toString();
+            auto *sourceCell = cell(source == "demo" ? "样例设备" : source);
+            sourceCell->setData(Qt::UserRole, source);
+            alarmTable->setItem(i, 3, sourceCell);
             alarmTable->setItem(i, 4, cell(sourceText(x, x.value("message").toString())));
-            alarmTable->setItem(i, 5, cell(x.value("state").toString()));
+            const QString state = x.value("state").toString();
+            auto *status = cell(state == "active" ? "未确认" : (state == "acknowledged" ? "已确认" : state),
+                                state == "active" ? QColor("#d18a00") : Visuals::muted);
+            status->setData(Qt::UserRole, state);
+            alarmTable->setItem(i, 5, status);
+            if (alarmTable->item(i, 0)->text() == selectedId)
+                alarmTable->setCurrentCell(i, 0);
         }
+        const QString selectedSource = alarmSource->currentData().toString();
+        const QString selectedSourceText = alarmSource->currentText();
+        alarmSource->blockSignals(true);
+        alarmSource->clear();
+        alarmSource->addItem("全部", "");
+        for (int row = 0; row < alarmTable->rowCount(); ++row) {
+            auto *source = alarmTable->item(row, 3);
+            const QString raw = source->data(Qt::UserRole).toString();
+            if (!raw.isEmpty() && alarmSource->findData(raw) < 0)
+                alarmSource->addItem(source->text(), raw);
+        }
+        if (!selectedSource.isEmpty() && alarmSource->findData(selectedSource) < 0)
+            alarmSource->addItem(selectedSourceText, selectedSource);
+        alarmSource->setCurrentIndex(qMax(0, alarmSource->findData(selectedSource)));
+        alarmSource->blockSignals(false);
+        applyAlarmFilter();
     } else if (kind == "audit") {
-        const QJsonArray rows = root.value("audit").toArray(); auditTable->setRowCount(rows.size());
+        const QJsonArray rows = root.value("audit").toArray();
+        auditTable->setRowCount(rows.size());
         for (int i = 0; i < rows.size(); ++i) {
             QJsonObject x = rows[i].toObject();
-            auditTable->setItem(i, 0, cell(QDateTime::fromSecsSinceEpoch(x.value("ts").toVariant().toLongLong()).toString("MM-dd hh:mm:ss")));
-            auditTable->setItem(i, 1, cell(x.value("action").toString())); auditTable->setItem(i, 2, cell(x.value("target").toString()));
-            auditTable->setItem(i, 3, cell(x.value("result").toString(), kMuted));
+            auditTable->setItem(i, 0,
+                                cell(QDateTime::fromSecsSinceEpoch(x.value("ts").toVariant().toLongLong())
+                                         .toString("MM-dd hh:mm:ss")));
+            static const QMap<QString, QString> actionNames = {{"brightness", "背光亮度"},
+                                                               {"service", "服务管理"},
+                                                               {"can_apply", "CAN 参数配置"},
+                                                               {"rs485_config", "串口参数配置"},
+                                                               {"canopen_nmt", "CANopen NMT 控制"},
+                                                               {"canopen_sdo_write", "CANopen SDO 写入"},
+                                                               {"canopen_rpdo", "CANopen PDO 发送"},
+                                                               {"ethercat_sdo_write", "EtherCAT 对象写入"},
+                                                               {"ethercat_cycle", "EtherCAT 周期诊断"},
+                                                               {"ec20", "蜂窝拨号"},
+                                                               {"system_reboot", "重启设备"},
+                                                               {"alarm_ack", "告警确认"}};
+            const QString action = x.value("action").toString();
+            auto *actionCell = cell(actionNames.value(action, action));
+            actionCell->setToolTip(action);
+            auditTable->setItem(i, 1, actionCell);
+            auditTable->setItem(i, 2, cell(x.value("target").toString()));
+            const QString result = x.value("result").toString();
+            auto *state = cell(result == "success" ? "成功" : (result == "failed" ? "失败" : result),
+                               result == "success" ? kSuccess : (result == "failed" ? kDanger : kMuted));
+            state->setData(Qt::UserRole, result);
+            state->setIcon(Visuals::icon(result == "success" ? "check" : (result == "failed" ? "warning" : "info"),
+                                         result == "success" ? kSuccess : (result == "failed" ? kDanger : kMuted)));
+            state->setToolTip(x["detail"].toString());
+            auditTable->setItem(i, 3, state);
         }
+        updateAuditFilter();
     } else {
-        QMessageBox::information(this, "操作完成", "操作已执行并写入审计记录");
+        if (kind == "ack" && !alarmRequestActive) {
+            alarmRequestActive = true;
+            sendJson("GET", "/alarms?limit=500", {}, "alarms");
+        }
+        QMessageBox::information(this, "操作完成",
+                                 kind == "action" ? "命令已执行；实际状态以设备刷新结果为准。" : "操作已完成");
         requestSnapshot();
-        if (pages->currentIndex() == 5) sendJson("GET", "/audit", {}, "audit");
+        if (pages->currentIndex() == 5)
+            sendJson("GET", "/audit", {}, "audit");
     }
     reply->deleteLater();
+}
+
+void MainWindow::updateSettingsControls()
+{
+    const bool online = !latestSnapshot.isEmpty();
+    findChild<QPushButton *>("saveSettings")->setEnabled(online && !settingsPending);
+    rebootButton->setEnabled(online);
+    for (auto *button : serviceButtons) {
+        const bool available = online && latestSnapshot["services"].toObject()
+            [button->property("serviceName").toString()].toObject()["available"] == QJsonValue(true);
+        button->setEnabled(available);
+        button->setToolTip(available ? "操作将影响相应数据链路，需确认" : "离线或设备未提供此服务");
+    }
+}
+
+void MainWindow::markOffline()
+{
+    alarmsAvailable = false;
+    updateAlarmSelection();
+    connectionLabel->setText("● 数据服务离线");
+    connectionLabel->setStyleSheet("color:#b52f40;");
+    cpuValue->setText("CPU --");
+    memoryValue->setText("内存 --");
+    temperatureValue->setText("温度 --");
+    storageValue->setText("存储 --");
+    alarmSummaryLabel->setText("● 数据服务离线");
+    alarmSummaryLabel->setStyleSheet("color:#b52f40;");
+    for (const auto &control : capabilityControls)
+        control.first->setEnabled(false);
+    for (QTableWidget *table : {busTable, networkTable, deviceTable})
+        table->setRowCount(0);
+    latestSnapshot = {};
+    updateSettingsControls();
+    updatePageMetrics({});
+    for (auto *table : networkTables) {
+        table->setRowCount(0);
+        table->setProperty("selectionLost", false);
+    }
+    dashboard->setOffline();
+    deviceTrend->setOffline();
+    updateNetworkDetails();
 }
 
 QString MainWindow::sourceText(const QJsonObject &item, const QString &text) const
 {
     const QString source = item.value("source").toString("real");
-    if (source == "demo") return text + "  [演示]";
-    if (source == "unavailable") return text + "  [不可用]";
+    if (source == "demo")
+        return text + "  [演示]";
+    if (source == "unavailable")
+        return text + "  [不可用]";
     return text;
 }
 
 QString MainWindow::uptimeText(qint64 seconds)
 {
-    qint64 days = seconds / 86400; seconds %= 86400;
-    return QString("%1天 %2:%3").arg(days).arg(seconds / 3600, 2, 10, QChar('0')).arg((seconds / 60) % 60, 2, 10, QChar('0'));
+    qint64 days = seconds / 86400;
+    seconds %= 86400;
+    return QString("%1天 %2:%3")
+        .arg(days)
+        .arg(seconds / 3600, 2, 10, QChar('0'))
+        .arg((seconds / 60) % 60, 2, 10, QChar('0'));
 }
 
 void MainWindow::updateSnapshot(const QJsonObject &root)
 {
-    connectionLabel->setText("● 数据在线"); connectionLabel->setStyleSheet(QString());
+    if (!root.value("system").isObject() || !root.value("summary").isObject() ||
+        !Visuals::finiteNumber(root["timestamp"]) || root["timestamp"].toDouble() < 0 ||
+        root["timestamp"].toDouble() > 253402300799.0) {
+        markOffline();
+        return;
+    }
+    connectionLabel->setText("● 数据在线");
+    connectionLabel->setStyleSheet("color:#168366;");
+    if (pages->currentIndex() == 4 && !alarmRequestActive) {
+        alarmRequestActive = true;
+        sendJson("GET", "/alarms?limit=500", {}, "alarms");
+    }
     const qint64 timestamp = root.value("timestamp").toVariant().toLongLong();
-    clockLabel->setText(QDateTime::fromSecsSinceEpoch(timestamp).toString("yyyy-MM-dd  hh:mm:ss"));
+    clockLabel->setText(QDateTime::fromSecsSinceEpoch(timestamp).toString("MM-dd  hh:mm:ss"));
+    dashboard->setSnapshot(root);
+    latestSnapshot = root;
+    updateAlarmSelection();
+    updatePageMetrics(root);
+    updateSettingsControls();
+    if (!monitorPaused)
+        deviceTrend->setSnapshot(root);
     const QJsonObject system = root.value("system").toObject();
     const QJsonObject summary = root.value("summary").toObject();
-    systemValue->setText(summary.value("status").toString());
-    devicesValue->setText(QString::number(summary.value("online_devices").toInt()));
-    alarmsValue->setText(QString::number(summary.value("today_alarms").toInt()));
-    alarmSummaryLabel->setText(QString("报警 %1").arg(summary.value("today_alarms").toInt()));
-    uptimeValue->setText(uptimeText(system.value("uptime_seconds").toVariant().toLongLong()));
-    cpuValue->setText(QString("CPU  %1%").arg(system.value("cpu").toDouble(), 0, 'f', 0));
-    memoryValue->setText(QString("内存  %1%").arg(system.value("memory").toDouble(), 0, 'f', 0));
-    temperatureValue->setText(QString("温度  %1°C").arg(system.value("temperature").toDouble(), 0, 'f', 1));
-    storageValue->setText(QString("存储  %1%").arg(system.value("storage").toDouble(), 0, 'f', 0));
+    const QJsonObject platform = root.value("platform").toObject();
+    const QJsonObject channels = platform.value("channels").toObject();
+    const QJsonArray capabilities = platform.value("capabilities").toArray();
+    QStringList canDevices;
+    const auto serialDevices = controlDevices(root, "serial", "modbus-rtu");
+    const auto ethercatDevices = controlDevices(root, "ethernet", "ethercat");
+    for (const QJsonValue &value : channels) {
+        const QJsonObject channel = value.toObject();
+        if (channel.value("kind").toString() == "can" &&
+            !channel.value("device").toString().trimmed().isEmpty())
+            canDevices << channel.value("device").toString();
+    }
+    for (QComboBox *combo : canInterfaces) {
+        QStringList current;
+        for (int i = 0; i < combo->count(); ++i)
+            current << combo->itemText(i);
+        if (current != canDevices) {
+            const QString selected = combo->currentText();
+            combo->clear();
+            combo->addItems(canDevices);
+            if (combo->findText(selected) >= 0)
+                combo->setCurrentText(selected);
+        }
+    }
+    if (!portInitialized && !serialDevices.isEmpty()) {
+        serialPort->setText(serialDevices.first());
+        portInitialized = true;
+    }
+    if (!capabilities.contains("can-fd") || canDevices.isEmpty())
+        canFdCheck->setChecked(false);
+    for (const auto &control : capabilityControls) {
+        control.first->setEnabled(control.second == "can"
+                                      ? !canDevices.isEmpty()
+                                      : (control.second == "canopen" || control.second == "can-fd")
+                                            ? !canDevices.isEmpty() && capabilities.contains(control.second)
+                                      : control.second == "serial" ? !serialDevices.isEmpty()
+                                      : control.second == "ethercat" ? ethercatDevices.size() == 1
+                                      : control.second == "dual-cellular" ? !cellularMapping(root, control.first->property("profile").toString()).isEmpty()
+                                                                    : capabilities.contains(control.second));
+    }
+
+    alarmSummaryLabel->setText("● 系统" + summary.value("status").toString("未知"));
+    alarmSummaryLabel->setStyleSheet(summary.value("status").toString() == "正常" ? "color:#168345;"
+                                                                                  : "color:#bb7900;");
+    cpuValue->setText(QString("CPU  %1%").arg(Visuals::numberText(system["cpu"])));
+    memoryValue->setText(QString("内存  %1%").arg(Visuals::numberText(system["memory"])));
+    temperatureValue->setText(
+        system.value("temperature_source").toString() == "unavailable"
+            ? "温度 --"
+            : QString("温度  %1°C").arg(Visuals::numberText(system["temperature"], 1)));
+    storageValue->setText(QString("存储  %1%").arg(Visuals::numberText(system["storage"])));
 
     const QJsonArray buses = root.value("buses").toArray();
-    overviewBusTable->setRowCount(buses.size()); busTable->setRowCount(buses.size());
+    busTable->setRowCount(0);
     for (int i = 0; i < buses.size(); ++i) {
-        QJsonObject x = buses[i].toObject(); QString name = x.value("name").toString(); QString state = x.value("state").toString();
-        const QColor color = kMuted;
-        overviewBusTable->setItem(i, 0, cell(name)); overviewBusTable->setItem(i, 1, cell(sourceText(x, state), color));
-        busTable->setItem(i, 0, cell(name)); busTable->setItem(i, 1, cell(state, color));
-        busTable->setItem(i, 2, cell(x.value("bitrate").toInt() ? QString::number(x.value("bitrate").toInt()) : "--"));
-        busTable->setItem(i, 3, cell(x.value("source").toString()));
-        if (i < overviewBusStates.size()) {
-            const bool online = x.value("online").toBool();
-            overviewBusStates[i]->setText(online ? "正常" : sourceText(x, state));
-            overviewBusStates[i]->setStyleSheet(QString("color:%1;font-weight:700;").arg(online ? kSuccess.name() : kWarning.name()));
+        QJsonObject x = buses[i].toObject();
+        QString name = x.value("name").toString();
+        QString state = x.value("state").toString();
+        const QColor color = x["online"].toBool() ? kSuccess : kMuted;
+        if (name.startsWith("can", Qt::CaseInsensitive)) {
+            const int row = busTable->rowCount();
+            busTable->insertRow(row);
+            busTable->setItem(row, 0, cell(name));
+            busTable->setItem(row, 1, cell(state, color));
+            busTable->setItem(row, 2,
+                              cell(x.value("bitrate").toInt()
+                                       ? QString::number(x.value("bitrate").toDouble() / 1000.0) + " kbit/s"
+                                       : "--"));
+            busTable->setItem(row, 3,
+                              cell(x.value("source").toString() == "demo"
+                                       ? "样例"
+                                       : (x.value("source").toString() == "real" ? "设备" : "未获取")));
         }
     }
 
-    const QJsonArray networks = root.value("networks").toArray();
-    networkTable->setRowCount(networks.size()); overviewNetworkTable->setRowCount(qMin(4, networks.size()));
-    for (int i = 0; i < networks.size(); ++i) {
-        QJsonObject x = networks[i].toObject(); QString name = x.value("name").toString();
-        QString state = x.value("address").toString(); if (state.isEmpty()) state = x.value("state").toString();
-        const QColor color = kMuted;
-        networkTable->setItem(i, 0, cell(name)); networkTable->setItem(i, 1, cell(x.value("state").toString(), color));
-        networkTable->setItem(i, 2, cell(x.value("address").toString("--"))); networkTable->setItem(i, 3, cell(x.value("source").toString()));
-        if (i < 4) { overviewNetworkTable->setItem(i, 0, cell(name)); overviewNetworkTable->setItem(i, 1, cell(sourceText(x, state), color)); }
-        if (i < overviewNetworkStates.size()) {
-            const bool online = x.value("online").toBool();
-            overviewNetworkStates[i]->setText(online ? "已连接" : sourceText(x, x.value("state").toString("离线")));
-            overviewNetworkStates[i]->setStyleSheet(QString("color:%1;font-weight:700;").arg(online ? kSuccess.name() : kWarning.name()));
+    updateNetworkTables(root);
+    if (!monitorPaused) {
+        const QJsonArray sensors = root.value("sensors").toArray();
+        deviceTable->setRowCount(sensors.size());
+        for (int i = 0; i < sensors.size(); ++i) {
+            const auto sensor = sensors[i].toObject();
+            const bool available = Visuals::sensorAvailable(sensor);
+            deviceTable->setItem(i, 0, cell(sensor["name"].toString()));
+            auto *reading = cell(available ? QString::number(sensor["value"].toDouble(), 'f',
+                                                             sensor["unit"].toString() == "MPa" ? 2 : 1)
+                                           : "--",
+                                 Visuals::blue);
+            QFont bold = reading->font();
+            bold.setBold(true);
+            reading->setFont(bold);
+            deviceTable->setItem(i, 1, reading);
+            deviceTable->setItem(i, 2, cell(sensor["unit"].toString()));
+            const QString stateText = available ? sensor["state"].toString("未知") : "未获取";
+            auto *state = cell(stateText, available && stateText == "正常" ? kSuccess : kMuted);
+            state->setToolTip(sourceText(sensor, state->text()));
+            deviceTable->setItem(i, 3, state);
         }
-    }
-
-    const QJsonArray sensors = root.value("sensors").toArray();
-    deviceTable->setRowCount(sensors.size());
-    for (int i = 0; i < sensors.size(); ++i) {
-        QJsonObject x = sensors[i].toObject();
-        deviceTable->setItem(i, 0, cell(x.value("name").toString()));
-        deviceTable->setItem(i, 1, cell(QString("%1 %2").arg(x.value("value").toDouble(), 0, 'f', 1).arg(x.value("unit").toString())));
-        deviceTable->setItem(i, 2, cell(x.value("state").toString(), kMuted));
-        deviceTable->setItem(i, 3, cell(x.value("source").toString() == "demo" ? "演示" : "真实", kMuted));
-        if (i < overviewSensorValues.size()) {
-            overviewSensorValues[i]->setText(QString("%1 %2").arg(x.value("value").toDouble(), 0, 'f', 1).arg(x.value("unit").toString()));
-        }
-    }
-    updateSeries(sensors);
-
-    const QJsonArray alarmRows = root.value("alarms").toObject().value("recent").toArray();
-    overviewAlarmTable->setRowCount(alarmRows.size()); alarmTable->setRowCount(alarmRows.size());
-    for (int i = 0; i < alarmRows.size(); ++i) {
-        QJsonObject x = alarmRows[i].toObject();
-        QString timeText = QDateTime::fromSecsSinceEpoch(x.value("ts").toVariant().toLongLong()).toString("MM-dd hh:mm");
-        overviewAlarmTable->setItem(i, 0, cell(timeText)); overviewAlarmTable->setItem(i, 1, cell(sourceText(x, x.value("message").toString())));
-        alarmTable->setItem(i, 0, cell(QString::number(x.value("id").toInt()))); alarmTable->setItem(i, 1, cell(timeText));
-        alarmTable->setItem(i, 2, cell(x.value("severity").toString())); alarmTable->setItem(i, 3, cell(x.value("source").toString()));
-        alarmTable->setItem(i, 4, cell(x.value("message").toString())); alarmTable->setItem(i, 5, cell(x.value("state").toString()));
     }
 
     const QJsonObject settings = root.value("settings").toObject();
-    brightnessSlider->setValue(settings.value("brightness").toInt(220)); demoCheck->setChecked(settings.value("demo_mode").toBool(false));
-    demoBadge->setVisible(settings.value("demo_mode").toBool(false));
-    int refresh = settings.value("refresh_ms").toInt(1000); int combo = refreshCombo->findData(refresh);
-    if (combo >= 0)
+    loadingSettings = true;
+    if (!settingsDirty) {
+        brightnessSlider->setValue(settings.value("brightness").toInt(220));
+        demoCheck->setChecked(settings.value("demo_mode").toBool(false));
+    }
+    demoBadge->hide();
+    connectionLabel->setText(settings.value("demo_mode").toBool(false) ? "● 样例数据" : "● 数据在线");
+    int refresh = settings.value("refresh_ms").toInt(1000);
+    int combo = refreshCombo->findData(refresh);
+    if (combo < 0 && refresh >= 500 && refresh <= 10000 && !settingsDirty) {
+        refreshCombo->addItem(QString("%1 秒").arg(refresh / 1000.0), refresh);
+        combo = refreshCombo->count() - 1;
+    }
+    if (combo >= 0 && !settingsDirty)
         refreshCombo->setCurrentIndex(combo);
-    refreshTimer.setInterval(refresh);
+    loadingSettings = false;
+    refreshTimer.setInterval(qBound(500, refresh, 10000));
+    refreshValue->setText(QString("数据刷新  %1 秒").arg(refresh / 1000.0, 0, 'g', 2));
     int cycle = settings.value("page_cycle_seconds").toInt();
-    if (cycle > 0) pageTimer.start(cycle * 1000); else pageTimer.stop();
+    if (cycle > 0)
+        pageTimer.start(cycle * 1000);
+    else
+        pageTimer.stop();
 }
 
-void MainWindow::updateSeries(const QJsonArray &sensors)
+void MainWindow::updateAuditFilter()
 {
-    if (sensors.size() < 3) return;
-    ++sampleIndex;
-    const QList<QList<QLineSeries *> *> sets = {&overviewSeries, &deviceSeries};
-    for (QList<QLineSeries *> *set : sets) {
-        for (int i = 0; i < 3; ++i) {
-            QLineSeries *series = set->at(i);
-            QVector<QPointF> points = series->pointsVector();
-            for (QPointF &point : points) point.setX(point.x() - 1);
-            while (!points.isEmpty() && points.first().x() < 0) points.removeFirst();
-            points.append(QPointF(59, sensors[i].toObject().value("value").toDouble()));
-            series->replace(points);
-        }
+    int visible = 0;
+    for (int row = 0; row < auditTable->rowCount(); ++row) {
+        const auto *item = auditTable->item(row, 3);
+        const bool show =
+            auditResult->currentData().toString().isEmpty() ||
+            (item && item->data(Qt::UserRole).toString() == auditResult->currentData().toString());
+        auditTable->setRowHidden(row, !show);
+        visible += show;
     }
+    auditCount->setText(
+        QString("显示 %1 / %2 条记录 · 最近 200 条").arg(visible).arg(auditTable->rowCount()));
 }

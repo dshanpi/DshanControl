@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'components/updater'))
 from update_protocol import TARGET_FIELDS, digest, read_json, require, validate_manifest, validate_target
 sys.path.insert(0, str(ROOT / 'scripts'))
-from install_s4_runtime import payload
+from application_payload import payload
 
 
 def main():

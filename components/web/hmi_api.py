@@ -5,6 +5,7 @@ import math
 import os
 import re
 import shutil
+import socket
 import sqlite3
 import subprocess
 import threading
@@ -89,6 +90,37 @@ def _settings():
     return value
 
 
+def _platform_request(method, params):
+    """Migration client only; device paths/operations belong to the C++ daemon.
+
+    An explicitly configured native channel never falls back to direct sysfs.
+    """
+    path = os.environ.get("DSHANCONTROL_NATIVE_PLATFORM_SOCKET", "")
+    if not path or not os.path.isabs(path):
+        raise ValueError("原生平台通道未配置")
+    body = json.dumps({"protocol": 1, "method": method, "params": params}).encode() + b"\n"
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+        connection.settimeout(5)
+        connection.connect(path)
+        connection.sendall(body)
+        with connection.makefile("rb") as stream:
+            line = stream.readline(1024 * 1024 + 1)
+    if not line.endswith(b"\n") or len(line) > 1024 * 1024:
+        raise RuntimeError("原生平台响应不完整")
+    response = json.loads(line)
+    if not isinstance(response, dict) or type(response.get("protocol")) is not int or \
+            response.get("protocol") != 1 or \
+            not isinstance(response.get("ok"), bool):
+        raise RuntimeError("原生平台响应非法")
+    if not response["ok"]:
+        error = response.get("error") or {}
+        if not isinstance(error, dict):
+            raise RuntimeError("原生平台错误响应非法")
+        raise RuntimeError("%s/%s: %s" % (error.get("stage", "platform"),
+                           error.get("code", "unknown"), error.get("message", "平台操作失败")))
+    return response.get("result")
+
+
 def _db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH), timeout=10)
@@ -156,18 +188,28 @@ def _ensure_demo_alarms(conn):
 
 def _cpu_percent():
     global CPU_PREVIOUS
-    fields = [int(x) for x in _read("/proc/stat").splitlines()[0].split()[1:]]
-    if len(fields) < 4:
-        return 0.0
-    idle = fields[3] + (fields[4] if len(fields) > 4 else 0)
-    total = sum(fields)
+    # Serialize the read as well as the baseline update across API requests.
     with CPU_LOCK:
+        try:
+            row = _read("/proc/stat").splitlines()[0].split()
+            fields = tuple(int(x) for x in row[1:])
+            if row[0] != "cpu" or len(fields) < 4 or any(x < 0 for x in fields):
+                raise ValueError("invalid aggregate CPU counters")
+        except (IndexError, ValueError):
+            CPU_PREVIOUS = None
+            return None
+        # guest/guest_nice are already included in user/nice, not extra time.
+        fields = fields[:8]
         old = CPU_PREVIOUS
-        CPU_PREVIOUS = (idle, total)
-    if not old or total <= old[1]:
-        load = os.getloadavg()[0] if hasattr(os, "getloadavg") else 0.0
-        return min(100.0, load * 25.0)
-    return round(100.0 * (1.0 - (idle - old[0]) / float(total - old[1])), 1)
+        CPU_PREVIOUS = fields
+        if old is None or len(old) != len(fields):
+            return None
+        delta = [current - previous for current, previous in zip(fields, old)]
+        total = sum(delta)
+        if any(x < 0 for x in delta) or total <= 0:
+            return None
+        idle = delta[3] + (delta[4] if len(delta) > 4 else 0)
+        return round(100.0 * (total - idle) / total, 1)
 
 
 def _memory_percent():
@@ -175,22 +217,45 @@ def _memory_percent():
     for line in _read("/proc/meminfo").splitlines():
         if ":" in line:
             key, value = line.split(":", 1)
-            try:
-                values[key] = int(value.split()[0])
-            except (IndexError, ValueError):
-                pass
-    total = values.get("MemTotal", 0)
-    available = values.get("MemAvailable", values.get("MemFree", 0))
-    return round(100.0 * (total - available) / total, 1) if total else 0.0
+            fields = value.split()
+            if len(fields) == 2 and fields[1] == "kB" and fields[0].isdigit():
+                values[key] = int(fields[0])
+    total = values.get("MemTotal")
+    # MemFree alone excludes reclaimable cache and is not MemAvailable.
+    available = values.get("MemAvailable")
+    if total is None or total <= 0 or available is None or not 0 <= available <= total:
+        return None
+    return round(100.0 * (total - available) / total, 1)
+
+
+def _uptime_seconds():
+    try:
+        value = float(_read("/proc/uptime").split()[0])
+        if math.isfinite(value) and value >= 0:
+            return int(value)
+    except (IndexError, ValueError):
+        pass
+    return None
+
+
+def _storage_percent():
+    try:
+        usage = shutil.disk_usage("/")
+    except OSError:
+        return None
+    if usage.total <= 0 or not 0 <= usage.used <= usage.total:
+        return None
+    return round(100.0 * usage.used / usage.total, 1)
 
 
 def _temperature():
     for path in sorted(Path("/sys/class/thermal").glob("thermal_zone*/temp")):
         try:
-            value = float(_read(path))
-            value = value / 1000.0 if value > 1000 else value
-            if -20 < value < 150:
-                return round(value, 1)
+            # thermal_zone*/temp is an integer in millidegrees Celsius,
+            # including zero and negative readings. Never infer units by size.
+            millidegrees = int(_read(path))
+            if -20000 < millidegrees < 150000:
+                return round(millidegrees / 1000.0, 1)
         except ValueError:
             pass
     return None
@@ -226,9 +291,30 @@ def _can(name):
 
 
 def _service(name):
-    result = _run([SERVICES[name], "status"], timeout=4)
-    return {"name": name, "running": result["returncode"] == 0,
-            "detail": result["output"].strip()}
+    available = _service_available(name)
+    state = {"name": name, "available": available, "running": None,
+             "detail": "服务不可用"}
+    if not available:
+        return state
+    # Only this repository's gateway script defines status exit 0/1 as running/stopped.
+    # bt-speaker status is diagnostics (last mixer exit); S49ntp has no status verb.
+    if name != "thingsboard":
+        state["detail"] = "未提供可验证的运行状态接口"
+        return state
+    try:
+        result = _run([SERVICES[name], "status"], timeout=4)
+        state["detail"] = result["output"].strip()
+        if result["returncode"] in (0, 1):
+            state["running"] = result["returncode"] == 0
+    except ValueError as exc:
+        state["detail"] = str(exc)
+    return state
+
+
+def _service_available(name):
+    return (name in SERVICES and os.path.isfile(SERVICES[name]) and
+            os.access(SERVICES[name], os.X_OK) and
+            (name != "bluetooth" or "bluetooth" in PLATFORM.get("capabilities", [])))
 
 
 def _channel_devices(kind):
@@ -241,6 +327,42 @@ def _role_device(role):
         if item.get("role") == role:
             return item["device"]
     raise ValueError("板型未定义接口角色: " + role)
+
+
+def _control_devices(kind, role):
+    if role not in PLATFORM.get("capabilities", []):
+        raise ValueError("板型未声明能力: " + role)
+    devices = [item.get("device") for item in PLATFORM.get("channels", {}).values()
+               if item.get("kind") == kind and item.get("role") == role
+               and isinstance(item.get("device"), str) and item["device"].strip()]
+    if not devices:
+        raise ValueError("板型未定义接口角色: " + role)
+    return devices
+
+
+def _cellular_profile(profile):
+    if "dual-cellular" not in PLATFORM.get("capabilities", []):
+        raise ValueError("板型未声明蜂窝能力")
+    profiles = _read_json(OMNIGATE_CONFIG, {}).get("ec20", {}).get("profiles", {})
+    if not isinstance(profiles, dict):
+        raise ValueError("蜂窝配置非法")
+    cfg = profiles.get(profile, {})
+    if not isinstance(cfg, dict) or any(not isinstance(other, dict) for other in profiles.values()):
+        raise ValueError("蜂窝配置非法")
+    device, interface = cfg.get("device"), cfg.get("interface")
+    channels = PLATFORM.get("channels", {}).values()
+    if not isinstance(device, str) or not device.strip() or not any(
+            ch.get("kind") == "cellular" and ch.get("role") in ("wan", "wan-backup")
+            and ch.get("device") == device for ch in channels):
+        raise ValueError("蜂窝设备未映射到板级通道")
+    if not isinstance(interface, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,14}", interface):
+        raise ValueError("4G网络接口配置非法")
+    if any(ch.get("device") == interface and ch.get("kind") != "cellular" for ch in channels):
+        raise ValueError("蜂窝接口与板级通道冲突")
+    if any(name != profile and (other.get("device") == device or other.get("interface") == interface)
+           for name, other in profiles.items()):
+        raise ValueError("蜂窝配置重复映射")
+    return cfg
 
 
 def _active_slot():
@@ -293,15 +415,14 @@ def _alarm_summary(include_demo=False):
 
 def _snapshot():
     now = time.time()
-    usage = shutil.disk_usage("/")
     temp = _temperature()
     system = {
         "cpu": _cpu_percent(),
         "memory": _memory_percent(),
-        "temperature": temp if temp is not None else 0.0,
+        "temperature": temp,
         "temperature_source": "real" if temp is not None else "unavailable",
-        "storage": round(100.0 * usage.used / usage.total, 1),
-        "uptime_seconds": int(float(_read("/proc/uptime", "0").split()[0])),
+        "storage": _storage_percent(),
+        "uptime_seconds": _uptime_seconds(),
         "hostname": _read("/etc/hostname", "OmniGate"),
         "kernel": _read("/proc/sys/kernel/osrelease"),
         "active_slot": _active_slot(),
@@ -320,36 +441,45 @@ def _snapshot():
          "load": 41 if demo_mode else 0,
          "source": "demo" if demo_mode else "unavailable"},
     ])
-    network_kinds = {"ethernet", "wifi"}
-    network_names = [item["device"] for item in PLATFORM["channels"].values()
-                     if item["kind"] in network_kinds]
-    network_names.extend([profile.get("interface") for profile in
-        _read_json(OMNIGATE_CONFIG, {}).get("ec20", {}).get("profiles", {}).values()
-        if profile.get("interface")])
-    networks = [_interface(name) for name in dict.fromkeys(network_names)]
-    for item in networks:
-        item["source"] = "real"
-    if settings["demo_mode"]:
-        for item in networks:
-            if item["name"] in ("wwan0", "wwan1") and not item["online"]:
-                item.update({"state": "在线" if item["name"] == "wwan0" else "备用",
-                             "source": "demo"})
+    network_types = {item["device"]: item["kind"] for item in PLATFORM["channels"].values()
+                     if item["kind"] in ("ethernet", "wifi") and item.get("device")}
+    cellular = {}
+    for profile in ("ec20a", "ec20b"):
+        try:
+            cfg = _cellular_profile(profile)
+        except ValueError:
+            continue
+        # Expose only the validated mapping; never APN credentials or runtime handles.
+        cellular[profile] = {key: cfg[key] for key in ("device", "interface")}
+        network_types[cfg["interface"]] = "cellular"
+    networks = []
+    for name, kind in network_types.items():
+        item = _interface(name)
+        item.update(source="real", kind=kind)
+        networks.append(item)
     alarms = _alarm_summary(include_demo=demo_mode)
     return {
         "ok": True,
         "timestamp": int(now),
         "system": system,
+        "platform": {key: PLATFORM.get(key) for key in ("board_id", "soc", "capabilities", "channels")},
         "summary": {
-            "status": "正常" if alarms["active"] == 0 else "有告警",
+            # No active alarms is not a system health assessment. We have no
+            # complete field-device health contract yet (real sensors are empty,
+            # RS485/EtherCAT discovery is unavailable, and link UP is not an
+            # interoperability check). Even complete host metrics cannot prove
+            # industrial-system health. Keep alarms visible in demo mode too.
+            "status": "有告警" if alarms["active"] > 0 else ("演示" if demo_mode else "未验证"),
             "online_devices": sum(1 for x in buses + networks if x.get("online")) +
                               (12 if settings["demo_mode"] else 0),
             "today_alarms": alarms["today"],
         },
         "buses": buses,
         "networks": networks,
+        "cellular": cellular,
         "sensors": _demo_sensors(now) if settings["demo_mode"] else [],
         "alarms": alarms,
-        "services": {name: _service(name) for name in ("thingsboard", "ntp")},
+        "services": {name: _service(name) for name in ("thingsboard", "bluetooth", "ntp")},
         "settings": settings,
     }
 
@@ -389,37 +519,61 @@ def _can_connect(interface):
 def _execute_action(action, p):
     if action == "brightness":
         value = _integer(p.get("value"), "亮度", 10, 255)
-        Path("/sys/class/backlight/backlight0/brightness").write_text(str(value))
+        if os.environ.get("DSHANCONTROL_NATIVE_PLATFORM_SOCKET"):
+            if set(p) != {"value"}:
+                raise ValueError("亮度参数非法")
+            result = _platform_request("display.brightness.set", {
+                "channel": "display0", "value": value, "confirmed": True})
+            if not isinstance(result, dict) or result.get("channel") != "display0":
+                raise RuntimeError("原生亮度响应不匹配")
+            value = _integer(result.get("brightness"), "驱动亮度", 1, 255)
+        else:
+            # Compatibility only until the old T153/S4 baselines are replaced.
+            Path("/sys/class/backlight/backlight0/brightness").write_text(str(value))
         cfg = _settings(); cfg["brightness"] = value; _atomic_json(SETTINGS_PATH, cfg)
         return {"brightness": value}
     if action == "service":
         name, operation = p.get("service"), p.get("operation")
         if name not in SERVICES or operation not in ("start", "stop", "restart"):
             raise ValueError("服务操作非法")
-        return _run([SERVICES[name], operation], timeout=25)
+        if not _service_available(name):
+            raise ValueError("服务不可用")
+        result = _run([SERVICES[name], operation], timeout=25, check=True)
+        # Buildroot S49ntp prints FAIL but unconditionally exits zero.
+        if name == "ntp" and re.search(r"\bFAIL\s*$", result["output"], re.MULTILINE):
+            raise ValueError(result["output"].strip())
+        return result
     if action == "can_apply":
         interface = p.get("interface")
         if interface not in _channel_devices("can"):
             raise ValueError("CAN接口非法")
         bitrate = _integer(p.get("bitrate"), "波特率", 10000, 1000000)
-        dbitrate = _integer(p.get("data_bitrate", 2000000), "数据波特率", bitrate, 8000000)
+        fd = p.get("fd", False)
+        if not isinstance(fd, bool):
+            raise ValueError("CAN-FD必须是布尔值")
+        if fd and "can-fd" not in PLATFORM.get("capabilities", []):
+            raise ValueError("板型未声明CAN-FD能力")
+        dbitrate = _integer(p.get("data_bitrate", 2000000), "数据波特率", bitrate, 8000000) if fd else None
         restart = _integer(p.get("restart_ms", 100), "恢复时间", 0, 60000)
-        _run(["ip", "link", "set", interface, "down"], timeout=5)
+        _run(["ip", "link", "set", interface, "down"], timeout=5, check=True)
         args = ["ip", "link", "set", interface, "type", "can", "bitrate", str(bitrate),
                 "restart-ms", str(restart)]
-        if p.get("fd"):
+        if fd:
             args += ["dbitrate", str(dbitrate), "fd", "on"]
+        else:
+            args += ["fd", "off"]
         _run(args, timeout=5, check=True)
         _run(["ip", "link", "set", interface, "up"], timeout=5, check=True)
         return {"interface": interface, "bitrate": bitrate, "fd": bool(p.get("fd"))}
     if action == "rs485_config":
+        devices = _control_devices("serial", "modbus-rtu")
+        port = p.get("port", devices[0])
+        if port not in devices:
+            raise ValueError("串口未映射到板级Modbus通道")
         cfg = _read_json(MODBUS_CONFIG, {})
         slaves = cfg.setdefault("master", {}).setdefault("slaves", [])
         if not slaves:
             raise ValueError("Modbus模板没有从站")
-        port = str(p.get("port", _role_device("modbus-rtu")))
-        if not re.fullmatch(r"/dev/tty(?:AS|USB)[0-9]+", port):
-            raise ValueError("串口路径非法")
         slaves[0].update({"port": port, "method": "rtu",
                           "baudrate": _integer(p.get("baudrate", 9600), "波特率", 300, 4000000),
                           "unitId": _integer(p.get("unit_id", 1), "站号", 1, 247),
@@ -427,27 +581,35 @@ def _execute_action(action, p):
         _atomic_json(MODBUS_CONFIG, cfg)
         return slaves[0]
     if action in ("canopen_nmt", "canopen_sdo_write", "canopen_rpdo"):
+        if "canopen" not in PLATFORM.get("capabilities", []):
+            raise ValueError("板型未声明CANopen能力")
         can_devices = _channel_devices("can")
         interface = p.get("interface", can_devices[0] if can_devices else "")
         if interface not in can_devices:
             raise ValueError("CAN接口非法")
         node_id = _integer(p.get("node_id"), "节点", 0 if action == "canopen_nmt" else 1, 127)
+        # Validate before connecting or adding a node (which installs subscriptions).
+        if action == "canopen_nmt":
+            state = str(p.get("state", "OPERATIONAL")).upper()
+            if state not in ("OPERATIONAL", "PRE-OPERATIONAL", "STOPPED", "RESET", "RESET COMMUNICATION"):
+                raise ValueError("NMT状态非法")
+        else:
+            index = _integer(p.get("index"), "对象索引", 0, 0xffff)
+            subindex = _integer(p.get("subindex", 0), "子索引", 0, 255)
+        if action == "canopen_sdo_write":
+            size = _integer(p.get("size", 4), "字节数", 1, 4)
+            value = _integer(p.get("value"), "写入值", -(1 << (size * 8 - 1)), (1 << (size * 8)) - 1)
+            payload = value.to_bytes(size, byteorder="little", signed=value < 0)
         network = _can_connect(interface)
         try:
             if action == "canopen_nmt":
-                state = str(p.get("state", "OPERATIONAL")).upper()
-                if state not in ("OPERATIONAL", "PRE-OPERATIONAL", "STOPPED", "RESET", "RESET COMMUNICATION"):
-                    raise ValueError("NMT状态非法")
                 if node_id == 0: network.nmt.state = state
                 else: network.add_node(node_id).nmt.state = state
                 return {"node_id": node_id, "state": state}
             node = network.add_node(node_id)
-            index = _integer(p.get("index"), "对象索引", 0, 0xffff)
-            subindex = _integer(p.get("subindex", 0), "子索引", 0, 255)
             if action == "canopen_sdo_write":
-                value = _integer(p.get("value"), "写入值", -2147483648, 4294967295)
-                size = _integer(p.get("size", 4), "字节数", 1, 4)
-                node.sdo[index][subindex].raw = value
+                # No EDS/object dictionary is supplied by this raw-index form.
+                node.sdo.download(index, subindex, payload)
                 return {"node_id": node_id, "index": index, "subindex": subindex,
                         "value": value, "size": size}
             values = p.get("values")
@@ -461,10 +623,17 @@ def _execute_action(action, p):
         finally:
             network.disconnect()
     if action in ("ethercat_sdo_write", "ethercat_cycle"):
-        ethercat_interface = _role_device("ethercat")
+        devices = _control_devices("ethernet", "ethercat")
+        if len(devices) != 1:
+            raise ValueError("EtherCAT主站映射不唯一")
+        ethercat_interface = p.get("interface", devices[0])
+        if ethercat_interface != devices[0]:
+            raise ValueError("EtherCAT接口与板级映射不匹配")
         if action == "ethercat_cycle":
             count = _integer(p.get("count", 1000), "周期数", 1, 10000)
             period = _integer(p.get("period_us", 1000), "周期", 100, 1000000)
+            if count * period > 10000000:
+                raise ValueError("周期测试总时长不能超过10秒")
             return _run(["/usr/bin/omnigate-ethercat", ethercat_interface,
                          "cycle", str(count), str(period)],
                         timeout=20, check=True)
@@ -481,24 +650,27 @@ def _execute_action(action, p):
         profile, operation = p.get("profile"), p.get("operation")
         if profile not in ("ec20a", "ec20b") or operation not in ("connect", "disconnect"):
             raise ValueError("4G操作非法")
-        cfg = _read_json(OMNIGATE_CONFIG, {}).get("ec20", {}).get("profiles", {}).get(profile, {})
-        device, interface = cfg.get("device"), cfg.get("interface")
-        if not device or not interface:
-            raise ValueError("4G配置不存在")
+        cfg = _cellular_profile(profile)
+        device, interface = cfg["device"], cfg["interface"]
+        if (p.get("device", device), p.get("interface", interface)) != (device, interface):
+            raise ValueError("蜂窝映射已变化，请刷新后重试")
         if operation == "disconnect":
             runtime = _read_json("/var/run/omnigate-ec20-%s.json" % profile, {})
+            handle = str(runtime.get("handle", ""))
+            if runtime.get("device") != device or runtime.get("interface") != interface or not re.fullmatch(r"[1-9][0-9]*", handle):
+                raise ValueError("缺少匹配的蜂窝会话，未执行断开")
             result = _run([
                 "qmicli", "-d", device, "--device-open-proxy",
-                "--wds-stop-network=" + str(runtime.get("handle", "0")),
-            ], timeout=20)
-            _run(["ip", "link", "set", interface, "down"], timeout=5)
+                "--wds-stop-network=" + handle,
+            ], timeout=20, check=True)
+            _run(["ip", "link", "set", interface, "down"], timeout=5, check=True)
             return {"profile": profile, "state": "disconnected", "qmi": result["output"]}
         if not Path(device).exists():
             raise ValueError("4G设备未连接")
         if not (Path("/sys/class/net") / interface).exists():
             raise ValueError("4G网络接口未出现")
         raw_ip = Path("/sys/class/net") / interface / "qmi" / "raw_ip"
-        _run(["ip", "link", "set", interface, "down"], timeout=5)
+        _run(["ip", "link", "set", interface, "down"], timeout=5, check=True)
         if raw_ip.exists():
             raw_ip.write_text("Y", encoding="ascii")
         _run(["ip", "link", "set", interface, "up"], timeout=5, check=True)
@@ -512,6 +684,8 @@ def _execute_action(action, p):
             "--wds-start-network=" + ",".join(settings), "--client-no-release-cid",
         ], timeout=30, check=True)
         match = re.search(r"Packet data handle: '([0-9]+)'", qmi["output"])
+        if not match or int(match.group(1)) == 0:
+            raise RuntimeError("拨号未返回有效会话句柄")
         _atomic_json("/var/run/omnigate-ec20-%s.json" % profile, {
             "device": device, "interface": interface,
             "handle": match.group(1) if match else "",
@@ -560,19 +734,40 @@ def create_blueprint():
 
     @bp.post("/api/hmi/v1/alarms/<int:alarm_id>/ack")
     def acknowledge(alarm_id):
+        if not 1 <= alarm_id <= 9007199254740991:
+            raise ValueError("告警 ID 非法")
+        include_demo = _settings()["demo_mode"]
         with DB_LOCK, _db() as conn:
-            changed = conn.execute(
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT state,source FROM alarms WHERE id=?", (alarm_id,)).fetchone()
+            if row is None or (row["source"] == "demo" and not include_demo):
+                return jsonify(ok=False, error="告警不存在或不可见", id=alarm_id), 404
+            if row["state"] == "acknowledged":
+                return jsonify(ok=True, id=alarm_id, already_acknowledged=True)
+            if row["state"] != "active":
+                return jsonify(ok=False, error="告警状态不允许确认", id=alarm_id), 409
+            now = int(time.time())
+            conn.execute(
                 "UPDATE alarms SET state='acknowledged',acknowledged_at=?,acknowledged_by='local-hmi' "
-                "WHERE id=?", (int(time.time()), alarm_id)).rowcount
-        return jsonify(ok=bool(changed), id=alarm_id)
+                "WHERE id=? AND state='active'", (now, alarm_id))
+            # Keep the acknowledgment and its audit entry in the same transaction.
+            conn.execute("INSERT INTO audit(ts,action,target,request_json,result,detail) VALUES(?,?,?,?,?,?)",
+                         (now, "alarm_ack", str(alarm_id), json.dumps({"id": alarm_id}),
+                          "success", "local-hmi"))
+        return jsonify(ok=True, id=alarm_id)
 
     @bp.route("/api/hmi/v1/settings", methods=["GET", "PUT"])
     def settings():
         if request.method == "GET":
             return jsonify(ok=True, settings=_settings())
         body = request.get_json(force=True) or {}
+        if not isinstance(body, dict):
+            raise ValueError("设置必须是对象")
         cfg = _settings()
-        if "demo_mode" in body: cfg["demo_mode"] = bool(body["demo_mode"])
+        if "demo_mode" in body:
+            if not isinstance(body["demo_mode"], bool):
+                raise ValueError("演示模式必须是布尔值")
+            cfg["demo_mode"] = body["demo_mode"]
         if "brightness" in body: cfg["brightness"] = _integer(body["brightness"], "亮度", 10, 255)
         if "refresh_ms" in body: cfg["refresh_ms"] = _integer(body["refresh_ms"], "刷新周期", 500, 10000)
         if "page_cycle_seconds" in body:
@@ -590,7 +785,7 @@ def create_blueprint():
         params = body.get("params") or {}
         if not isinstance(params, dict):
             raise ValueError("动作参数非法")
-        if not body.get("confirmed"):
+        if body.get("confirmed") is not True:
             raise ValueError("操作未确认")
         try:
             result = _execute_action(action, params)

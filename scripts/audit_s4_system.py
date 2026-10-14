@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 """Read-only S4 image preflight; an application build is not a system image."""
 import argparse
+import hashlib
 import json
 import re
 import shutil
 import struct
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def sha_file(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def ext4_image_bytes(path):
@@ -67,9 +78,13 @@ def selected_inputs(hardware):
     board = chip / 'configs/100ask'
     # Tina build/pack copies kernel sys_* then the selected platform directory.
     partition = board / 'buildroot/sys_partition.fex'
-    candidates = [chip / 'configs/default/env.cfg', board / 'env.cfg',
-                  board / 'linux-5.4/env.cfg', board / 'buildroot/env.cfg']
+    candidates = [directory / name
+                  for directory in (chip / 'configs/default', board, board / 'linux-5.4', board / 'buildroot')
+                  for name in ('env.cfg', 'env-5.4.cfg')]
     env = next((p for p in reversed(candidates) if p.is_file()), None)
+    # pack then copies buildroot/* over the selected env.cfg.
+    if (board / 'buildroot/env.cfg').is_file():
+        env = board / 'buildroot/env.cfg'
     if not partition.is_file() or env is None:
         raise ValueError('missing approved Buildroot partition/environment input')
     return board, partition, env
@@ -90,15 +105,18 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
     declared = int(size[1]) * (1024**2 if size[2] == 'M' else 1024**3) if size else None
     if not declared or 'BR2_TARGET_ROOTFS_EXT2_4=y' not in config.splitlines():
         errors.append('explicit ext4 rootfs size required')
-    if root and declared and declared > root['size_bytes']:
+    if root and root['size_bytes'] and declared and declared > root['size_bytes']:
         errors.append('configured rootfs exceeds selected partition')
+    actual = None
+    image_sha256 = None
     if rootfs_image:
         if not rootfs_image.is_file():
             errors.append('rootfs image missing')
         else:
             try:
                 actual = ext4_image_bytes(rootfs_image)
-                if root and actual > root['size_bytes']:
+                image_sha256 = sha_file(rootfs_image)
+                if root and root['size_bytes'] and actual > root['size_bytes']:
                     errors.append('rootfs image exceeds selected partition')
             except ValueError as error:
                 errors.append(str(error))
@@ -118,22 +136,37 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
     # Conservative engineering reserve, not a measurement of the physical GPT.
     reserve = 32 * 1024**2
     minimum_data = 256 * 1024**2
-    required = fixed + reserve + minimum_data
+    udisk_size = udisk['size_bytes'] if udisk else None
+    if udisk_size is not None and udisk_size < minimum_data:
+        errors.append('UDISK partition below 256 MiB data budget')
+    # A fixed UDISK already contributes to fixed; do not count it twice.
+    required = fixed + reserve + (minimum_data if udisk_size is None else 0)
     if capacity_bytes is None:
         pending.append('actual SD NAND capacity required')
+    elif type(capacity_bytes) is not int or capacity_bytes <= 0:
+        errors.append('SD NAND capacity must be positive integer bytes')
     elif capacity_bytes < required:
         errors.append('SD NAND capacity below fixed partitions + 32 MiB reserve + 256 MiB data budget')
     free = shutil.disk_usage(buildroot).free
     if free < 16 * 1024**3:
         pending.append('less than 16 GiB free for full SDK/image build')
-    script = buildroot / 'target/etc/init.d/S60mount_udisk'
-    if not script.is_file() or 'storage.py --mount' not in script.read_text():
-        errors.append('S4 non-formatting ext4 mount policy not installed')
+    policy = {}
+    for name, relative in [('S60mount_udisk', 'etc/init.d/S60mount_udisk'),
+                           ('storage.py', 'usr/lib/dshancontrol-update/storage.py')]:
+        script = buildroot / 'target' / relative
+        expected = ROOT / 'boards/t113s4-sdnand/runtime' / name
+        policy[relative] = {'expected_sha256': sha_file(expected),
+                            'installed_sha256': sha_file(script) if script.is_file() else None}
+        if (script.is_symlink() or policy[relative]['installed_sha256'] != policy[relative]['expected_sha256']
+                or (name == 'S60mount_udisk' and script.stat().st_mode & 0o111 == 0)):
+            errors.append('S4 non-formatting storage policy missing or changed: ' + relative)
     pending.extend(['UDISK ext4 factory provisioning not verified', 'kernel/bootloader image chain not verified',
                     'hardware function/power-loss/rollback acceptance not run'])
     return dict(schema_version=1, release_kind='system', status='development-draft',
                 board='t113_s4/100ask', rootfs='buildroot', partition_file=str(partition),
                 env_file=str(env), partitions=layout, configured_rootfs_bytes=declared,
+                input_sha256={str(p): sha_file(p) for p in (partition, env, board / 'sys_config.fex', buildroot / '.config')},
+                storage_policy=policy, rootfs_image_bytes=actual, rootfs_image_sha256=image_sha256,
                 fixed_partition_bytes=fixed, reserved_budget_bytes=reserve,
                 minimum_data_budget_bytes=minimum_data, minimum_capacity_budget_bytes=required,
                 actual_capacity_bytes=capacity_bytes, host_free_bytes=free,

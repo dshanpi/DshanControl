@@ -1,8 +1,8 @@
 DSHANCONTROL_VERSION = 0.1.0-dev
 DSHANCONTROL_SITE = $(BR2_EXTERNAL_DSHANCONTROL_PATH)/app-source
 DSHANCONTROL_SITE_METHOD = local
-DSHANCONTROL_LICENSE = GPL-3.0-only
-DSHANCONTROL_LICENSE_FILES = LICENSE
+DSHANCONTROL_LICENSE = GPL-3.0-only OFL-1.1
+DSHANCONTROL_LICENSE_FILES = LICENSE components/hmi/src/fonts/OFL.txt
 DSHANCONTROL_DEPENDENCIES = qt5base qt5charts python3 dshancontrol-python openssl ca-certificates host-python3 wqy-zenhei
 
 # Buildroot 201902 has no qmake-package infrastructure. Keep T153's recipe intact.

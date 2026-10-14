@@ -5,3 +5,7 @@ __pycache__/
 *.log
 *.db
 .DS_Store
+
+# Local Ralph runtime, task history and diagnostics
+.ralph/
+.worktrees/

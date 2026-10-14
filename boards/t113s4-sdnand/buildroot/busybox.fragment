@@ -1,0 +1,3 @@
+# storage.py requires blkid to identify ext4 before mounting UDISK.
+CONFIG_BLKID=y
+CONFIG_FEATURE_BLKID_TYPE=y

@@ -2,7 +2,10 @@
   "schema_version": 2,
   "product": "DshanControl Industrial Control Desktop",
   "version": "0.1.0-dev",
-  "profiles": ["lite", "enhanced"],
+  "profiles": [
+    "lite",
+    "enhanced"
+  ],
   "components": [
     {
       "id": "omnigate-core",
@@ -10,7 +13,10 @@
       "path": "components/core",
       "version": "0.1.0",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     },
     {
       "id": "omnigate-web",
@@ -18,7 +24,10 @@
       "path": "components/web",
       "version": "0.1.0-dev",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     },
     {
       "id": "omnigate-hmi",
@@ -26,7 +35,10 @@
       "path": "components/hmi",
       "version": "1.0.0",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     },
     {
       "id": "omnigate-supervisor",
@@ -34,7 +46,10 @@
       "path": "components/supervisor",
       "version": "0.1.0-dev",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     },
     {
       "id": "omnigate-ethercat",
@@ -42,7 +57,10 @@
       "path": "components/ethercat-contract",
       "version": "1.0.0",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     },
     {
       "id": "node-red-profile",
@@ -50,7 +68,9 @@
       "path": "platform/apps/node-red",
       "version": "4.1.7-profile1",
       "license": "GPL-3.0-only",
-      "profiles": ["enhanced"]
+      "profiles": [
+        "enhanced"
+      ]
     },
     {
       "id": "t153-lite-adapter",
@@ -58,7 +78,19 @@
       "path": "deploy/t153-lite",
       "version": "1.0.0-dev",
       "license": "GPL-3.0-only",
-      "profiles": ["lite"]
+      "profiles": [
+        "lite"
+      ]
+    },
+    {
+      "id": "t113s4-sdnand-adapter",
+      "kind": "board-adapter-example",
+      "path": "boards/t113s4-sdnand",
+      "version": "0.1.0-dev",
+      "license": "GPL-3.0-only",
+      "profiles": [
+        "lite"
+      ]
     },
     {
       "id": "platform-contracts",
@@ -66,7 +98,21 @@
       "path": "platform/contracts",
       "version": "1.0.0",
       "license": "GPL-3.0-only",
-      "profiles": ["lite", "enhanced"]
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
+    },
+    {
+      "id": "dshancontrol-native-runtime",
+      "kind": "system-native-update-service",
+      "path": "components/runtime",
+      "version": "0.1.0-dev",
+      "license": "GPL-3.0-only",
+      "profiles": [
+        "lite",
+        "enhanced"
+      ]
     }
   ]
 }

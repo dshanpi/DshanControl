@@ -1,0 +1,4 @@
+# Unified patch context includes its marker space before the original tab/blank.
+# Preserve vendor source bytes so these integration patches apply exactly.
+boards/t113s4-sdnand/buildroot/patches/**/*.patch whitespace=-blank-at-eol,-space-before-tab
+boards/t113s4-sdnand/tina/*.patch whitespace=-blank-at-eol,-space-before-tab

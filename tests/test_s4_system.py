@@ -22,6 +22,65 @@ spec.loader.exec_module(storage)
 
 
 class S4SystemTests(unittest.TestCase):
+    def fixture(self, base):
+        hardware, br = base / 'hardware', base / 'buildroot'
+        board = hardware / 'device/config/chips/t113_s4/configs/100ask'
+        (board / 'buildroot').mkdir(parents=True)
+        (board / 'linux-5.4').mkdir()
+        (board / 'sys_config.fex').write_text('storage_type=2\n')
+        (board / 'buildroot/sys_partition.fex').write_text(
+            '[partition]\nname=rootfs\nsize=1G\n[partition]\nname=UDISK\n')
+        (board / 'linux-5.4/env.cfg').write_text(
+            'bootcmd=run setargs_mmc boot_normal\n'
+            'setargs_mmc=setenv bootargs root=${mmc_root}\nmmc_root=/dev/mmcblk0p1\n')
+        (br / 'target/etc/dshancontrol').mkdir(parents=True)
+        (br / 'target/etc/dshancontrol/system-release.json').write_text(json.dumps(
+            {'app_id': 'dshancontrol', 'board_id': '100ask-t113s4-sdnand'}))
+        rootfs.finalize(br / 'target')
+        (br / '.config').write_text('BR2_TARGET_ROOTFS_EXT2_4=y\nBR2_TARGET_ROOTFS_EXT2_SIZE="512M"\n')
+        return hardware, board, br
+
+    def test_preflight_rejects_tampered_storage_policy_and_recovers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, _, br = self.fixture(Path(temp))
+            for relative in ('etc/init.d/S60mount_udisk', 'usr/lib/dshancontrol-update/storage.py'):
+                script = br / 'target' / relative
+                original = script.read_bytes()
+                script.write_bytes(original + b'\n# storage.py --mount\nmkfs.vfat /dev/by-name/UDISK\n')
+                self.assertTrue(any('storage policy' in e for e in audit.audit(hardware, br)['configuration_errors']))
+                rootfs.finalize(br / 'target')
+                self.assertEqual([], audit.audit(hardware, br)['configuration_errors'])
+
+    def test_preflight_matches_versioned_env_and_final_platform_override(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, board, br = self.fixture(Path(temp))
+            versioned = board / 'linux-5.4/env-5.4.cfg'
+            versioned.write_text((board / 'linux-5.4/env.cfg').read_text().replace('p1', 'p9'))
+            report = audit.audit(hardware, br)
+            self.assertEqual(str(versioned), report['env_file'])
+            self.assertIn('MMC root device index differs from selected partition table', report['configuration_errors'])
+            # pack copies buildroot/* after selecting a versioned environment.
+            (board / 'buildroot/env-5.4.cfg').write_text(versioned.read_text())
+            plain = board / 'buildroot/env.cfg'
+            plain.write_text((board / 'linux-5.4/env.cfg').read_text())
+            self.assertEqual(str(plain), audit.audit(hardware, br)['env_file'])
+            self.assertEqual([], audit.audit(hardware, br)['configuration_errors'])
+
+    def test_preflight_fixed_udisk_budget_and_unknown_capacity_remain_draft(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, board, br = self.fixture(Path(temp))
+            partition = board / 'buildroot/sys_partition.fex'
+            original = partition.read_text()
+            partition.write_text(original + 'size=16M\n')
+            report = audit.audit(hardware, br, capacity_bytes=8 * 1024**3)
+            self.assertTrue(any('UDISK partition below' in e for e in report['configuration_errors']))
+            partition.write_text(original + 'size=256M\n')
+            report = audit.audit(hardware, br, capacity_bytes=1024**3 + 288 * 1024**2)
+            self.assertEqual([], report['configuration_errors'])
+            report = audit.audit(hardware, br)
+            self.assertIn('actual SD NAND capacity required', report['pending'])
+            self.assertFalse(report['publishable'])
+
     def test_preflight_selects_buildroot_partition_and_rejects_oversized_rootfs(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
@@ -36,7 +95,10 @@ class S4SystemTests(unittest.TestCase):
                                                      'setargs_mmc=setenv bootargs root=${mmc_root}\nmmc_root=/dev/mmcblk0p1\n')
             br = base / 'buildroot'
             (br / 'target/etc/init.d').mkdir(parents=True)
-            (br / 'target/etc/init.d/S60mount_udisk').write_text('storage.py --mount')
+            (br / 'target/etc/dshancontrol').mkdir(parents=True)
+            (br / 'target/etc/dshancontrol/system-release.json').write_text(json.dumps(
+                {'app_id': 'dshancontrol', 'board_id': '100ask-t113s4-sdnand'}))
+            rootfs.finalize(br / 'target')
             (br / '.config').write_text('BR2_TARGET_ROOTFS_EXT2_4=y\nBR2_TARGET_ROOTFS_EXT2_SIZE="512M"\n')
             value = audit.audit(base / 'hardware', br, capacity_bytes=2 * 1024**3)
             self.assertEqual(str(partition), value['partition_file'])
@@ -133,6 +195,54 @@ class S4SystemTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 storage.ensure_storage()
             run.assert_not_called()
+
+    def test_mount_failure_timeout_and_verification_leave_data_untouched_then_recover(self):
+        with tempfile.TemporaryDirectory() as temp:
+            mountpoint = Path(temp) / 'UDISK'
+            mountpoint.mkdir()
+            data = mountpoint / 'user-data'
+            data.write_bytes(b'preserve user data')
+            good = '36 25 179:9 / {} rw - ext4 /dev/mmcblk0p9 rw\n'.format(mountpoint)
+            for error in (subprocess.CalledProcessError(1, 'mount'), subprocess.TimeoutExpired('mount', 30), None):
+                calls = []
+                def run(argv, **kwargs):
+                    calls.append(argv)
+                    if argv[0] == 'blkid':
+                        return subprocess.CompletedProcess(argv, 0, '/dev/mmcblk0p9: TYPE="ext4"')
+                    if error:
+                        raise error
+                    return subprocess.CompletedProcess(argv, 0)
+                with patch.object(storage, 'MOUNT', mountpoint), \
+                        patch.object(storage, 'storage_device', return_value=(Path('/dev/mmcblk0p9'), '179:9')), \
+                        patch.object(Path, 'read_text', return_value=''), \
+                        patch.object(storage.subprocess, 'run', side_effect=run):
+                    with self.assertRaises((subprocess.SubprocessError, ValueError)):
+                        storage.ensure_storage(mount=True)
+                self.assertEqual(['blkid', 'mount'], [a[0] for a in calls])
+                self.assertEqual(b'preserve user data', data.read_bytes())
+            with patch.object(storage, 'MOUNT', mountpoint), \
+                    patch.object(storage, 'storage_device', return_value=(Path('/dev/mmcblk0p9'), '179:9')), \
+                    patch.object(Path, 'read_text', side_effect=['', good]), \
+                    patch.object(storage.subprocess, 'run', side_effect=run):
+                storage.ensure_storage(mount=True)
+            self.assertEqual(b'preserve user data', data.read_bytes())
+
+    def test_postbuild_refuses_parent_symlinks_before_any_replacement(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            _, _, br = self.fixture(base)
+            target = br / 'target'
+            before = (target / 'etc/init.d/S60mount_udisk').read_bytes()
+            outside = base / 'outside'
+            outside.mkdir()
+            policy = target / 'usr/lib/dshancontrol-update/storage.py'
+            policy.unlink()
+            policy.parent.rmdir()
+            policy.parent.symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, 'symlink'):
+                rootfs.finalize(target)
+            self.assertEqual([], list(outside.iterdir()))
+            self.assertEqual(before, (target / 'etc/init.d/S60mount_udisk').read_bytes())
 
     def test_postbuild_replaces_late_vendor_formatter_and_rejects_wrong_board(self):
         with tempfile.TemporaryDirectory() as temp:

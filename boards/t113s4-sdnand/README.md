@@ -37,6 +37,11 @@ applying the approved board inputs in the hardware SDK, capturing every SDK comm
 and local patch, finalizing rootfs and packing the board image. Do not pack using
 the workspace's old `t113/evb1_auto_nand` selection.
 
+The separate round-22 local system build now has a statically checked Tina vendor
+package and restored-input repack evidence; see [hardware-inputs.md](hardware-inputs.md#packing-handoff).
+It includes an empty factory UDISK payload and remains unqualified on hardware.
+The development helper above still builds only its documented userspace target.
+
 ## Porting choices
 
 - Qt5 Widgets/Charts HMI, Web, core and supervisor use the canonical component sources.
@@ -57,10 +62,24 @@ the workspace's old `t113/evb1_auto_nand` selection.
 
 ## Pending board evidence
 
-Baseline DTS configures 1024x600 RGB display and disables the touch node. Actual
-panel, touch wiring, hardware revision, SD NAND capacity and physical device access
-must be confirmed. Display layout at 600px, touch, network, external bus devices,
-cold boot, storage persistence and power-loss recovery remain untested.
+The 2026-10-13 hardware handoff identifies the connected old system as
+`allwinner,t113_s4`: SD media, 3932160 sectors of 512 bytes (2013265920 bytes),
+root `mmcblk0p5`, and UDISK `mmcblk0p9` currently **vfat**. Hardware is available
+to the primary interactive agent, who owns its UART, power, network and authorized
+trial flashing. The local build loop must not access hardware concurrently.
+These observations do not validate the new image or its ext4 data contract.
+
+The requested peripherals are **AIC8800D80 WiFi6** and **RGB50 1024x600**.
+The compiled S4 DTB and rootfs already carry the approved RGB/SDIO settings,
+three AIC8800 modules and six source-matched D80 firmware files. Old-system WiFi
+probing reported `set power on fail` and no WLAN interface; module/firmware presence
+does not establish a working connection. Keep private credentials out of builds.
+
+Use [the hardware input review](hardware-inputs.md) for the exact peripheral
+reference, timing differences and remaining evidence. The touch node is disabled
+and still contains an 800x480 range; do not enable it without verified wiring and
+geometry. Hardware revision, new-image display/touch/network, external bus devices,
+cold boot, storage persistence and power-loss recovery remain unverified.
 
 `system-contract.json` deliberately contains pending values. Do not publish it as
 a qualified system identity. Before enabling upgrades, derive runtime/libc identity
@@ -103,3 +122,16 @@ The current 512 MiB rootfs setting fits the Buildroot partition. The preflight a
 checks the raw ext4 superblock and boot root index. Capacity budgets reserve 32 MiB
 for boot/partition overhead and at least 256 MiB for data; final physical offsets
 and actual app/data space still need checking against the packed image and board.
+
+
+The preflight records hashes of the selected partition/environment/config inputs and
+installed storage policy. Both S60 and storage.py must match the application
+repository's system integration sources exactly; a marker comment is insufficient.
+It follows versioned env-5.4.cfg selection and the final Buildroot env.cfg overwrite.
+A fixed UDISK must itself meet the 256 MiB minimum; it is counted once in the capacity
+budget. The post-build finalizer rejects symlink destinations and parent directories
+before replacing either policy file. Run it after vendor installation, then rerun the
+preflight against the final target. A zero preflight exit means no configuration
+errors were found, **not** that packing or publication is approved: pending items and
+publishable=false remain authoritative. Raw superblock inspection is not a filesystem
+health check or proof that the image boots.

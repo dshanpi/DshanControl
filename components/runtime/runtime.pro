@@ -1,0 +1,9 @@
+QT += core network
+QT -= gui
+CONFIG += console c++11 release
+CONFIG -= app_bundle
+TARGET = dshancontrol-runtime
+TEMPLATE = app
+SOURCES += src/main.cpp src/storage.cpp src/protocol.cpp src/updater.cpp src/service.cpp src/display.cpp
+HEADERS += src/storage.h src/protocol.h src/updater.h src/service.h src/display.h
+LIBS += -lcrypto -lz

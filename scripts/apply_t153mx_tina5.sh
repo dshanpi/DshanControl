@@ -29,6 +29,9 @@ copy_tree "$ROOT/components/core" \
 	"$SDK_ROOT/buildroot/buildroot-202205/package/omnigate-core"
 copy_tree "$ROOT/components/hmi" \
 	"$SDK_ROOT/buildroot/buildroot-202205/package/omnigate-hmi"
+# local-site builds copy src only; legal-info must find LICENSE in that tree.
+cp "$ROOT/components/hmi/LICENSE" \
+	"$SDK_ROOT/buildroot/buildroot-202205/package/omnigate-hmi/src/LICENSE"
 
 RUNTIME="$SDK_ROOT/device/config/chips/t153/configs/omnigate/buildroot/overlay"
 mkdir -p "$RUNTIME/usr/lib/omnigate-web" \

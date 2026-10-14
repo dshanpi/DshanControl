@@ -59,6 +59,7 @@ fi
 
 
 "$PYTHON" "$ROOT/scripts/check_gates.py"
+"$PYTHON" "$ROOT/scripts/check_hmi_resources.py"
 "$PYTHON" -m py_compile "$ROOT"/components/updater/*.py "$ROOT"/boards/t113s4-sdnand/runtime/*.py "$ROOT"/scripts/*.py
 sh -n "$ROOT/boards/t113s4-sdnand/runtime/dshancontrol-services"
 sh -n "$ROOT/boards/t113s4-sdnand/runtime/S70dshancontrol"

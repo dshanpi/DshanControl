@@ -8,7 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'components/updater'))
-from update_protocol import digest, read_json, require, validate_manifest, verify_signature, identifier, TARGET_FIELDS
+from update_protocol import (digest, read_json, require, validate_manifest, match_system_contract,
+                             verify_signature, identifier, TARGET_FIELDS, APP_ID, REPOSITORY)
 from updater import extract_payload
 
 
@@ -35,6 +36,14 @@ def check(directory, key, public=False):
             for filename, checksum in [('log_file', 'log_sha256'), ('system_contract_file','system_contract_sha256')]:
                 require(identifier(evidence.get(filename)), 'evidence artifact missing')
                 require(digest(directory / evidence[filename]) == evidence[checksum], 'evidence hash mismatch')
+            contract = read_json(directory / evidence['system_contract_file'])
+            match_system_contract(manifest, contract)
+            require(all(contract[k] == item[k] for k in TARGET_FIELDS),
+                    'evidence system contract/target mismatch')
+            require(contract.get('app_id') == APP_ID and contract.get('repository') == REPOSITORY and
+                    type(contract.get('data_schema')) is int and
+                    contract['data_schema'] == manifest['data_schema'],
+                    'evidence system product/data schema mismatch')
     return manifest
 
 

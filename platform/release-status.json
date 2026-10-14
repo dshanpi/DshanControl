@@ -19,20 +19,40 @@
       "application_port": "in-progress",
       "buildroot_configuration": "generated",
       "application_cross_build": "passed",
-      "application_build_commit": "378c5c3b1bda855a37daddc0d28d2b254499d1d2",
-      "host_test_count": 63,
       "kernel_configuration": "passed",
       "baseline_dtb_build": "passed",
       "sdk_component_count": 122,
       "sdk_component_commits": "recorded",
       "sdk_reproduction_bundle": "incomplete-local-changes",
       "persistent_storage_policy": "ext4-no-boot-time-formatting",
-      "full_rootfs_build": "blocked-host-disk-reserve",
+      "full_rootfs_build": "passed-development-image",
       "signed_fixture_draft": "passed",
-      "system_image": "not-built",
-      "board_test": "not-run",
+      "system_image": "vendor-development-image-built",
+      "board_test": "development-smoke-passed-not-qualified",
       "power_loss": "not-run",
-      "automatic_updates_qualified": false
+      "automatic_updates_qualified": false,
+      "historical_build_evidence": {
+        "application_build_commit": "378c5c3b1bda855a37daddc0d28d2b254499d1d2",
+        "host_test_count": 63,
+        "scope": "historical committed build; does not identify the later blue-white UI implementation",
+        "previous_full_rootfs_blocker": "host-disk-reserve; cleared by 2026-10-13 iteration 16"
+      },
+      "current_iteration_acceptance": "docs/ITERATION-ACCEPTANCE.md",
+      "development_evidence": {
+        "system_image_sha256": "ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc",
+        "flash_task_id": "flash-1791957654587823900",
+        "vendor_flash_and_boot": "passed",
+        "ext4_udisk_automatic_mount": "passed",
+        "touch_input": "observed-and-user-confirmed",
+        "wifi": "single-boot-connection-and-network-transfer-passed",
+        "wifi_persistence": "not-accepted",
+        "industrial_peripherals": "not-qualified",
+        "native_updater": "isolated-synthetic-package-test-passed",
+        "native_display_control": "host-tests-and-cross-build-only",
+        "real_application_ota": "not-accepted",
+        "production_baseline": "pending",
+        "evidence_scope": "development observations; not production or full OTA acceptance"
+      }
     }
   }
 }

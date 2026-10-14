@@ -6,10 +6,13 @@
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QTimer>
-#include <QtCharts/QLineSeries>
 
 QT_BEGIN_NAMESPACE
 class QCheckBox;
+class QFrame;
+class QLineEdit;
+class QBoxLayout;
+class QResizeEvent;
 class QComboBox;
 class QLabel;
 class QNetworkReply;
@@ -18,41 +21,77 @@ class QSlider;
 class QStackedWidget;
 class QTableWidget;
 class QTabWidget;
+class QTabBar;
 QT_END_NAMESPACE
 
-QT_CHARTS_USE_NAMESPACE
+class OverviewDashboard;
+class StatusStrip;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-public:
+  public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-private slots:
+  protected:
+    void resizeEvent(QResizeEvent *event) override;
+
+  private slots:
     void requestSnapshot();
     void handleReply(QNetworkReply *reply);
     void showPage(int index);
 
-private:
+  private:
+    friend class HmiUiTest;
+    QCheckBox *canFdCheck = nullptr;
+    QWidget *scrollPage(QWidget *page);
+    void markOffline();
     QWidget *buildOverview();
     QWidget *buildFieldbus();
     QWidget *buildNetwork();
     QWidget *buildDevices();
     QWidget *buildAlarms();
     QWidget *buildSettings();
-    QWidget *metricCard(const QString &title, QLabel **value, const QString &color);
     QTableWidget *makeTable(const QStringList &headers);
     QPushButton *actionButton(const QString &text, const QString &kind = "primary");
     void applyTheme();
+    void applyAlarmFilter();
+    void updateAlarmSelection();
+    QByteArray visibleAlarmCsv() const;
+    void updateNetworkDetails();
+    void updateNetworkTables(const QJsonObject &root);
+    void updatePageMetrics(const QJsonObject &root);
+    void updateAuditFilter();
     void updateSnapshot(const QJsonObject &root);
-    void updateSeries(const QJsonArray &sensors);
-    void sendJson(const QByteArray &method, const QString &path,
-                  const QJsonObject &body, const QString &kind);
-    void postAction(const QString &action, const QJsonObject &params,
-                    const QString &description);
+    void sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,
+                  const QString &kind);
+    void postAction(const QString &action, const QJsonObject &params, const QString &description);
     QString sourceText(const QJsonObject &item, const QString &text) const;
     static QString uptimeText(qint64 seconds);
 
+    OverviewDashboard *dashboard = nullptr;
+    OverviewDashboard *deviceTrend = nullptr;
+    QLabel *refreshValue = nullptr;
+    QLabel *screenResolution = nullptr;
+    QFrame *nav = nullptr;
+    QLabel *navModel = nullptr;
+    QList<QBoxLayout *> responsiveRows;
+    QList<QComboBox *> canInterfaces;
+    QList<QPair<QWidget *, QString>> capabilityControls;
+    bool portInitialized = false;
+    QLineEdit *serialPort = nullptr;
+    bool alarmRequestActive = false;
+    bool alarmsAvailable = false;
+    bool alarmAckPending = false;
+    bool settingsDirty = false;
+    bool loadingSettings = false;
+    bool settingsPending = false;
+    quint64 settingsRevision = 0;
+    quint64 savedSettingsRevision = 0;
+    QJsonObject submittedSettings;
+    void updateSettingsControls();
+    QList<QPushButton *> serviceButtons;
+    QPushButton *rebootButton = nullptr;
     QNetworkAccessManager networkManager;
     QTimer refreshTimer;
     QTimer pageTimer;
@@ -62,31 +101,39 @@ private:
     QLabel *connectionLabel = nullptr;
     QLabel *alarmSummaryLabel = nullptr;
     QLabel *demoBadge = nullptr;
-    QLabel *systemValue = nullptr;
-    QLabel *devicesValue = nullptr;
-    QLabel *alarmsValue = nullptr;
-    QLabel *uptimeValue = nullptr;
     QLabel *cpuValue = nullptr;
     QLabel *memoryValue = nullptr;
     QLabel *temperatureValue = nullptr;
     QLabel *storageValue = nullptr;
-    QList<QLabel *> overviewSensorValues;
-    QList<QLabel *> overviewBusStates;
-    QList<QLabel *> overviewNetworkStates;
-    QTableWidget *overviewBusTable = nullptr;
-    QTableWidget *overviewNetworkTable = nullptr;
-    QTableWidget *overviewAlarmTable = nullptr;
     QTableWidget *busTable = nullptr;
     QTableWidget *networkTable = nullptr;
+    QList<QLabel *> networkFields;
+    QLabel *networkDetail = nullptr;
+    QList<QTableWidget *> networkTables;
+    QList<QList<QLabel *>> networkFieldGroups;
+    QList<QLabel *> networkDetails;
+    QList<QLabel *> cellularStates, cellularInterfaces, cellularAddresses;
+    QList<QLabel *> serviceStates;
+    StatusStrip *rsStatus = nullptr;
+    StatusStrip *ecStatus = nullptr;
+    StatusStrip *monitorStatus = nullptr;
+    QJsonObject latestSnapshot;
+    bool monitorPaused = false;
+    QPushButton *pauseMonitor = nullptr;
     QTableWidget *deviceTable = nullptr;
     QTableWidget *alarmTable = nullptr;
+    QTabBar *alarmTabs = nullptr;
+    QComboBox *alarmSeverity = nullptr;
+    QComboBox *alarmSource = nullptr;
+    QComboBox *alarmTime = nullptr;
+    QLabel *alarmDetail = nullptr;
+    QPushButton *alarmAck = nullptr;
     QTableWidget *auditTable = nullptr;
+    QComboBox *auditResult = nullptr;
+    QLabel *auditCount = nullptr;
     QSlider *brightnessSlider = nullptr;
     QCheckBox *demoCheck = nullptr;
     QComboBox *refreshCombo = nullptr;
-    QList<QLineSeries *> overviewSeries;
-    QList<QLineSeries *> deviceSeries;
-    int sampleIndex = 0;
     bool requestActive = false;
 };
 

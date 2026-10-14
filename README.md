@@ -1,10 +1,11 @@
 # DshanControl
 
-## T153MX 实板桌面
+## T153MX 历史实板桌面
 
 以下界面均由运行 Linux `#69` 的 T153MX 通过 `fbgrab` 从真实 framebuffer 获取，
 不是设计稿或模拟器截图。采集信息、逐图校验值和测试边界见
 [实板 UI 记录](docs/t153mx-board-ui.md)。
+这是历史深灰界面的实板证据，不代表当前蓝白界面已经上板验收。
 
 <table>
   <tr>
@@ -35,7 +36,8 @@ IEC 62443 认证产品，也不能替代具体现场总线从站的互操作测�
 ## 主要能力
 
 - 统一 `/api/v1`：平台、通道、系统状态、设备、点位和审计。
-- Qt/C++ 1024×768 工业 HMI：深灰主题、状态色、趋势、告警和总线操作入口。
+- Qt/C++ 蓝白工业 HMI：以 RGB50 1024×600 为基准，按屏幕重排；保留 T153
+  1024×768 布局。本机验证见 [UI 实现记录](docs/UI-IMPLEMENTATION.md)，当前界面实板验收待完成。
 - Web 管理：认证、CSRF、角色、登录限速、安全响应头和可选 HTTPS。
 - CAN/CAN-FD、CANopen、Modbus RTU、SOEM EtherCAT 和蜂窝适配接口。
 - SQLite 持久化、配置原子写入、健康检查和有限重启 supervisor。
@@ -103,3 +105,16 @@ SmartDesktopMimi 是独立项目。
 [应用更新说明](components/updater/README.md) 描述签名清单、GitHub 检查、事务安装和恢复。
 [发布门禁](docs/RELEASING.md) 区分系统镜像与应用升级包；原源码打包命令不是应用升级包。
 S4 实板、断电、工业互操作和更新链路尚未验收，不提供已完成的系统镜像或生产 OTA 声明。
+
+T113s3 与 S4 的名称关系仍待实板身份确认，不据此更改 BSP。
+A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 是未来适配目标，
+须分别提供板级适配与实测产物，当前不声明支持，见 [主板适配队列](docs/BOARD-PORTING-QUEUE.md)。
+
+## C++ 更新框架进展
+
+原生更新核心、独立任务服务和亮度平台接口使用 C++11/Qt，见
+[原生运行端](components/runtime/README.md)。桌面已接通原生检查、下载、确认安装
+和任务错误显示；旧系统需先完成原生服务及信任根集成，不能只打开界面开关。
+其他硬件操作及旧 Web 运行栈仍在迁移，完整实板自动升级尚未验收。
+当前状态、历史实板证据和本机验证见 [验收记录](docs/ITERATION-ACCEPTANCE.md)，
+系统/应用双发布线和防错板门禁见 [落实方案](docs/APPLICATION-UPDATE-PLAN.md)。

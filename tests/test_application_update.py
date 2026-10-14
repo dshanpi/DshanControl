@@ -172,6 +172,68 @@ class UpdateTests(unittest.TestCase):
         self.updater.contract['hardware_revision'] = 'pending'
         with self.assertRaises(Rejected): self.install()
 
+    def test_missing_or_unknown_target_fields_fail_before_hooks(self):
+        for field in TARGET_FIELDS:
+            for value in (None, 'unknown', 'pending'):
+                with self.subTest(field=field, value=value):
+                    original = self.updater.contract.pop(field)
+                    if value is not None:
+                        self.updater.contract[field] = value
+                    with self.assertRaises(Rejected): self.install()
+                    self.assertEqual([], self.operations)
+                    self.updater.contract[field] = original
+
+    def test_channels_must_be_explicit_and_well_formed(self):
+        for value in (None, [], 'stable', ['unknown'], ['stable', None]):
+            with self.subTest(value=value):
+                self.updater.contract.pop('allowed_channels', None)
+                if value is not None:
+                    self.updater.contract['allowed_channels'] = value
+                with self.assertRaisesRegex(Rejected, 'explicit allowed channels'):
+                    self.install()
+                self.assertEqual([], self.operations)
+        self.updater.contract['allowed_channels'] = ['stable']
+        self.install()
+
+    def test_development_mode_requires_boolean(self):
+        for value in ('false', 'true', 0, 1, None, []):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(Rejected, 'development_mode must be a boolean'):
+                    Updater(dict(self.config, development_mode=value))
+        production = Updater({k: v for k, v in self.config.items() if k != 'development_mode'})
+        production.hook = lambda operation, check=True: self.operations.append(operation) or True
+        with self.assertRaisesRegex(Rejected, 'release gates incomplete'):
+            production.install(self.path, self.signature, self.package)
+        self.assertEqual([], self.operations)
+        # Synthetic host-only evidence isolates the independent draft-state gate.
+        # It is not a board qualification or a production release artifact.
+        evidence = dict.fromkeys(GATES, 'passed')
+        evidence.update(system_image_sha256='d'*64, system_contract_sha256='e'*64,
+                        log_sha256='f'*64, tester='host-fixture-only', tested_at='host-fixture-only')
+        self.manifest['targets'][0]['validation'] = evidence
+        self.sign()
+        with self.assertRaisesRegex(Rejected, 'draft cannot'):
+            production.install(self.path, self.signature, self.package)
+        self.assertEqual([], self.operations)
+
+    def test_installed_schema_version_and_sequence_are_not_coerced(self):
+        installed = self.updater.current_path() / 'installed.json'
+        for record in ({}, {'version': 'pending', 'data_schema': 1},
+                       {'version': '0.1.0', 'data_schema': True},
+                       {'version': '0.1.0', 'data_schema': '1'}):
+            with self.subTest(record=record):
+                atomic_json(installed, record)
+                with self.assertRaises(Rejected): self.install()
+                self.assertEqual([], self.operations)
+        atomic_json(installed, {'version': '0.1.0', 'data_schema': 1})
+        self.updater.contract['data_schema'] = True
+        with self.assertRaises(Rejected): self.install()
+        self.updater.contract['data_schema'] = 1
+        for value in (True, -1, '0', None):
+            atomic_json(self.app / 'update-state.json', {'high_water': value, 'failed': []})
+            with self.assertRaises(Rejected): self.install()
+        self.assertEqual([], self.operations)
+
     def test_interlock_failure_does_not_stop_application(self):
         def hook(operation, check=True):
             self.operations.append(operation)

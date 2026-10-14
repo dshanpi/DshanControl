@@ -76,6 +76,8 @@ def extract_payload(archive, destination, max_bytes):
 
 class Updater:
     def __init__(self, config):
+        require(type(config.get('development_mode', False)) is bool,
+                'development_mode must be a boolean')
         self.config = config
         self.root = Path(config['application_root'])
         self.contract = read_json(config['system_contract'])

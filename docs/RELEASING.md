@@ -4,6 +4,13 @@
 Buildroot 接入。EinkOS DSP-LINUX-001 1.1.0 仅作为分层和发布标准参考；
 SmartDesktopMimi 不在本项目范围内。本约定来自 2026-10-12 用户确认。
 
+2026-10-14 的代码现状、缺口、统一门禁与分阶段调整建议见
+[独立应用发布落实方案](APPLICATION-UPDATE-PLAN.md)。其中待实施项不代表现有能力。
+该方向已获用户确认；持续执行
+[硬件操作与应用更新门禁](HARDWARE-AND-UPDATE-GATES.md)，包括固定任务/作用域、
+资源锁、严格 SSH 信任、真实阶段/错误投影及失败不自动重试。
+应用持久事务恢复/已知良好回退仍须执行，不能与重发失败任务混淆。
+
 ## 来源和边界
 
 S4 底层使用 DongshanPI/100ASK_T113s4-SdNand_TinaSDK5 的 t113_s4/100ask，
@@ -30,7 +37,9 @@ components/updater/update_protocol.py 校验。GitHub Actions 运行主机测试
 
 1. release_kind、app_id、仓库、渠道、完整提交和目标资产全部明确；禁止 GitHub Latest 盲选。
 2. 逐项匹配 board_id、hardware_revision、architecture、float_abi、libc、runtime_id、
-   contract_id、updater_protocol。每个目标包仅覆盖一个明确系统配置。
+   contract_id、updater_protocol。每个目标包仅覆盖一个明确系统配置。系统必须明确声明
+   allowed_channels 和匹配的 updater_version；缺失值不得默认成 stable。公开发布证据中的
+   系统契约也须通过同一产品、渠道和更新器校验，并与目标身份及数据格式配对。
 3. RSA/SHA-256 签名覆盖清单原始字节及包哈希；公钥由系统配置，不从下载包建立信任。
 4. 只允许应用版本目录中的普通文件/目录；拒绝链接、特殊文件、路径穿越、重复项和安装脚本。
 5. 安装锁、空间检查、持久日志、原子切换、开机恢复、健康观察和失败版本隔离。
@@ -58,6 +67,15 @@ CAN/RS485/EtherCAT 区分软件可用、接口枚举和外部从站互操作；�
 
 新增 S4 接入与应用更新 v1 是开发实现；主机测试结果见工作记录，不能宣称生产 OTA 就绪。
 已有 T153 短测状态保持原义，不代表新增更新器已在 T153 验证。底层和更新器自身通过系统线升级。
+development_mode 仅接受 JSON 布尔值，省略时按生产门禁拒绝草稿。主机 CLI 进程终止与恢复
+测试验证事务行为，不替代实板掉电、存储持久性或正式签名/维护互锁验收。
 
 打包器要求 native-build-info 绑定当前干净应用提交、HMI 哈希和完整目标契约，
 不接受把另一提交/架构的二进制重命名后发布。构建记录随清单一起签名绑定。
+
+For T113s4 vendor system images, the final IMAGEWTY container must also pass
+`scripts/check_s4_boot_header.py` with the hardware-information bytes generated
+by the matching vendor buildserver/update_chip configuration. See
+`boards/t113s4-sdnand/hardware-inputs.md`. Missing information can pass ordinary
+flash checksums yet panic in OP-TEE, so a successful USB flash is not boot
+acceptance. Application releases do not carry or change Boot0.

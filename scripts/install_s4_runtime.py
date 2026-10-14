@@ -4,24 +4,10 @@ import argparse
 import json
 import shutil
 from pathlib import Path
+from check_hmi_resources import verify as verify_hmi_resources
 
 
-def payload(source, destination, hmi):
-    mapping = [('components/core/src/omnigate_core', 'lib/core/omnigate_core'),
-               ('components/web/app.py', 'lib/web/app.py'),
-               ('components/web/hmi_api.py', 'lib/web/hmi_api.py'),
-               ('components/web/assets', 'share/web'),
-               ('components/supervisor/supervisor.py', 'lib/supervisor/supervisor.py')]
-    for src, dst in mapping:
-        target = destination / dst
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if (source / src).is_dir():
-            shutil.copytree(str(source / src), str(target), ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
-        else:
-            shutil.copy2(str(source / src), str(target))
-    (destination / 'bin').mkdir(exist_ok=True)
-    shutil.copy2(str(hmi), str(destination / 'bin/omnigate-hmi'))
-    (destination / 'bin/omnigate-hmi').chmod(0o755)
+from application_payload import payload
 
 
 def main():
@@ -33,6 +19,7 @@ def main():
     src, target = args.source, args.target.resolve()
     if str(target) == '/':
         p.error('refusing host root')
+    verify_hmi_resources(src)
     board = src / 'boards/t113s4-sdnand'
     factory = target / 'usr/share/dshancontrol/factory'
     if factory.exists():

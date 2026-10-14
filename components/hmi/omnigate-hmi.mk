@@ -6,10 +6,12 @@ OMNIGATE_HMI_VERSION = 1.0
 OMNIGATE_HMI_SITE = $(TOPDIR)/package/omnigate-hmi/src
 OMNIGATE_HMI_SITE_METHOD = local
 OMNIGATE_HMI_DEPENDENCIES = qt5base qt5charts omnigate-core
-OMNIGATE_HMI_LICENSE = GPL-3.0-only
-OMNIGATE_HMI_LICENSE_FILES = LICENSE
+OMNIGATE_HMI_LICENSE = GPL-3.0-only OFL-1.1
+OMNIGATE_HMI_LICENSE_FILES = LICENSE fonts/OFL.txt
 
 define OMNIGATE_HMI_INSTALL_TARGET_CMDS
+	$(INSTALL) -D -m 0644 $(@D)/fonts/OFL.txt $(TARGET_DIR)/usr/share/licenses/dshancontrol/DshanSans-OFL.txt
+	$(INSTALL) -D -m 0644 $(@D)/fonts/manifest.json $(TARGET_DIR)/usr/share/licenses/dshancontrol/DshanSans-manifest.json
 	$(INSTALL) -D -m 0755 $(@D)/omnigate-hmi $(TARGET_DIR)/usr/bin/omnigate-hmi
 	$(INSTALL) -D -m 0755 $(TOPDIR)/package/omnigate-hmi/omnigate-hmi-launcher \
 		$(TARGET_DIR)/usr/bin/omnigate-hmi-launcher

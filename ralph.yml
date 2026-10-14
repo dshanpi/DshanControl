@@ -1,0 +1,38 @@
+# Initialized with: ralph init --backend codex
+# Installed CLI: @ralph-orchestrator/ralph-cli 2.10.1
+cli:
+  backend: codex
+  default_mode: autonomous
+  idle_timeout_secs: 1800
+
+event_loop:
+  prompt_file: PROMPT.md
+  completion_promise: LOOP_COMPLETE
+  cancellation_promise: DSHAN_EXTERNAL_BLOCKED
+  required_events:
+    - acceptance.software.passed
+    - acceptance.board.passed
+  max_iterations: 30
+  max_runtime_seconds: 14400
+  max_consecutive_failures: 3
+
+core:
+  scratchpad: .ralph/agent/scratchpad.md
+  specs_dir: docs/
+  guardrails:
+    - Read AGENTS.md, PROMPT.md and requirements.md; preserve existing uncommitted work.
+    - Never commit, push, upload previews, publish, flash hardware, format storage, or delete existing work.
+    - Match all fourteen UI views to the reference using actual Qt screenshots at five resolutions.
+    - Run relevant checks and S4 cross-compilation; never invent board evidence or bypass release gates.
+    - Record each requirement in docs/ITERATION-ACCEPTANCE.md; external blockers are not passed acceptance.
+    - Use one serial executor; do not spawn other agents or nested Ralph loops.
+
+features:
+  parallel: false
+  auto_merge: false
+  preflight:
+    enabled: true
+    strict: false
+
+hooks:
+  enabled: false

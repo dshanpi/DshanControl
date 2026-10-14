@@ -23,6 +23,8 @@ def main():
     p.add_argument('--sdk', required=True, type=Path)
     p.add_argument('--hardware', required=True, type=Path)
     p.add_argument('--output', required=True, type=Path)
+    p.add_argument('--rgb50-touch', action='store_true',
+                   help='apply the RGB50 Goodix I2C2/PB3/PB2 board wiring profile')
     a = p.parse_args()
     sdk, hw, out = a.sdk.resolve(), a.hardware.resolve(), a.output.resolve()
     br = sdk / 'buildroot/buildroot-201902'
@@ -47,8 +49,16 @@ def main():
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     shutil.copyfile(str(ROOT / 'LICENSE'), str(source / 'LICENSE'))
     shutil.copytree(str(baseline), str(out / 'board'))
-    hardware_files = {str(f.relative_to(baseline)): file_hash(f)
+    baseline_files = {str(f.relative_to(baseline)): file_hash(f)
                       for f in sorted(baseline.rglob('*')) if f.is_file()}
+    overlays = []
+    if a.rgb50_touch:
+        patch = ROOT / 'boards/t113s4-sdnand/tina/0002-rgb50-goodix-touch.patch'
+        subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p3',
+                        '-d', str(out / 'board'), '-i', str(patch)], check=True)
+        overlays.append({'path': str(patch.relative_to(ROOT)), 'sha256': file_hash(patch)})
+    hardware_files = {str(f.relative_to(out / 'board')): file_hash(f)
+                      for f in sorted((out / 'board').rglob('*')) if f.is_file()}
     source_files = {str(f.relative_to(source)): file_hash(f)
                     for f in sorted(source.rglob('*')) if f.is_file()}
     provenance = {'schema_version': 1, 'release_kind': 'system', 'status': 'development-draft',
@@ -58,6 +68,8 @@ def main():
                   'application_snapshot_files': source_files,
                   'hardware_repository': remote, 'hardware_commit': git(hw, 'rev-parse', 'HEAD'),
                   'hardware_board_files': hardware_files,
+                  'hardware_baseline_files': baseline_files,
+                  'hardware_board_overlays': overlays,
                   'sdk_path': str(sdk), 'sdk_manifest_complete': False,
                   'board': 't113_s4/100ask', 'storage': 'sdnand', 'buildroot': '201902',
                   'kernel': 'linux-5.4', 'board_validation': 'not-run'}
@@ -72,6 +84,7 @@ def main():
         p.error('SDK Linaro 5.3.1 toolchain missing; refusing an implicit toolchain download')
     fragments = (ROOT / 'boards/t113s4-sdnand/buildroot/dshancontrol.fragment').read_text().splitlines()
     fragments += ['BR2_ROOTFS_POST_BUILD_SCRIPT="$(TOPDIR)/../config/buildroot/post_build.sh ' + str(external / 'post-build.sh') + '"',
+                  'BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="' + str(external / 'busybox.fragment') + '"',
                   'BR2_GLOBAL_PATCH_DIR="' + str(external / 'patches') + '"',
                   'BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y', 'BR2_TOOLCHAIN_EXTERNAL_PREINSTALLED=y',
                   'BR2_TOOLCHAIN_EXTERNAL_PATH="' + str(toolchain) + '"',

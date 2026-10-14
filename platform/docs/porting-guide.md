@@ -2,11 +2,15 @@
 
 新增板卡时按以下顺序集成：
 
-1. 在 `boards/` 增加板卡描述，并声明实际支持的 profile；未经实板验证不得声明支持。
+1. 在 `platform/boards/` 增加板卡描述，在 `platform/components.json` 登记对应的
+   `board-adapter-example`，接入材料放在 `boards/` 或 `deploy/`。未经实板验证仅声明
+   `candidate_profiles`，`supported_profiles` 保持空；目录/profile 成员关系不代表实板支持。
 2. 在目标根文件系统安装 `/etc/omnigate/platform.json`，为每个物理接口定义稳定的逻辑
    名称、kind、role 和 device。
 3. 适配显示、触摸、网络、存储和协议驱动；不要修改通用 HMI/Web 去写死设备名。
-4. 将平台组件接入目标构建系统，并保持 `/var/lib/omnigate` 为可写持久卷。
+4. 将平台组件接入目标构建系统，使用板级系统契约指定的持久数据路径。
+   T153 保留 `/var/lib/omnigate`；S4 使用启动映射的可写 ext4 UDISK 下
+   `/mnt/UDISK/dshancontrol/data`，与应用版本树分离，启动或挂载失败不得格式化。
 5. 运行主机测试、Manifest 校验、完整镜像构建和实板短测。
 6. 分别记录协议组件可用、接口枚举、外部从站互操作和长期老化，不能互相替代。
 

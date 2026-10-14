@@ -117,15 +117,30 @@ def validate_manifest(m, public=False):
     return m
 
 
-def match_target(m, contract, current, high_water=0):
-    validate_manifest(m)
+def match_system_contract(m, contract):
+    """Shared device/release pairing checks; neither infers missing system identity."""
     validate_target(contract)
     require(tuple(map(int, UPDATER_VERSION.split('.'))) >=
             tuple(map(int, m['minimum_updater_version'].split('.'))), 'updater too old')
     require(contract.get('updater_version') == UPDATER_VERSION, 'installed updater/contract mismatch')
     require(contract.get('app_id') == APP_ID, 'wrong installed product')
     require(contract.get('repository') == REPOSITORY, 'wrong installed repository')
-    require(m['channel'] in contract.get('allowed_channels', ['stable']), 'channel not allowed')
+    channels = contract.get('allowed_channels')
+    require(isinstance(channels, list) and bool(channels) and
+            all(c in ('stable', 'prerelease') for c in channels),
+            'explicit allowed channels required')
+    require(m['channel'] in channels, 'channel not allowed')
+
+
+def match_target(m, contract, current, high_water=0):
+    validate_manifest(m)
+    match_system_contract(m, contract)
+    require(isinstance(current, dict) and identifier(current.get('version')) and
+            current['version'] not in ('unknown', 'pending'), 'missing installed version')
+    require(type(current.get('data_schema')) is int and current['data_schema'] > 0 and
+            type(contract.get('data_schema')) is int and contract['data_schema'] > 0,
+            'invalid installed/system data schema')
+    require(type(high_water) is int and high_water >= 0, 'invalid accepted sequence')
     require(m['sequence'] > high_water, 'replayed or downgraded release')
     require(current['version'] in m['from_versions'], 'no upgrade path from installed version')
     require(current['data_schema'] == m['data_schema'] == contract.get('data_schema'),

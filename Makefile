@@ -8,8 +8,22 @@ test-bootstrap:
 	$(PYTHON) -m venv .test-venv
 	.test-venv/bin/pip install --disable-pip-version-check -r tests/requirements.txt
 
-test:
+test: build-native
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
 package:
 	./scripts/package_release.sh "$(RELEASE_DIR)"
+
+HMI_QMAKE ?= qmake
+.PHONY: build-native test-native
+build-native:
+	mkdir -p dist/native-runtime
+	cd dist/native-runtime && $(HMI_QMAKE) ../../components/runtime/runtime.pro && $(MAKE)
+
+test-native: build-native
+	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_native_*.py' -v
+.PHONY: test-hmi
+test-hmi:
+	mkdir -p dist/ui-test
+	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/hmi-ui.pro && $(MAKE)
+	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./hmi-ui-test

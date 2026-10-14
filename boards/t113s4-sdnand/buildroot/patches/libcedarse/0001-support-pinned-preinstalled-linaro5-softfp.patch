@@ -1,0 +1,20 @@
+Subject: [PATCH] select the supplied softfp library for preinstalled GCC 5
+
+The S4 integration uses the same Linaro 5.3 arm-linux-gnueabi toolchain
+as the vendor armsf preset, with a pinned preinstalled path. Match its
+compiler prefix, GCC family, ARM EABI and libc instead of treating every
+custom toolchain as GCC 10 hardfloat. Other custom targets still fail.
+
+Upstream-Status: Inappropriate [S4 SDK integration]
+
+--- a/Makefile
++++ b/Makefile
+@@ -7,6 +7,8 @@
+ 	ifeq ($(BR2_TOOLCHAIN_EXTERNAL_CUSTOM), y)
+ 		ifeq ($(findstring gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf, $(BR2_TOOLCHAIN_EXTERNAL_PATH)), gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf)
+ 			LIB_PATH = ./lib/buildroot-gcc-arm-arm-10.3
++		else ifeq ($(BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX):$(BR2_TOOLCHAIN_EXTERNAL_GCC_5):$(BR2_ARM_EABI):$(BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC), "arm-linux-gnueabi":y:y:y)
++			LIB_PATH = ./lib/buildroot-toolchain-external-linaro-armsf
+ 		else
+ 			$(error error:TOOLCHAIN unsupport!)
+ 		endif

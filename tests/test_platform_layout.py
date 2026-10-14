@@ -51,6 +51,31 @@ class PlatformLayoutTests(unittest.TestCase):
             self.assertIn("device", channel)
             self.assertIn("role", channel)
 
+    def test_all_board_adapters_resolve_without_claiming_candidate_support(self):
+        catalog = load("components.json")
+        components = {item["id"]: item for item in catalog["components"]}
+        for path in sorted((PLATFORM / "boards").glob("*.json")):
+            with self.subTest(board=path.name):
+                board = json.loads(path.read_text())
+                adapter = components[board["board_support_component"]]
+                self.assertEqual("board-adapter-example", adapter["kind"])
+                self.assertTrue((ROOT / adapter["path"]).is_dir())
+                manifest = json.loads((ROOT / board["runtime_manifest"]).read_text())
+                self.assertEqual(board["id"], manifest["board_id"])
+                for field in ("soc", "architecture"):
+                    self.assertEqual(board[field], manifest[field])
+                supported = board["supported_profiles"]
+                candidates = board.get("candidate_profiles", [])
+                self.assertFalse(set(supported) & set(candidates))
+                self.assertIn(manifest["runtime_profile"], supported + candidates)
+                for profile in supported + candidates:
+                    self.assertIn(profile, adapter["profiles"])
+                    self.assertIn(profile, catalog["profiles"])
+                if board["validation_status"] == "development-not-board-tested":
+                    self.assertEqual([], supported)
+                    self.assertEqual([], manifest["capabilities"])
+                    self.assertIs(False, manifest["update"]["qualified"])
+
     def test_contracts_and_schemas_are_present_json(self):
         for name in ("runtime-profile", "board-descriptor", "telemetry", "command"):
             schema = load("schemas/%s.schema.json" % name)

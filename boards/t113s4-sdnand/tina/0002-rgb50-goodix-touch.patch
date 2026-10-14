@@ -1,0 +1,101 @@
+--- a/configs/100ask/linux-5.4/board.dts
++++ b/configs/100ask/linux-5.4/board.dts
+@@ -879,25 +879,7 @@
+ 	dmas = <&dma 43>, <&dma 43>;
+ 	dma-names = "tx", "rx";
+ 	status = "disabled";
+-		ctp@14 {
+-			compatible = "allwinner,goodix";
+-			device_type = "ctp";
+-			reg = <0x14>;
+-			status = "disabled";
+-			ctp_name = "gt9xxnew_ts";
+-			ctp_twi_id = <0x2>;
+-			ctp_twi_addr = <0x14>;
+-			ctp_screen_max_x = <0x320>;
+-			ctp_screen_max_y = <0x1e0>;
+-			ctp_revert_x_flag = <0x0>;
+-			ctp_revert_y_flag = <0x0>;
+-			ctp_exchange_x_y_flag = <0x0>;
+-			ctp_int_port = <&pio PB 6 GPIO_ACTIVE_HIGH>;
+-			ctp_wakeup = <&pio PB 7 GPIO_ACTIVE_HIGH>;
+-			/*ctp-supply = <&reg_aldo2>;*/
+-			/*ctp_power_ldo = <&reg_aldo2>;*/
+-			/*ctp_power_ldo_vol = <3300>;*/
+-	};
++
+ };
+ 
+ &twi1 {
+@@ -913,10 +895,30 @@
+ 	pinctrl-0 = <&twi2_pins_a>;
+ 	pinctrl-1 = <&twi2_pins_b>;
+ 	pinctrl-names = "default", "sleep";
+-	twi_drv_used = <1>;
++	/* GT911 config reads fail in drv/DMA mode on this vendor kernel. */
++	twi_drv_used = <0>;
+ 	dmas = <&dma 45>, <&dma 45>;
+ 	dma-names = "tx", "rx";
+-	status = "disabled";
++	status = "okay";
++		ctp@5d {
++			compatible = "allwinner,goodix";
++			device_type = "ctp";
++			reg = <0x5d>;
++			status = "okay";
++			ctp_name = "gt9xxnew_ts";
++			ctp_twi_id = <0x2>;
++			ctp_twi_addr = <0x5d>;
++			ctp_screen_max_x = <0x400>;
++			ctp_screen_max_y = <0x258>;
++			ctp_revert_x_flag = <0x0>;
++			ctp_revert_y_flag = <0x0>;
++			ctp_exchange_x_y_flag = <0x0>;
++			ctp_int_port = <&pio PB 3 GPIO_ACTIVE_HIGH>;
++			ctp_wakeup = <&pio PB 2 GPIO_ACTIVE_HIGH>;
++			/*ctp-supply = <&reg_aldo2>;*/
++			/*ctp_power_ldo = <&reg_aldo2>;*/
++			/*ctp_power_ldo_vol = <3300>;*/
++	};
+ };
+ 
+ &twi3 {
+@@ -1026,6 +1028,11 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&ir1_pins_a>;
+ 	status = "disabled";
++};
++
++/* RGB50 I2C2 uses PE13; board PHY reset is PE10, not the SoC default. */
++&gmac0_phy0 {
++	reset-gpios = <&pio PE 10 GPIO_ACTIVE_LOW>;
+ };
+ 
+ &gmac0 {
+@@ -1189,7 +1196,7 @@
+ 		sensor0_power_en = <>;
+ 		sensor0_reset = <&pio PE 13 GPIO_ACTIVE_LOW>;
+ 		sensor0_pwdn = <>;
+-		status	= "diabled";
++		status	= "disabled";
+ 	};
+ 	sensor1:sensor@5809480 {
+ 		device_type = "sensor1";
+@@ -1692,12 +1699,13 @@
+  */
+ &usbc0 {
+ 	device_type = "usbc0";
+-	usb_port_type = <0x2>;
+-	usb_detect_type = <0x1>;
++	/* Fixed device role frees PE12 for RGB50 I2C2; FEL remains available. */
++	usb_port_type = <0x0>;
++	usb_detect_type = <0x0>;
+ 	usb_detect_mode = <0>;
+-	usb_id_gpio = <&pio PE 12 GPIO_ACTIVE_HIGH>;
++	/delete-property/ usb_id_gpio;
+ 	enable-active-high;
+-	usb_det_vbus_gpio = <&pio PE 12 GPIO_ACTIVE_HIGH>;
++	/delete-property/ usb_det_vbus_gpio;
+ 	usb_wakeup_suspend = <0>;
+ 	usb_serial_unique = <0>;
+ 	usb_serial_number = "20080411";

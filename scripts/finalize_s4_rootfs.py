@@ -16,11 +16,17 @@ def finalize(target):
     if contract.get('app_id') != 'dshancontrol' or contract.get('board_id') != '100ask-t113s4-sdnand':
         raise ValueError('not a DshanControl S4 target')
     runtime = ROOT / 'boards/t113s4-sdnand/runtime'
-    for source, relative, mode in [('S60mount_udisk', 'etc/init.d/S60mount_udisk', 0o755),
-                                   ('storage.py', 'usr/lib/dshancontrol-update/storage.py', 0o644)]:
+    files = [('S60mount_udisk', 'etc/init.d/S60mount_udisk', 0o755),
+             ('storage.py', 'usr/lib/dshancontrol-update/storage.py', 0o644),
+             ('display.env', 'etc/dshancontrol/display.env', 0o644)]
+    # Validate all destinations before replacing anything, including symlinked
+    # parent directories which could otherwise write outside the staged rootfs.
+    for _, relative, _ in files:
         destination = target / relative
-        if destination.is_symlink():
+        if any(p.is_symlink() for p in (destination,) + tuple(destination.parents) if p != target and target in p.parents):
             raise ValueError('refusing symlink destination: ' + relative)
+    for source, relative, mode in files:
+        destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(str(runtime / source), str(destination))
         destination.chmod(mode)

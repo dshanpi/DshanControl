@@ -96,7 +96,116 @@ post-build 覆盖检查通过，原生程序和预装提交一致。S4 内核 `o
 第一轮源码快照、日志和测试签名包保留原版本身份，不代表当前目标目录内容。
 根 SDK `.buildconfig` 和已有硬件修改未改变，未刷写或发布。
 
-当前构建盘仅余约 **2.3 GiB**，完整 rootfs 入口按已记录的 **16 GiB 可用空间保留量**
+当时构建盘仅余约 **2.3 GiB**，完整 rootfs 入口按已记录的 **16 GiB 可用空间保留量**
 停止启动全量构建；该阈值是工程保留量，不是测得的最小值。
-需要提供有足够空间的构建目录，并确认实板容量、面板/触摸与连接方式。
-目前 ADB 无设备、USB 未检测到目标板；完整 rootfs、内核/Bootloader 镜像和实板验收均未完成。
+当时需要提供有足够空间的构建目录，并确认实板容量、面板/触摸与连接方式。
+当时 ADB 无设备、USB 未检测到目标板；完整 rootfs、内核/Bootloader 镜像和实板验收均未完成。
+
+2026-10-13 第16轮复查空间已恢复约124 GiB，历史空间阻塞已解除；完整系统输入恢复、
+隔离准备和 rootfs/镜像构建仍待执行。不得把旧 ELF/准备快照视为当前完整系统。
+当前进度以 [本轮验收表](ITERATION-ACCEPTANCE.md) 为准，真实容量/硬件身份仍未确认。
+
+## 第18轮：SDK 输入恢复与新准备目录（2026-10-13）
+
+本轮恢复材料只保存在应用仓库外：
+`/home/ubuntu/dshancontrol-recovery-20261013-h02/`。
+`recovery.json` 记录122个SDK组件、嵌套squashfs仓库和独立批准硬件仓库的提交，
+每个组件目录包含自包含 `baseline.bundle`、当前文件相对HEAD的二进制补丁、
+未跟踪内容归档及忽略路径清单。恢复的是工作文件内容，暂存区与未暂存区的区分不作为构建输入。
+7个脏组件、嵌套仓库和硬件仓库已在 `rehearsal/` 实际恢复核对；原SDK清单未变。
+原 `.buildconfig` 仅作为历史输入保存，仍是其他板型配置，不能拿来打包S4。
+
+恢复应在新目录中按组件清单从bundle克隆、检出记录提交、应用 `worktree.patch`，
+再恢复未跟踪文件；嵌套squashfs仓库单独恢复至其下载路径。
+解压下载和工具链归档前先核对 `recovery.json` 与本轮工具链报告中的哈希，
+不要把任何归档解压到既有工作树。原始工具链压缩包在对应组件bundle中，
+实际解压工具链另有逐文件、链接和权限清单。所有厂商源码、二进制和SDK缓存留在仓库之外。
+
+这些材料解决提交/修改只有哈希、没有恢复内容的问题，但仍不是完整系统复现验收。
+忽略文件清单中还包含旧板构建输出；后续完整构建须确认实际依赖，不将旧boot文件当成批准产物。
+rootfs、内核、Bootloader、工厂ext4数据卷与最终打包镜像仍需构建和核验，
+真实容量、板型修订、面板/触摸与正式信任根仍须取得外部证据。
+本轮最终结果与日志见 [验收表](ITERATION-ACCEPTANCE.md) 和 `dist/iteration-h02-local/`。
+
+新准备目录为 `/home/ubuntu/dshancontrol-s4-prepared-20261013-h02/`：
+当前110文件应用快照、独立Buildroot输出目录，prepare/configure成功；SDK源码和工具链仍共享只读输入。
+新目录未安装rootfs，完整预检因两项存储策略缺失和六个未解决条件保持未通过。
+主机118 Python、32 Qt及准备快照HMI交叉构建通过，实际sysroot仍为dev2。
+三套工具链21979个文件/链接与厂商压缩包内容相同；最终约94GiB可用，完整构建已另登记后续。
+
+
+## 第20轮：独立系统组件构建（2026-10-13）
+
+本轮继续使用第18轮准备目录的独立 Buildroot O 目录。构建通过 bubblewrap 将 SDK
+源文件设为只读、关闭构建进程网络，并隐藏原 `out/`，只挂入已核验的交叉工具链。
+下载使用准备目录内的独立副本；缺失的 DejaVu 2.37 从 Buildroot 源镜像获取并按厂商
+配方 SHA256 校验。实际选中的220个包有41个本地源路径，均存在；直接 SITE 路径内未发现忽略输入，下载输入170个文件已单列哈希。
+随后实际构建发现 SITE 之外的 LVGL 兄弟目录含旧对象文件，说明该检查本身不构成依赖闭包。
+原122组件清单和 `.buildconfig` 核验未变。
+
+在应用仓库外从恢复材料还原 Linux 5.4、U-Boot、SPL 和无线固件，并叠加批准硬件仓库的
+125个内核文件及6个固件文件。独立内核产出 zImage、板级DTB、8个模块和903个导出头文件；
+Buildroot 仅挂入本次导出的内核头文件。U-Boot 采用批准 BoardConfig 指定的
+`sun8iw20p1_t113s3p_defconfig`，MMC SPL 使用显式 `mmc` 目标和独立输出路径。
+该厂商配置名不解决实板 T113s3/T113s4 身份问题，也不构成实板支持声明。
+SPL 使用的厂商预编译库仍是必须保留的系统输入，不能描述成全部由开放源码生成。
+
+补发现 HEAD bundle 不包含版本生成器读取的厂商标签；从原 SDK 保存已有标签的补充
+bundle 到恢复目录 `system-build-tags/`，还原后重建内核和 U-Boot。最终组件哈希在
+`dist/iteration-h02-system/kernel-artifacts-final.json` 和 `bootloader-artifacts-final.json`；
+早期哈希与失败构建单独保留，不能当最终版本。补充标签仅覆盖本次消费的组件元数据，
+不代表所有 SDK 元数据及最终打包输入已通过完整复现验收。
+
+真实全量编译发现厂商配方依赖其默认下载工具链选择，S4 外部配方作如下限定适配：
+
+- sdk_memory、sdk_endec 和 sdk_camera 的具体编译/安装阶段使用 GNU C++11，满足
+  `nullptr`、原子变量、lambda 和 GNU `typeof`；设置不传播到依赖包或 C 编译。
+- sdk_common 的 multiscreen 示例缺少 `atoi` 声明，仅补 `cstdlib` 预包含。
+- tplayer 安装阶段选择已同步的 `arm-linux-gnueabi` softfp 音频库。
+- libcedarse 是 local-site 包，常规补丁阶段不会执行；通过 post-rsync hook 修正复制到
+  构建目录的 Makefile，仅接纳已固定的 GCC5/arm-linux-gnueabi/EABI/glibc 组合。
+  其他未知组合继续拒绝，原 SDK 文件保持只读。
+
+真实 make/编译器测试覆盖作用域隔离、softfp目录选择、错误 ABI/工具链拒绝及恢复。
+第18轮110文件应用快照未改写，本轮 external.mk/补丁作为明确记录的系统集成覆盖挂入；
+后续新建准备目录会从当前仓库复制这些输入。原快照的 dirty 身份保持不变。
+完整 rootfs、最终系统打包和实板验收状态以 [验收表](ITERATION-ACCEPTANCE.md) 为准；
+组件构建成功不授权工厂 UDISK 制备、烧录或发布。
+
+补充恢复材料位于恢复目录 `system-integration-round20/`，保存本轮配方/补丁和缺失的
+DejaVu下载包，来源及摘要见 `dist/iteration-h02-system/recovery-supplement.json`。
+只读沙箱阻止宿主ncurses安装阶段更新 `/etc/ld.so.cache`；四个生成的宿主库已实际加载验证，
+无需放宽主机写权限。Python安装删除不存在的缓存目录也产生厂商忽略错误；这两类历史日志
+单独保留，目标扩展与最终rootfs仍须按实际产物核验。
+
+第9次 rootfs 尝试在 `lv_g2d_test` 暴露新的来源污染：配方复制 `../lvgl` 中153个
+被 Git 忽略的旧对象文件，VPATH 据此跳过编译而链接查找失败。没有修改或清理原 SDK；
+从第18轮 bundle/本地修改恢复整个 `platform/thirdparty/gui/lvgl-8`，1383个源文件核验
+一致，排除旧忽略构建输出后只读挂入第10次构建。恢复记录在 `lvgl-clean-source.json`，
+失败目录保存在准备目录 `failed/lv_g2d_test-attempt9`。后续复现必须使用这份干净源码
+或等价恢复，不能只检查各包 SITE 目录后直接复制其未审计的兄弟目录。
+
+
+第20轮最终结果：独立Qt5.11.3/HMI及512 MiB原始ext4 rootfs构建通过，镜像SHA256为
+`d55ddb38b66393e09ca17217412673a94b06e2708054c84d416c50b4055b62ed`。
+1091 ARM ELF的加载器/递归依赖/符号版本、两份单列的协处理器固件、只读fsck及镜像抽取25文件检查通过。
+最终122 Python、32 Qt及原SDK/应用快照连续性检查通过，详见第20轮验收记录。
+
+补齐厂商packer的两项系统输入：S4 target-finalize按 `build/mkcmd.sh:pack_buildroot_rootfs`
+生成 `/init → bin/busybox`，拒绝未知原入口与越界路径；按 `copy_bin_firmware` 的覆盖顺序安装
+批准100ask板级 `amp_dsp0.bin` 与 `amp_rv0.bin`，来源/哈希见 `coprocessor-firmware-inputs.json`。
+它们是Xtensa/RISC-V协处理器数据，不是ARM Linux程序，也没有在本轮重新编译或实板执行。
+不要将ramdisk的busybox/init脚本复制到这个no-ramdisk根文件系统。
+
+完整镜像构建在只读bwrap中需设置 `FAKEROOTDONTTRYCHOWN=1`：旧fakeroot对未映射用户的
+真实chown返回EINVAL，只模拟元数据可避免该操作。已用实际chown/lstat验证并检查镜像内
+root/DBus/PostgreSQL属主，不应通过开放宿主写权限来绕过。第11次准确命令和挂载见
+`rootfs-attempt11-command.json`，全部包及系统集成通过后才产生本次镜像。
+Buildroot的版本标签也已补充归档与恢复验证，见 `restored-buildroot-tags.json`。
+
+归档阶段接收AGENTS/PROMPT新增硬件交接：主交互代理持有S4实板，已观测SD容量2013265920字节、
+root p5和UDISK p9 vfat，指定RGB50 1024x600与AIC8800D80。按实测容量重跑预检为零配置错误、
+3项未完成（工厂ext4 UDISK、启动镜像链、实板功能/掉电/回退），publishable=false。
+H02保持pending，Tina厂商完整镜像打包/静态核验仍有本地后续；不能沿用无设备/容量未知或全部外部阻塞。
+Ralph只做本地构建，不与主交互代理争用硬件，不读取私有WiFi凭据；后续仍须遵守厂商系统、
+网络传文件、USB厂商烧录工具及重新核对绑定板的要求。当前组件/rootfs没有新镜像实板验收或发布资格。
