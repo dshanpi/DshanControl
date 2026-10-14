@@ -1042,3 +1042,13 @@ github.com 主机密钥别名并保持 StrictHostKeyChecking=yes，通过 SSH �
 make test-bootstrap、make test、make test-hmi 和 git diff --check。此次修改仅补
 构建依赖和验证步骤，不跳过原生/UI 测试，也不将实板 OTA 未验收改成通过。
 推送后等待远端真实执行并记录结果。
+
+首次 SSH 上传后的远端运行 38546563546 通过依赖安装及 make test，Qt 汇总为
+33 passed/1 failed：brightnessTouchInteraction 在新 runner 中保存截图失败。
+原因是截图目录由后续布局测试创建，亮度测试隐含依赖本地旧目录。修正 Qt 的
+initTestCase 显式创建输出目录并检查成功，所有截图/触摸断言保持；在新的空工作
+目录运行完整 Qt 测试，再推送复验远端。此修改仅测试准备，不改变应用代码或
+之前 ARM 构建的适用范围。
+
+修正后本机在全新空目录执行完整 Qt 测试，34 passed/0 failed/0 skipped，退出0。
+证据 dist/ci-fix-20261014/clean-ui-test.log；未复用原 dist/ui-test/screenshots。

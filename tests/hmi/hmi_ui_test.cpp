@@ -3,6 +3,7 @@
 #include "../../components/hmi/src/updatepanel.h"
 #include <QCheckBox>
 #include <QFileDialog>
+#include <QDir>
 #include <QTemporaryDir>
 #include <QRawFont>
 #include <QCryptographicHash>
@@ -109,6 +110,13 @@ class HmiUiTest : public QObject
             r->abort();
     }
   private slots:
+    void initTestCase()
+    {
+        // Each clean test run, including a single selected test, owns its output.
+        // Do not depend on a later layout test to create this directory.
+        QVERIFY(QDir().mkpath("screenshots"));
+    }
+
     void brightnessTouchInteraction()
     {
         MainWindow w;
