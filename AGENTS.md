@@ -1,5 +1,29 @@
 # DshanControl engineering gates
 
+## Actual native-role full-image delivery (2026-10-15)
+
+Current board now boots corrected immutable imageb20c948f… / factoryea53f86a14283bd3a3b73b59b5224244eaec0a09,
+not the older factory95 or failed image91. Vendor flash/verify/post-action succeed;
+automatic native service, WebUID400/G400 with only NET_BIND_SERVICE and QtUID401/G400
+with zero capabilities pass, both NNP1. Qt actually mapsfb0, opens named GT911event4
+and advances GUI/backend identity heartbeat. Python supervisor absent. Original
+user data restored9files; all598 original telemetry rows preserved (600atcheck),
+other original rows and static config hashes preserved. Normal reboot bootUUID
+00e70a3c-8318-4c65-8366-569bcd474fd3 automatically restores WiFi/DHCP/UTC/defaultHTTPS
+and native functional health without manual repair. Private original backup0942205b…
+(44files/2DBs), immediate preflash backup21ff7917… (53files/2DBs), failed image91
+and all historical evidence retained. Build host244(9skips), CI38813089186 success;
+rootfs104files/43ELFs/container41 and privacy checks pass. BSP/toolchain/dependencies
+reused with122 inputs unchanged; no full clean SDK reproduction claim. Runtime1669
+image files equal prior actual observation, libc2.21/runtimeIDs4-b5c814f0…; formal
+hardware/trust contract remains pending. New system Draft414347622/tag.20261015.2
+has18assets all redownload/hash/gzip/Git-source verified; fresh metadata stillDraft,
+source tag pins ea53. See docs/S4-NATIVE-ROLE-SYSTEM-20261015.md and receipt.
+Whole goal remains active. Continue real signed Qt app download/install/reboot/
+rollback in explicit isolated development scope; keep original data and formal
+contract intact. Actual PCB/industrial maintenance/measured electrical power and
+physical touch-event qualification are still absent; never claim production.
+
 ## Actual sysfs permission preflight correction (2026-10-15)
 
 Full image91193/source75cd7ed flashed, verified and rebooted successfully, but
