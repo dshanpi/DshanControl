@@ -1,6 +1,11 @@
 #!/bin/sh
 # Board-owned WiFi startup; credentials stay outside application versions.
 set -eu
+# A native system must retain its runtime boundary even if the executable fails.
+if [ ! -x /usr/bin/dshancontrol-runtime ] && { [ -e /etc/dshancontrol/platform-service.json ] || [ -L /etc/dshancontrol/platform-service.json ]; }; then
+    echo 'DshanControl native runtime unavailable; state retained' >&2
+    exit 1
+fi
 CONFIG_DIR=/mnt/UDISK/dshancontrol/system
 CONF=$CONFIG_DIR/wifi.conf
 RUN=/var/run/dshancontrol-wifi

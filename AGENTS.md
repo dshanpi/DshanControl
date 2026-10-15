@@ -1,5 +1,21 @@
 # DshanControl engineering gates
 
+## Native owned-stop source (2026-10-15)
+
+The next native source step adds pidfd-bound TERM/exit waiting and shared process
+identity checks. Host204 and one clean ARM44-case isolated suite pass; the live
+factory application was only probed read-only, never stopped by the new command.
+See docs/S4-NATIVE-OWNED-STOP-20261015.md and its receipt. Keep PID records on
+timeout/change; no force-kill, bare-PID fallback or relaunch. Selected vendor ARM
+kernel pidfd support was checked from source and on-device; cast pid_t to32-bit
+for its variadic syscall ABI. Native system configs with missing/nonexecutable
+runtime now refuse rather than enter legacy paths (host-tested script guards).
+This step remains the same-UID/current-path transition: full native start,
+independent launch receipts, nonroot roles, complete shared lifecycle leases and
+supervision migration remain required before qualification. Live factory9594 and
+imagef71 remain immutable; physical new-init/privilege/realQt OTA/power acceptance
+is not implied by isolated tests. Continue the active goal, do not stop here.
+
 ## Native functional health and boot storage source (2026-10-15)
 
 Native health source e28a78c adds read-only identity, owned process/argv checks,

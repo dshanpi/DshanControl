@@ -1,0 +1,84 @@
+{
+  "scope": "pidfd-bound owned application stop and shared process health verification",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "core": 5,
+    "repository": 199,
+    "total": 204,
+    "passed": true
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "59629dc887c2afa7801e3fc4408cb6253b391f52fc26dd6cebb6ad79a782a182",
+    "isa": "ELF32 ARM softfp",
+    "compiler": "S4 GCC Linaro5.3.1/Qt5.11.3 existing sysroot",
+    "network_disabled": true,
+    "private_config_hidden": true
+  },
+  "board_evidence": {
+    "sha256": "4a5010737eec3d7b2066335c571558ec81bf31529b72b539e24d1165ae1bd2f5",
+    "bytes": 3916,
+    "network": "mutual TLS; certificate and hostname verified",
+    "tests": {
+      "run": 44,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native owned-stop/boot/health/update fixtures; live application unchanged"
+    },
+    "large_copy": {
+      "test": "test_interrupted_factory_staging_is_preserved_while_new_publish_completes",
+      "payload_bytes": 67108864,
+      "initialization_seconds": 26.165728678999585,
+      "deadline_seconds": 180,
+      "interrupted_staging_preserved": true
+    },
+    "native_cli_observations": 45,
+    "live_checks": {
+      "live-probe": {
+        "returncode": 0,
+        "stdout": "{\"application_commit\":\"9594e8b105915bd450af69d48d4631e46031ca93\",\"databases\":2,\"hmi_functional_heartbeat\":false,\"ok\":true,\"processes\":{\"hmi\":1437,\"supervisor\":1440,\"web\":1434}}\n",
+        "stderr": ""
+      },
+      "live-storage": {
+        "returncode": 0,
+        "stdout": "{\"device\":\"/dev/mmcblk0p9\",\"filesystem\":\"ext4\",\"mounted\":true,\"ok\":true}\n",
+        "stderr": ""
+      }
+    }
+  },
+  "observed_kernel": {
+    "pidfd_open": true,
+    "pidfd_signal_zero": true,
+    "selected_arm_syscalls": {
+      "pidfd_send_signal": 424,
+      "pidfd_open": 434
+    },
+    "source": "selected vendor Linux5.4 arch/arm/tools/syscall.tbl, kernel/pid.c and kernel/signal.c"
+  },
+  "behavior": [
+    "Private PID directory/file ownership and mode, regular single-link PID files, process UID/executable/full argv required",
+    "Capture kernel pidfd before inspecting process identity; no kill(PID) fallback",
+    "Preflight all tracked live roles before signalling first; fixed whitelist of roles",
+    "One TERM per owned process, ten-second bounded wait, no force kill or relaunch",
+    "Recheck PID record inode/content before clearing; replacement record preserved in tested case",
+    "Missing PID records do not authorize signals; cleared_pid_files is a record count",
+    "Stop does not require installed application metadata or initialize update state"
+  ],
+  "remaining": [
+    "Complete native start/launch receipts and shared lifecycle lock across starts and stops",
+    "Nonroot launch credentials/capabilities, per-role UID policy and device/data permissions",
+    "Native supervision replacement and real Qt application update acceptance",
+    "Current board factory/image/startup scripts unchanged; no actual current application-stop invoked",
+    "Formal identity/signing/maintenance and measured electrical power-loss qualification remain pending"
+  ],
+  "native_mode_guard": {
+    "tests_passed": 3,
+    "system_entries_covered": 5,
+    "physical_install": false,
+    "behavior": "native configuration plus unavailable runtime refuses before legacy actions"
+  }
+}

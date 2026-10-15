@@ -41,6 +41,7 @@ class NativeApplicationHealthTests(unittest.TestCase):
                 db.commit()
         self.pids = self.root / 'run'
         self.pids.mkdir()
+        self.pids.chmod(0o700)
         source = self.root / 'process.c'
         source.write_text('#include <unistd.h>\nint main(void){for(;;)pause();}\n')
         self.exe = self.root / 'application'

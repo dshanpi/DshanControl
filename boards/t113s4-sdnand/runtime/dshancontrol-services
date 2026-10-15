@@ -1,6 +1,11 @@
 #!/bin/sh
 # System-owned lifecycle hook; application bundles cannot replace it.
 set -eu
+# A native system must retain its runtime boundary even if the executable fails.
+if [ ! -x /usr/bin/dshancontrol-runtime ] && { [ -e /etc/dshancontrol/platform-service.json ] || [ -L /etc/dshancontrol/platform-service.json ]; }; then
+    echo 'DshanControl native runtime unavailable; state retained' >&2
+    exit 1
+fi
 umask 077
 ROOT=/mnt/UDISK/dshancontrol
 CURRENT=$ROOT/apps/current
@@ -79,12 +84,19 @@ start)
         start-stop-daemon -S -b -m -p "$RUN/supervisor.pid" -x /usr/bin/python3 -- "$CURRENT/lib/supervisor/supervisor.py"
     ;;
 stop)
+    if [ -x /usr/bin/dshancontrol-runtime ]; then
+        exec /usr/bin/dshancontrol-runtime application-stop
+    fi
     stop_one supervisor
     stop_one hmi
     stop_one web
     ;;
 restart-web)
-    stop_one web
+    if [ -x /usr/bin/dshancontrol-runtime ]; then
+        /usr/bin/dshancontrol-runtime application-stop web
+    else
+        stop_one web
+    fi
     start-stop-daemon -S -b -m -p "$RUN/web.pid" -x /usr/bin/python3 -- "$CURRENT/lib/web/app.py"
     ;;
 health)

@@ -1,6 +1,11 @@
 #!/bin/sh
 # System-owned persistent storage; no boot-time formatting or data conversion.
 set -eu
+# A native system must retain its runtime boundary even if the executable fails.
+if [ ! -x /usr/bin/dshancontrol-runtime ] && { [ -e /etc/dshancontrol/platform-service.json ] || [ -L /etc/dshancontrol/platform-service.json ]; }; then
+    echo 'DshanControl native runtime unavailable; state retained' >&2
+    exit 1
+fi
 case "${1:-}" in
 start)
     if [ -x /usr/bin/dshancontrol-runtime ]; then
