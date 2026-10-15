@@ -349,9 +349,12 @@ QJsonValue RuntimeService::dispatch(const QJsonObject &request) {
   }
   if (method == "update.identity") {
     require(params.isEmpty(), "Identity has no request fields");
-    NativeUpdater updater(readJson(updaterConfig));
+    const auto settings = readJson(updaterConfig);
+    NativeUpdater updater(settings);
+    const QFileInfo key(settings["public_key"].toString());
     return QJsonObject{{"system", updater.systemContract()},
-                       {"installed", updater.installed()}};
+                       {"installed", updater.installed()},
+                       {"check_configured", key.isFile() && key.isReadable()}};
   }
   throw Failure("method-denied", "authorization",
                 "Platform method not available");

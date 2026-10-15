@@ -1,0 +1,105 @@
+{
+  "scope": "Public HMI update discovery and independently authorized nonroot native RPC; no production deployment",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 224,
+    "passed": 221,
+    "skipped_root_only": 3,
+    "full_gate_passed": true,
+    "qt_passed": 37,
+    "additional_root_peer_passed": 1,
+    "initial_root_peer_harness_error": "fixture class setup was not called; fixed and passed; original log retained locally"
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "be1f0190d2219401ec8b2e83c33a2af69e93ec07826b609dad85f0c9ae7427ba",
+    "hmi_sha256": "f6048c737c1387448ae5827ac827563d64bb69c798569958a1e195aa89f09ea9",
+    "compiled_source_files_bound": 49,
+    "source_inputs_sha256": "53b97ea36c2c6c47112585189d1b3d84456c4820f27e3e281bdf1b1caf4f5e81",
+    "compiled_sources_match_git_index": true,
+    "network_disabled": true,
+    "private_configuration_hidden": true,
+    "hmi_executed_on_live_display": false
+  },
+  "arm_initial": {
+    "sha256": "936504fa04244c6c5a0cd3bbb43d5bffdd3449b3defb10de5f7e3c7f30fc7023",
+    "bytes": 3186,
+    "result": {
+      "run": 17,
+      "failures": 15,
+      "errors": 0,
+      "skipped": 0,
+      "passed": false,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native public identity/peer and system-service fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "arm_followup": {
+    "sha256": "745c6b0c1768f0a88b9bc4a87718ef7e7d5e5da79719e52838a6a9c4d800b1ea",
+    "bytes": 2460,
+    "result": {
+      "run": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native public identity/peer and system-service fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "initial_failure_cause": "15 service cases could not open overlong Unix socket paths under nested artifact TMPDIR; private /tmp fixture directories fix the test harness",
+  "same_runtime_binary_for_both_runs": true,
+  "nonroot_peer": {
+    "private_config_read_denied": true,
+    "observations": [
+      {
+        "method": "update.identity",
+        "uid": 60001,
+        "returncode": 0
+      },
+      {
+        "method": "update.status",
+        "uid": 60001,
+        "returncode": 0
+      },
+      {
+        "method": "service.ready",
+        "uid": 60001,
+        "returncode": 1
+      },
+      {
+        "method": "service.shutdown",
+        "uid": 60001,
+        "returncode": 1
+      },
+      {
+        "method": "update.identity",
+        "uid": 60002,
+        "returncode": 1
+      }
+    ],
+    "daemon_alive": true,
+    "application_hooks_called": false
+  },
+  "live_storage_readonly_probe_passed": true,
+  "live_application_readonly_probe_passed": true,
+  "production_changes": {
+    "accounts": false,
+    "device_modes": false,
+    "startup_policy": false,
+    "application_stopped": false,
+    "trust_root": false
+  },
+  "remaining": [
+    "native supervision",
+    "dedicated role accounts and data/device permissions",
+    "startup integration",
+    "real Qt signed Draft update/reboot/rollback",
+    "actual PCB identity and measured complete power removal"
+  ]
+}

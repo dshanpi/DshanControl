@@ -9,8 +9,10 @@ import socket
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
+from unittest import mock
 import test_application_update_cli as fixtures
 
 
@@ -19,7 +21,11 @@ class NativeServiceTests(fixtures.UpdateCliTests):
     __unittest_skip__ = False
 
     def setUp(self):
-        super().setUp()
+        # Linux sockaddr_un paths are bounded. A deeply nested artifact TMPDIR
+        # must not make unrelated service cases fail before their assertions.
+        # TemporaryDirectory still creates a private directory under /tmp.
+        with mock.patch.object(tempfile, 'tempdir', '/tmp'):
+            super().setUp()
         self.binary = Path(os.environ.get('DSHANCONTROL_NATIVE_UPDATER',
             str(fixtures.fixtures.ROOT / 'dist/native-runtime/dshancontrol-runtime')))
         self.tasks = self.f.root / 'tasks'; self.tasks.mkdir()
@@ -86,6 +92,19 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         for params in ({}, {'pid': True}, {'pid': 0}, {'pid': 1.5},
                        {'pid': self.service.pid, 'force': True}):
             self.assertFalse(self.request('service.ready', params)['ok'])
+
+    def test_public_identity_reports_key_availability_without_private_config_paths(self):
+        self.start()
+        response = self.request('update.identity')
+        self.assertTrue(response['ok'], response)
+        value = response['result']
+        self.assertIs(value['check_configured'], True)
+        self.assertEqual({'system', 'installed', 'check_configured'}, set(value))
+        settings = json.loads(self.config.read_text())
+        self.assertNotIn(settings['public_key'], json.dumps(value))
+        Path(settings['public_key']).unlink()
+        self.assertIs(self.request('update.identity')['result']['check_configured'], False)
+        self.assertFalse(self.request('update.identity', {'path': str(self.config)})['ok'])
 
     def test_system_init_starts_once_waits_for_rpc_and_refuses_busy_stop(self):
         # Relocate only system-owned paths into this synthetic system fixture.

@@ -230,9 +230,11 @@ class HmiUiTest : public QObject
             QFile file(temp.path() + "/" + name);
             return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
         };
-        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\nprintf '%s\\n' \"$@\" > request\ncat result\n"));
+        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\nprintf '%s\\n' \"$@\" > request\nif [ \"$2\" = update.identity ]; then cat identity; else cat result; fi\n"));
         QVERIFY(QFile::setPermissions(temp.path() + "/updater", QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
         QVERIFY(write("updater.json", "{\"task_service\":true}"));
+        QVERIFY(write("identity", "{\"system\":{\"board_id\":\"fixture-board\",\"contract_id\":\"fixture-contract\"},\"installed\":{\"version\":\"0.1.0-dev\"},\"check_configured\":true}"));
+        QVERIFY(write("result", "null"));
         const bool hadConfig = qEnvironmentVariableIsSet("DSHANCONTROL_UPDATER_CONFIG");
         const bool hadExecutable = qEnvironmentVariableIsSet("DSHANCONTROL_UPDATER_EXECUTABLE");
         const QByteArray previousConfig = qgetenv("DSHANCONTROL_UPDATER_CONFIG");
@@ -245,6 +247,8 @@ class HmiUiTest : public QObject
         if (hadExecutable) qputenv("DSHANCONTROL_UPDATER_EXECUTABLE", previousExecutable);
         else qunsetenv("DSHANCONTROL_UPDATER_EXECUTABLE");
         panel.show();
+        QTRY_VERIFY(panel.nativeIdentityReady);
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
         const QString checked(32, 'a'), downloaded(32, 'b'), failed(32, 'c');
         const QJsonObject candidate{{"version", "1.2.3"}, {"package_sha256", QString(64, 'd')}};
         auto response = [&](const QString &id, const QString &operation, const QString &state) {
@@ -292,6 +296,64 @@ class HmiUiTest : public QObject
         QVERIFY(!panel.taskPoll.isActive()); // Failure does not start another request.
     }
 
+    void nativeIdentityUsesPublicRpcAndNeverNeedsPrivateConfiguration()
+    {
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        auto write = [&](const QString &name, const QByteArray &bytes) {
+            QFile file(temp.path() + "/" + name);
+            return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
+        };
+        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\nprintf '%s\\n' \"$2\" >> requests\nif [ \"$2\" = update.identity ]; then cat identity; else cat result; fi\n"));
+        QVERIFY(QFile::setPermissions(temp.path() + "/updater", QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QJsonObject system{{"board_id", "public-board"}, {"contract_id", "public-contract"}};
+        QJsonObject identity{{"system", system}, {"installed", QJsonObject{{"version", "1.2.3"}}},
+                             {"check_configured", false}};
+        QVERIFY(write("identity", QJsonDocument(identity).toJson()));
+        QVERIFY(write("result", "null"));
+        const QList<QByteArray> names{"DSHANCONTROL_NATIVE_PLATFORM_SOCKET", "DSHANCONTROL_UPDATER_EXECUTABLE", "DSHANCONTROL_UPDATER_CONFIG"};
+        QList<QByteArray> values;
+        QList<bool> present;
+        for (const auto &name : names) { values << qgetenv(name); present << qEnvironmentVariableIsSet(name); }
+        qputenv(names[0], "/public-fixture/platform.sock");
+        qputenv(names[1], (temp.path() + "/updater").toLocal8Bit());
+        qputenv(names[2], (temp.path() + "/missing-private-configuration").toLocal8Bit());
+        UpdatePanel panel;
+        for (int i = 0; i < names.size(); ++i) {
+            if (present[i]) qputenv(names[i], values[i]); else qunsetenv(names[i]);
+        }
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
+        QCOMPARE(panel.version->text(), QString("1.2.3"));
+        QVERIFY(panel.nativeMode && !panel.nativeIdentityReady);
+        QCOMPARE(panel.process.processEnvironment().value("DSHANCONTROL_PLATFORM_SOCKET"), QString("/public-fixture/platform.sock"));
+        QVERIFY(!panel.download->isEnabled() && !panel.install->isEnabled());
+        QVERIFY(panel.status->text().contains("尚未就绪"));
+        identity["check_configured"] = "true"; // A string is not a capability.
+        QVERIFY(write("identity", QJsonDocument(identity).toJson()));
+        panel.checkUpdates();
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
+        QVERIFY(!panel.nativeIdentityReady);
+        identity["check_configured"] = true;
+        QVERIFY(write("identity", QJsonDocument(identity).toJson()));
+        panel.checkUpdates();
+        QTRY_VERIFY(panel.nativeIdentityReady);
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
+        QVERIFY(panel.check->isEnabled());
+        QVERIFY(!QFileInfo::exists(panel.configPath));
+        const QJsonObject completed{{"task_id", QString(32, '9')}, {"operation", "install"},
+                                    {"status", "success"}, {"stage", "completed"}};
+        QVERIFY(write("result", QJsonDocument(completed).toJson()));
+        panel.requestNative("update.status", {});
+        QTRY_VERIFY(panel.nativeMethod == "update.identity" && panel.process.state() == QProcess::NotRunning);
+        QTest::qWait(200);
+        QFile requests(temp.path() + "/requests");
+        QVERIFY(requests.open(QIODevice::ReadOnly));
+        const auto methods = requests.readAll().split('\n');
+        QCOMPARE(methods.count("update.identity"), 4);
+        QCOMPARE(methods.count("update.status"), 2);
+        QCOMPARE(methods.count("update.start"), 0);
+    }
+
     void nativeEmptyAndFailedCheckClearPendingLabels()
     {
         QTemporaryDir temp;
@@ -304,7 +366,8 @@ class HmiUiTest : public QObject
         QVERIFY(write("current/installed.json", "{\"version\":\"0.1.0-dev\"}"));
         QVERIFY(write("system.json", "{\"board_id\":\"fixture-board\",\"contract_id\":\"fixture-contract\"}"));
         QVERIFY(write("public.pem", "fixture-only public key placeholder"));
-        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\ncat result\n"));
+        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\nif [ \"$2\" = update.identity ]; then cat identity; else cat result; fi\n"));
+        QVERIFY(write("identity", "{\"system\":{\"board_id\":\"fixture-board\",\"contract_id\":\"fixture-contract\"},\"installed\":{\"version\":\"0.1.0-dev\"},\"check_configured\":true}"));
         QVERIFY(QFile::setPermissions(temp.path() + "/updater", QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
         const QJsonObject config{{"task_service", true}, {"application_root", temp.path()},
             {"system_contract", temp.path() + "/system.json"}, {"public_key", temp.path() + "/public.pem"}};
@@ -314,6 +377,9 @@ class HmiUiTest : public QObject
         QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
         panel.configPath = temp.path() + "/updater.json";
         panel.updaterExecutable = temp.path() + "/updater";
+        panel.reloadIdentity();
+        QTRY_VERIFY(panel.nativeIdentityReady);
+        QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
         const QString id(32, 'e');
         QJsonObject task{{"task_id", id}, {"operation", "check"}, {"status", "running"},
                          {"stage", "checking"}, {"candidate", QJsonValue::Null}};

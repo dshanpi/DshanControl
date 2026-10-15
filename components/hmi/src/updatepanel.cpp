@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QProcessEnvironment>
 #include <QResizeEvent>
 #include <QRegularExpression>
 #include <QTimer>
@@ -42,7 +43,14 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
 {
     // Selected by the system launcher; RPC still enforces its fixed system scope.
     configPath = qEnvironmentVariable("DSHANCONTROL_UPDATER_CONFIG", configPath);
-    updaterExecutable = qEnvironmentVariable("DSHANCONTROL_UPDATER_EXECUTABLE", updaterExecutable);
+    nativeMode = !qEnvironmentVariable("DSHANCONTROL_NATIVE_PLATFORM_SOCKET").isEmpty();
+    updaterExecutable = qEnvironmentVariable("DSHANCONTROL_UPDATER_EXECUTABLE",
+        nativeMode ? "/usr/bin/dshancontrol-runtime" : updaterExecutable);
+    if (nativeMode) {
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert("DSHANCONTROL_PLATFORM_SOCKET", qEnvironmentVariable("DSHANCONTROL_NATIVE_PLATFORM_SOCKET"));
+        process.setProcessEnvironment(environment);
+    }
     auto *layout = new PageLayout(this);
     layout->setContentsMargins(12, 10, 12, 8);
     layout->setSpacing(6);
@@ -209,8 +217,6 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
             requestNative("update.status", {{"task_id", taskId}});
     });
     reloadIdentity();
-    if (nativeMode && check->isEnabled())
-        requestNative("update.status", {});
 }
 
 UpdatePanel::~UpdatePanel()
@@ -221,10 +227,20 @@ UpdatePanel::~UpdatePanel()
     }
 }
 
-void UpdatePanel::reloadIdentity()
+void UpdatePanel::reloadIdentity(bool restoreTask)
 {
-    const QJsonObject config = readObject(configPath);
-    nativeMode = config.value("task_service").isBool() && config.value("task_service").toBool();
+    // Native launchers announce the public service. Its clients never need to
+    // open the system owner's updater configuration, trust root or data paths.
+    const QJsonObject config = nativeMode ? QJsonObject() : readObject(configPath);
+    nativeMode = nativeMode || (config.value("task_service").isBool() && config.value("task_service").toBool());
+    if (nativeMode) {
+        restoreTaskAfterIdentity = restoreTask;
+        nativeIdentityReady = false;
+        check->setEnabled(false);
+        status->setText("正在读取系统更新服务的版本记录…");
+        requestNative("update.identity", {});
+        return;
+    }
     const QString root = config.value("application_root").toString();
     const QJsonObject installed =
         root.isEmpty() ? QJsonObject() : readObject(root + "/current/installed.json");
@@ -249,7 +265,12 @@ void UpdatePanel::checkUpdates()
 {
     if (process.state() != QProcess::NotRunning)
         return;
-    reloadIdentity();
+    if (nativeMode && !nativeIdentityReady) {
+        reloadIdentity();
+        return;
+    }
+    if (!nativeMode)
+        reloadIdentity();
     if (!check->isEnabled()) {
         availableVersion->setText("检查未完成");
         releaseSummary->setText("系统更新配置不可用；未下载或安装应用包。");
@@ -311,6 +332,8 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
     const QByteArray output = process.readAllStandardOutput().trimmed();
     const QByteArray errorOutput = process.readAllStandardError().trimmed();
     if (exitStatus != QProcess::NormalExit || code != 0) {
+        if (nativeMethod == "update.identity")
+            nativeIdentityReady = false;
         taskPoll.stop();
         check->setEnabled(true);
         download->setEnabled(false);
@@ -320,6 +343,31 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         status->setText(error.isEmpty() ? "系统更新服务未完成请求，请检查服务状态。" :
             QString("阶段：%1 · 错误码：%2\n%3").arg(error["stage"].toString(),
             error["code"].toString(), error["message"].toString()));
+        return;
+    }
+    if (nativeMethod == "update.identity") {
+        const auto identity = QJsonDocument::fromJson(output).object();
+        const auto installed = identity["installed"].toObject();
+        const auto system = identity["system"].toObject();
+        const auto currentVersion = installed["version"].toString().trimmed();
+        const auto boardId = system["board_id"].toString().trimmed();
+        const auto contractId = system["contract_id"].toString().trimmed();
+        version->setText(currentVersion.isEmpty() ? "未提供应用版本记录" : currentVersion);
+        board->setText(boardId.isEmpty() ? "未提供硬件标识" : boardId);
+        contract->setText(contractId.isEmpty() ? "未提供系统接口记录" : contractId);
+        nativeIdentityReady = !currentVersion.isEmpty() && !boardId.isEmpty() && !contractId.isEmpty() &&
+            identity["check_configured"].isBool() && identity["check_configured"].toBool();
+        check->setEnabled(true); // A later click may refresh unavailable identity.
+        download->setEnabled(false);
+        install->setEnabled(false);
+        if (!nativeIdentityReady) {
+            resetPreflight("未检查");
+            status->setText("应用更新尚未就绪：系统版本记录或签名公钥未配置。");
+            return;
+        }
+        status->setText("可以检查兼容应用更新，尚未开始检查。");
+        if (restoreTaskAfterIdentity)
+            requestNative("update.status", {});
         return;
     }
     if (output == "null") {
@@ -385,7 +433,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         return;
     }
     if (operation == "install") {
-        reloadIdentity();
+        reloadIdentity(false);
         status->setText("系统更新任务成功，应用已通过健康检查。");
         return;
     }

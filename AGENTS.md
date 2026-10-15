@@ -1,5 +1,20 @@
 # DshanControl engineering gates
 
+## Public native update identity source (2026-10-15)
+
+Native HMI discovery now uses public update.identity RPC and typed key-configuration
+availability; it does not open private updater config or trust files. Host224
+(3 root-only skips), Qt37 and an additional real-root/nonroot-peer case pass.
+Actual ARM17 initially had15 service-fixture failures due to overlong Unix socket
+paths; same binary passed all17 after using private /tmp fixture directories.
+Preserve both receipts in docs/validation/2026-10-15-public-update-identity.json.
+The real nonroot peer passed in both runs: reads identity/status, cannot read
+private config or manage daemon lifecycle; another UID is denied. New runtime
+and HMI cross-compile, but the new HMI has not run on the live display. Factory
+application, accounts, device permissions, startup and trust remain unchanged.
+Continue native supervision and role/data/device policy before startup wiring,
+then real Qt signed update and physical acceptance. Whole goal remains active.
+
 ## Native launch and primary records source (2026-10-15)
 
 Opt-in C++ application-start now forks fixed native roles, records private

@@ -19,7 +19,7 @@ class UpdatePanel : public QWidget
 
   private:
     friend class HmiUiTest;
-    void reloadIdentity();
+    void reloadIdentity(bool restoreTask = true);
     void checkUpdates();
     void requestNative(const QString &method, const QJsonObject &params);
     void nativeResult(int code, QProcess::ExitStatus exitStatus);
@@ -40,6 +40,8 @@ class UpdatePanel : public QWidget
     QPushButton *download;
     QPushButton *install;
     bool nativeMode = false;
+    bool nativeIdentityReady = false;
+    bool restoreTaskAfterIdentity = true;
     QString nativeMethod, taskId, checkTaskId, downloadTaskId;
     QJsonObject selectedRelease;
     QTimer taskPoll;
