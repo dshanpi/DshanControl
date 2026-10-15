@@ -1,5 +1,15 @@
 # DshanControl
 
+## T113s4 SD NAND 开发交付
+
+[压缩镜像与 SDK 差异草稿附件](https://github.com/dshanpi/DshanControl/releases/tag/untagged-ec6ef64420bc69140037)
+（需有仓库权限的 GitHub 账号登录）；另见
+[版本配对与使用说明](docs/S4-SYSTEM-DELIVERY-20261014.md) 和
+[18 项远端附件回下载校验记录](docs/validation/2026-10-14-system-delivery.json)。
+目标是 Tina 厂商系统、Buildroot、RGB50/GT911、AIC8800D80。
+这是包含空 ext4 UDISK 的工厂整机镜像，烧录会覆盖现有应用与用户数据，须先备份。
+脱敏副本未重新实板烧录，不包含板上后续第 6 版 C++ 试验层；正式 OTA 尚未验收。
+
 ## T153MX 历史实板桌面
 
 以下界面均由运行 Linux `#69` 的 T153MX 通过 `fbgrab` 从真实 framebuffer 获取，

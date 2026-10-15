@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-10-14",
   "release_kind": "system",
-  "stage": "prepared_for_draft_upload",
+  "stage": "draft_upload_and_remote_verification_completed",
   "automatic_updates_qualified": false,
   "board": "t113_s4/100ask",
   "storage": "SD NAND",
@@ -26,25 +26,223 @@
   "host_tests": 153,
   "hmi_tests": 35,
   "git_diff_check": "passed",
-  "remote_assets_redownloaded_and_verified": false,
-  "assets_prepared": {
-    "DshanControl-system-t113s4-sdnand-rgb50-development-sanitized-20261014.img.gz": {
-      "size": 174942180,
-      "sha256": "0cd0e080aa8457edf7425b2fe9ca403423efa76a305af5d0e79e2877bbe5dabf"
-    },
-    "DshanControl-t113s4-factory-source-20261014.tar.gz": {
-      "size": 6320908,
-      "sha256": "0baf92b53fa8494fbc848063fc29036d2f09a2621496fc2064e8bf1fc16c663b"
-    },
-    "DshanControl-t113s4-sdnand-sdk-delta-20261014.tar.gz": {
-      "size": 1211253,
-      "sha256": "fb69abe44c8335c33041030c12e5857f42f80401df2b0e4cb6f3a0add76bc123"
-    }
-  },
+  "remote_assets_redownloaded_and_verified": true,
   "limits": [
     "draft only",
     "factory image is not the current sequence-6 C++ pilot",
     "factory UDISK is empty and overwritten by full flashing",
     "formal production contract and complete physical OTA acceptance pending"
-  ]
+  ],
+  "release_id": 413378861,
+  "release_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-ec6ef64420bc69140037",
+  "tag": "system-v0.1.0-dev.20261014--t113s4-sdnand",
+  "release_source_commit": "7f2b9d507deff020cf6c742d9cece4b7a59972cb",
+  "draft": true,
+  "verified_at_utc": "2026-10-15T03:22:54.057446+00:00",
+  "verified_asset_count": 18,
+  "assets": [
+    {
+      "id": 642486450,
+      "name": "DELIVERY-NOTES.txt",
+      "size": 3844,
+      "sha256": "b44967fe1e1973cf31750c0876e62526dec842c2dd084fb8cbff1adac25365ac",
+      "redownload_verified": true
+    },
+    {
+      "id": 642497968,
+      "name": "DshanControl-system-t113s4-sdnand-rgb50-development-sanitized-20261014.img.gz",
+      "size": 174942180,
+      "sha256": "0cd0e080aa8457edf7425b2fe9ca403423efa76a305af5d0e79e2877bbe5dabf",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503384,
+      "name": "DshanControl-t113s4-factory-source-20261014.tar.gz",
+      "size": 6320908,
+      "sha256": "0baf92b53fa8494fbc848063fc29036d2f09a2621496fc2064e8bf1fc16c663b",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503495,
+      "name": "DshanControl-t113s4-sdnand-sdk-delta-20261014.tar.gz",
+      "size": 1211253,
+      "sha256": "fb69abe44c8335c33041030c12e5857f42f80401df2b0e4cb6f3a0add76bc123",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503571,
+      "name": "SHA256SUMS",
+      "size": 1680,
+      "sha256": "b33fca89afc6c66a1c429e564d95d509fa6eaa4b7e127c29cf15d1553172b081",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503638,
+      "name": "board-native-ota-continuation.json",
+      "size": 17086,
+      "sha256": "d5437622480a3d62eef92c0f5e590366bace2901c4322a6d20b2b0563fb5bfe2",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503691,
+      "name": "board-native-ota.json",
+      "size": 12735,
+      "sha256": "aa6de6f4f06928c178ca32fa6fb22f9bfb1783a0ada33541373bcbf54a500e1f",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503839,
+      "name": "factory-build-info.json",
+      "size": 15975,
+      "sha256": "460ba2ad08a2922bc4f1fa80b9568b4c39d1224a4090da85fc4dc0685044d6c4",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503893,
+      "name": "factory-source-consistency.json",
+      "size": 666,
+      "sha256": "609d17c885daa3c405b44654d07d10221eab63c1df86986fba1939888f1c3f38",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503933,
+      "name": "factory-system-contract.json",
+      "size": 557,
+      "sha256": "b72e568e7e5f651f9c9751d68e04c975d6ebd5ce0e865449cedd24a2a7db363f",
+      "redownload_verified": true
+    },
+    {
+      "id": 642503986,
+      "name": "normalized-patch-rehearsal.json",
+      "size": 627,
+      "sha256": "96264c69a41a326f94112b3d97b4e36ccf8bdc3304053951148611fb52e43859",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504082,
+      "name": "release-lock.json",
+      "size": 5220,
+      "sha256": "77310e8b738684cf7072b429003d013ff442302cbb8957a4d415e7e175e7093e",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504144,
+      "name": "sanitization-report.json",
+      "size": 718,
+      "sha256": "cc74d4149d2ac9339eda3bc6ac0d37446a72c6d0925b4d677be4724ebda78d63",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504203,
+      "name": "sanitized-boot0-gate.json",
+      "size": 291,
+      "sha256": "56b8f5ad7b32923cd630b91ee99b6a07b161fee010fbb25ddec1d5d6ebd83d53",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504246,
+      "name": "sanitized-package-inspection.json",
+      "size": 14615,
+      "sha256": "3413188a04da7d8a75d096e0046e7b2e7d44bfb45af5deff6157108801215b74",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504293,
+      "name": "sanitized-privacy-check.json",
+      "size": 1341,
+      "sha256": "f2b018dd61bf5bbe43e05930467aa69e8f6a273d5897817429568cca3901ece1",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504332,
+      "name": "sdk-components.lock.json",
+      "size": 21710,
+      "sha256": "dd2aeec9dff0a09764deac651c0fb4ebf2aa7427180c079c71b685d492e1ea23",
+      "redownload_verified": true
+    },
+    {
+      "id": 642504371,
+      "name": "source-privacy-check.json",
+      "size": 189,
+      "sha256": "38a62d3168e134cd6009b9ba5d39e89683e2c30adde7a7549d1862ee7b540755",
+      "redownload_verified": true
+    }
+  ],
+  "archive_file_checks": [
+    {
+      "name": "DshanControl-t113s4-factory-source-20261014.tar.gz",
+      "regular_files": 114,
+      "every_file_sha256_verified": true,
+      "unsafe_members": false
+    },
+    {
+      "name": "DshanControl-t113s4-sdnand-sdk-delta-20261014.tar.gz",
+      "regular_files": 308,
+      "every_file_sha256_verified": true,
+      "unsafe_members": false
+    }
+  ],
+  "sha256sums_verified": true,
+  "release_lock_assets_verified": true,
+  "compressed_image_crc_and_raw_hash_verified": true,
+  "remote_raw_image_sha256": "47ad0042898e5f27cd175531dd1ef1b296085b8437671f8d411060644df21d65",
+  "assets_inventory_rechecked_after_upload": true,
+  "source_commit_ci": [
+    {
+      "id": 38674715536,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/dshanpi/DshanControl/actions/runs/38674715536",
+      "head_sha": "7f2b9d507deff020cf6c742d9cece4b7a59972cb"
+    },
+    {
+      "id": 38674594588,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/dshanpi/DshanControl/actions/runs/38674594588",
+      "head_sha": "7f2b9d507deff020cf6c742d9cece4b7a59972cb"
+    }
+  ],
+  "image_sanitization": {
+    "source_image_sha256": "ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc",
+    "sanitized_image_sha256": "47ad0042898e5f27cd175531dd1ef1b296085b8437671f8d411060644df21d65",
+    "sanitized_image_size": 1426075648,
+    "changed_payloads": [
+      "rootfs.fex",
+      "Vrootfs.fex"
+    ],
+    "removed": [
+      {
+        "path": "/etc/freerdp/keys/server.key",
+        "wiped_filesystem_blocks": [
+          57303
+        ]
+      },
+      {
+        "path": "/etc/freerdp/keys/server.crt",
+        "wiped_filesystem_blocks": [
+          57304
+        ]
+      }
+    ],
+    "boot0_optee_uboot_kernel_dtb_udisk_unchanged": true,
+    "rootfs_fsck_exit": 0,
+    "vendor_container_checks": "passed",
+    "fresh_physical_flash_of_sanitized_image": false
+  },
+  "privacy_checks": {
+    "final_source_files_scanned": 431,
+    "source_findings": 0,
+    "image_operational_private_keys_found": false,
+    "public_gnutls_self_test_vectors_verified": 5,
+    "source_image_with_rdp_private_key_uploaded": false
+  },
+  "remote_verification_transport": {
+    "parallel_ranged_image_download": true,
+    "each_range_checked_against_content_range": true,
+    "merged_image_whole_sha256_verified": true,
+    "github_credentials_forwarded_to_asset_redirect_hosts": false
+  }
 }
