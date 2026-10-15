@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 import importlib.util
 import json
 import os
@@ -156,6 +157,47 @@ class S4SystemTests(unittest.TestCase):
             source.write_text('changed')
             with self.assertRaises(ValueError):
                 build_s4.command(out, 4, 'application')
+
+    def test_incremental_rootfs_requires_real_installed_baseline_and_bounds_space(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            with self.assertRaisesRegex(ValueError, 'only to rootfs'):
+                build_s4.build_policy(out, 'application', True)
+            with self.assertRaisesRegex(ValueError, 'installed Qt'):
+                build_s4.build_policy(out, 'rootfs', True)
+            br = out / 'buildroot'
+            for relative in ['host/bin/qmake', '.config', 'target/usr/lib/libQt5Core.so.5.11.3',
+                             'target/lib/libc-2.23.so', 'build/qt5base-5.11.3/.stamp_target_installed']:
+                path = br / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('fixture baseline')
+            (br / 'host/bin/qmake').chmod(0o755)
+            image = br / 'images/rootfs.ext4'
+            image.parent.mkdir()
+            image.write_bytes(b'invalid image')
+            with self.assertRaisesRegex(ValueError, 'raw ext4'):
+                build_s4.build_policy(out, 'rootfs', True)
+            data = bytearray(4096)
+            struct.pack_into('<I', data, 1024 + 4, 4)
+            data[1024 + 56:1024 + 58] = b'\x53\xef'
+            image.write_bytes(data)
+            with patch.object(build_s4.shutil, 'disk_usage', return_value=SimpleNamespace(free=8 * 1024**3)):
+                policy = build_s4.build_policy(out, 'rootfs', True)
+                self.assertTrue(policy['reused_target_dependencies'])
+                self.assertEqual(4 * 1024**3, policy['minimum_free_bytes'])
+                self.assertEqual(inputs.sha_file(image), policy['baseline_rootfs_sha256'])
+                self.assertEqual(4, len(policy['reused_baseline_files']))
+                with self.assertRaisesRegex(ValueError, '16 GiB'):
+                    build_s4.build_policy(out, 'rootfs')
+            with patch.object(build_s4.shutil, 'disk_usage', return_value=SimpleNamespace(free=3 * 1024**3)):
+                with self.assertRaisesRegex(ValueError, '4 GiB'):
+                    build_s4.build_policy(out, 'rootfs', True)
+            image.unlink()
+            outside = out / 'outside.ext4'
+            outside.write_bytes(data)
+            image.symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, 'escapes'):
+                build_s4.build_policy(out, 'rootfs', True)
 
     def test_partition_units_and_commented_alternatives(self):
         layout = audit.partitions('[mbr]\nsize=16384\n[partition]\nname=rootfs\nsize=1G\n'

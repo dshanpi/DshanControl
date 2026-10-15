@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 from capture_sdk_inputs import capture, sha_file
+from audit_s4_system import ext4_image_bytes
 
 
 def command(prepared, jobs, target):
@@ -37,23 +38,67 @@ def command(prepared, jobs, target):
     return argv, env, sdk
 
 
+
+def build_policy(prepared, target, reuse_dependencies=False):
+    if reuse_dependencies and target != 'rootfs':
+        raise ValueError('--reuse-dependencies applies only to rootfs')
+    policy = {'reused_target_dependencies': reuse_dependencies,
+              'full_clean_sdk_rebuild': False}
+    if target != 'rootfs':
+        return policy
+    reserve = 16 * 1024**3
+    if reuse_dependencies:
+        br = prepared / 'buildroot'
+        qmake = br / 'host/bin/qmake'
+        config = br / '.config'
+        core = [x for x in (br / 'target/usr/lib').glob('libQt5Core.so.*')
+                if x.is_file() and not x.is_symlink()]
+        libc = list((br / 'target/lib').glob('libc-*.so'))
+        stamps = list((br / 'build').glob('qt5base-*/.stamp_target_installed'))
+        if (not qmake.is_file() or not os.access(str(qmake), os.X_OK)
+                or not config.is_file() or len(core) != 1 or len(libc) != 1 or not stamps):
+            raise ValueError('dependency reuse requires installed Qt/toolchain/libc baseline')
+        image = br / 'images/rootfs.ext4'
+        if br.resolve() not in image.resolve().parents:
+            raise ValueError('baseline rootfs escapes prepared output')
+        image_bytes = ext4_image_bytes(image)
+        # Existing dependencies avoid a full SDK compile; retain room for the
+        # new rootfs, its sanitized copy, vendor container and package objects.
+        reserve = max(4 * 1024**3, 6 * image_bytes + 1024**3)
+        policy.update(baseline_rootfs_bytes=image_bytes,
+                      baseline_rootfs_sha256=sha_file(image),
+                      reused_baseline_files={str(x.relative_to(br)): sha_file(x)
+                                             for x in [qmake, config] + core + libc},
+                      installed_qt_stamps=[str(x.relative_to(br)) for x in stamps])
+    policy['minimum_free_bytes'] = reserve
+    policy['free_bytes_at_preflight'] = shutil.disk_usage(prepared).free
+    if policy['free_bytes_at_preflight'] < reserve:
+        raise ValueError('rootfs build requires at least {} GiB free for selected mode'.format(
+            (reserve + 1024**3 - 1) // 1024**3))
+    return policy
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prepared', required=True, type=Path)
     parser.add_argument('--jobs', default=4, type=int)
+    parser.add_argument('--reuse-dependencies', action='store_true',
+                        help='incremental rootfs using a verified installed dependency baseline')
     parser.add_argument('target', choices=['configure', 'application', 'rootfs'])
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error('jobs must be positive')
     out = args.prepared.resolve()
     argv, env, sdk = command(out, args.jobs, args.target)
-    # Keep a conservative reserve before a full vendor build, which includes
-    # multimedia packages and image packing intermediates. No automatic cleanup.
-    if args.target == 'rootfs' and shutil.disk_usage(out).free < 16 * 1024**3:
-        parser.error('full rootfs build requires at least 16 GiB free; select a larger output volume')
+    # Full builds retain the existing 16 GiB reserve. Explicit incremental mode
+    # requires an existing dependency/image baseline and records exactly what it reuses.
+    try:
+        policy = build_policy(out, args.target, args.reuse_dependencies)
+    except ValueError as error:
+        parser.error(str(error))
     evidence = out / 'validation'
     evidence.mkdir(exist_ok=True)
-    record = {'command': argv, 'target': args.target, 'status':'running', 'board_validation':'not-run'}
+    record = {'command': argv, 'target': args.target, 'status':'running', 'board_validation':'not-run', 'build_policy': policy}
     report = evidence / (args.target + '-build.json')
     report.write_text(json.dumps(record, indent=2) + '\n')
     if args.target == 'rootfs':
