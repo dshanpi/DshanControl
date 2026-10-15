@@ -111,8 +111,10 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         bootprobe = root / 'bootprobe.py'
         bootprobe.write_text("from pathlib import Path\np=Path(__file__).with_suffix('.calls')\n"
                              "with p.open('a') as f: f.write('called\\n')\n")
-        for name in ('storage.py', 'initialize.py'):
-            source = source.replace('/usr/lib/dshancontrol-update/' + name, str(bootprobe))
+        for command in ('storage-check', 'initialize'):
+            invocation = '"$BIN" ' + command
+            self.assertIn(invocation, source)
+            source = source.replace(invocation, 'python3 ' + str(bootprobe))
         script.write_text(source)
         script.chmod(0o755)
 

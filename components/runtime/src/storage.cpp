@@ -403,38 +403,3 @@ void extractPackage(const QString &archive, const QString &directory,
     throw;
   }
 }
-
-void verifyPersistentStorage(const QString &root, const QJsonObject &contract) {
-  const auto storage = contract["storage"].toObject();
-  const auto mount = storage["mount_point"].toString();
-  const auto device = storage["device"].toString();
-  require(QDir::isAbsolutePath(mount) && mount != "/" &&
-              QDir::cleanPath(mount) == mount && QDir::isAbsolutePath(device) &&
-              storage["filesystem"] == "ext4" && root.startsWith(mount + '/'),
-          "Production storage contract missing or unsupported", "storage",
-          "storage-contract-missing");
-  QString actualMount, actualDevice, type, options;
-  for (const auto &line : readBytes("/proc/mounts", 1024 * 1024).split('\n')) {
-    auto fields = line.split(' ');
-    if (fields.size() < 4)
-      continue;
-    auto point = QString::fromUtf8(fields[1]);
-    if ((root == point || root.startsWith(point + '/')) &&
-        point.size() > actualMount.size()) {
-      actualMount = point;
-      actualDevice = QString::fromUtf8(fields[0]);
-      type = QString::fromUtf8(fields[2]);
-      options = QString::fromUtf8(fields[3]);
-    }
-  }
-  auto expectedDevice = QFileInfo(device).canonicalFilePath();
-  struct statvfs info;
-  require(actualMount == mount && type == "ext4" && !expectedDevice.isEmpty() &&
-              expectedDevice == QFileInfo(actualDevice).canonicalFilePath() &&
-              !options.split(',').contains("ro") &&
-              ::statvfs(QFile::encodeName(mount).constData(), &info) == 0 &&
-              !(info.f_flag & ST_RDONLY),
-          "Persistent storage is missing, wrong, or read-only; no formatting "
-          "performed",
-          "storage", "storage-mismatch");
-}

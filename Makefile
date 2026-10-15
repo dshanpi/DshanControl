@@ -8,7 +8,7 @@ test-bootstrap:
 	$(PYTHON) -m venv .test-venv
 	.test-venv/bin/pip install --disable-pip-version-check -r tests/requirements.txt
 
-test: build-native
+test: build-native build-native-fixtures
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
 package:
@@ -20,8 +20,13 @@ build-native:
 	mkdir -p dist/native-runtime
 	cd dist/native-runtime && $(HMI_QMAKE) ../../components/runtime/runtime.pro && $(MAKE)
 
-test-native: build-native
+test-native: build-native build-native-fixtures
 	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_native_*.py' -v
+
+.PHONY: build-native-fixtures
+build-native-fixtures:
+	mkdir -p dist/native-storage-tests
+	cd dist/native-storage-tests && $(HMI_QMAKE) ../../tests/native/storage-test.pro && $(MAKE)
 .PHONY: test-hmi
 test-hmi:
 	mkdir -p dist/ui-test

@@ -1,0 +1,87 @@
+{
+  "scope": "native S4 boot storage validation and durable factory initialization",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "core": 5,
+    "repository": 189,
+    "total": 194,
+    "passed": true
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "a39b5c72c7a8c13b2a7a1ae67c3319cc9474ef5b60942889195c91e4129be788",
+    "test_driver_sha256": "86252a536b7c082b143903153a68eaa39efe4ec3b0d7bfd1ef67fba3181e7186",
+    "isa": "ELF32 ARM softfp",
+    "compiler": "S4 GCC Linaro5.3.1/Qt5.11.3 existing target sysroot",
+    "network_disabled": true,
+    "private_config_hidden": true,
+    "invalid_initial_snapshot_preserved_and_excluded": true
+  },
+  "board_matrix": {
+    "distinct_cases": 35,
+    "initial_passed": 34,
+    "initial_errors": 1,
+    "corrected_case_passed": 1,
+    "original_failure": "64MiB synthetic factory copy exceeded 15-second test deadline",
+    "production_binary_changed_for_followup": false,
+    "initial_evidence": {
+      "sha256": "e08215c1bf3a951b1aeaf2baeeb2e18ff789ba10671bb1a02e092c644dde216e",
+      "bytes": 3872,
+      "network": "mutual TLS; certificate and hostname verified",
+      "tests": {
+        "run": 35,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0,
+        "passed": false,
+        "physical_power_loss_qualified": false,
+        "scope": "isolated native boot/health/update fixtures; live application unchanged"
+      }
+    },
+    "followup_evidence": {
+      "sha256": "fb3eb9f9b69a88a1ec0b4f7c4adc66f815a1ba848613809005271dbd653cd8fa",
+      "bytes": 1688,
+      "network": "mutual TLS; certificate and hostname verified",
+      "tests": {
+        "run": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": true,
+        "physical_power_loss_qualified": false,
+        "scope": "corrected deadline for one isolated 64MiB initialization case; previous 34 cases passed; live application unchanged"
+      },
+      "large_copy": {
+        "test": "test_interrupted_factory_staging_is_preserved_while_new_publish_completes",
+        "payload_bytes": 67108864,
+        "initialization_seconds": 31.626849598998888,
+        "deadline_seconds": 180,
+        "interrupted_staging_preserved": true
+      }
+    },
+    "native_update_cli_observations": 45
+  },
+  "live_board": {
+    "new_runtime_storage_check_exit": 0,
+    "new_runtime_application_health_exit": 0,
+    "existing_factory_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+    "image_and_factory_changed": false,
+    "new_startup_scripts_installed": false,
+    "physical_reboot_of_new_native_init": false
+  },
+  "semantics": [
+    "Exact boot-mapped SD partition, block device number, optional alias agreement and unique writable ext4 mount root required",
+    "S4 updater and health storage verification independently bind the actual boot map and SoC",
+    "No format, conversion, repair or mount retry",
+    "Factory files copied, hashed and fsynced before publishing; current link synced",
+    "Interrupted staging trees preserved; no deletion of unknown trees",
+    "Existing current application, user data and user configuration retained; defaults published only if absent"
+  ],
+  "remaining": [
+    "Owned lifecycle, privilege separation and remaining root Python supervision migration",
+    "Real Qt signed application install/reboot/rollback acceptance",
+    "Exact PCB revision, formal production trust/maintenance and measured whole-board power removal",
+    "New native boot/init system integration still needs next-image physical startup evidence"
+  ]
+}

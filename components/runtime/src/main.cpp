@@ -1,4 +1,5 @@
 #include "applicationhealth.h"
+#include "systemstorage.h"
 #include "service.h"
 #include "updater.h"
 #include <QCoreApplication>
@@ -36,6 +37,12 @@ int main(int argc, char **argv) {
     }
     auto configuration = readJson(config);
     auto command = args.value(0);
+    if ((command == "storage-check" || command == "storage-mount" || command == "initialize") && args.size() == 1) {
+      auto result=command=="initialize" ? initializeApplication(configuration) :
+          ensureSystemStorage(configuration,command=="storage-mount");
+      QTextStream(stdout) << QJsonDocument(result).toJson(QJsonDocument::Compact) << '\n';
+      return 0;
+    }
     if (command == "application-commit" && args.size() == 1) {
       QTextStream(stdout) << applicationIdentity(configuration)["commit"].toString() << '\n';
       return 0;
@@ -65,7 +72,7 @@ int main(int argc, char **argv) {
       throw Failure(
           "invalid-command", "preparing",
           "Usage: dshancontrol-runtime [--config FILE] "
-          "application-commit|application-health|check|download|recover|"
+          "storage-check|storage-mount|initialize|application-commit|application-health|check|download|recover|"
           "install MANIFEST SIGNATURE PACKAGE");
     if (result.isObject())
       QTextStream(stdout)

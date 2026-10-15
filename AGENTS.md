@@ -1,5 +1,23 @@
 # DshanControl engineering gates
 
+## Native functional health and boot storage source (2026-10-15)
+
+Native health source e28a78c adds read-only identity, owned process/argv checks,
+bounded fixed-loopback identity, SQLite/schema checks and monotonic GUI heartbeat.
+New S4 source uses software contract platform-2 and mandates heartbeat; T153 is
+unchanged. This is not a PCB revision. Host186/Qt36 and isolated ARM27 passed.
+Subsequent native boot/storage/init source has host194 and ARM35 distinct cases:
+initial34 passed, one64MiB initialization hit the test's15s deadline; same binary
+passed that case alone with a180s bound, measured31.63s. Keep both receipts, not a
+fictional clean35-case run. New native storage/current-application read-only probes
+passed on the board. See docs/S4-NATIVE-FUNCTIONAL-HEALTH-20261015.md and
+docs/S4-NATIVE-BOOT-STORAGE-20261015.md. Live factory9594/imagef71 are unchanged;
+new native boot scripts and HMI producer have not been installed/reboot-qualified.
+Never format/repair storage, reset a broken current, overwrite user defaults or
+delete unknown/interrupted initialization trees. Exact boot/device/mount checks
+remain mandatory. Continue native owned lifecycle, least privilege, supervision,
+real Qt signed-update and measured power acceptance; whole goal remains active.
+
 ## Netclock full system delivery and next phase (2026-10-15)
 
 The subsequent sustained task's first stage is complete. New immutable source
