@@ -16,6 +16,10 @@ S69 must initialize vendor partition aliases using only do_device_node_switch,
 then validate UDISK with the boot map before initialization/native startup. Never
 call the vendor formatting helpers. busybox-init-base-files is an explicit S4
 dependency; do not assume its alias creation survived replacing vendor S60.
+Bind startup readiness to the actual owned daemon PID with service.ready, and
+use the monotonic bounded recovery wait. IPC readiness is not application or
+industrial health qualification. Keep the required BusyBox applets/fancy
+start-stop-daemon options in the S4 fragment.
 
 ## Latest upload authorization (2026-10-14, compressed system delivery)
 

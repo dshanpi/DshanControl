@@ -10,27 +10,62 @@ export DSHANCONTROL_PLATFORM_SOCKET=$SOCKET
 
 read_pid() {
     test -f "$PID" && test ! -L "$PID" || return 1
-    read -r process_id < "$PID"
+    read -r process_id < "$PID" || return 1
     case "$process_id" in ''|*[!0-9]*|0|1) return 1 ;; esac
 }
 
-owned() {
+process_alive() {
     kill -0 "$process_id" 2>/dev/null || return 1
+    read -r process_stat < "/proc/$process_id/stat" || return 1
+    process_state=${process_stat##*) }
+    process_state=${process_state%% *}
+    case "$process_state" in Z|X|'') return 1 ;; esac
+}
+
+owned() {
+    process_alive || return 1
     test "$(readlink "/proc/$process_id/exe")" = "$BIN" || return 1
     # An unrelated invocation of the same binary must never be stopped.
     test "$(tr '\000' '\n' < "/proc/$process_id/cmdline")" = "$(printf '%s\nserve\n%s' "$BIN" "$CONFIG")"
 }
 
 ready() {
-    owned && test -S "$SOCKET" && "$BIN" rpc update.identity '{}' >/dev/null
+    owned && test -S "$SOCKET" && "$BIN" rpc service.ready "{\"pid\":$process_id}" >/dev/null
+}
+
+monotonic_seconds() {
+    read -r seconds ignored < /proc/uptime || return 1
+    seconds=${seconds%%.*}
+    case "$seconds" in ''|*[!0-9]*) return 1 ;; esac
+    printf '%s\n' "$seconds"
+}
+
+wait_ready() {
+    # Recovery can run stop/start hooks plus startup and health observations.
+    # Cover the native upper bounds with a monotonic 20-minute ceiling; normal
+    # startup returns immediately. This polls reads and never launches again.
+    deadline=$(( $(monotonic_seconds) + 1200 ))
+    while test "$(monotonic_seconds)" -lt "$deadline"; do
+        if read_pid; then
+            if ready; then return 0; fi
+            if ! process_alive; then
+                echo "Native service exited; see $LOG; no relaunch attempted" >&2
+                return 1
+            fi
+        fi
+        sleep 1
+    done
+    echo "Native service did not become ready; see $LOG; no relaunch attempted" >&2
+    return 1
 }
 
 case "${1:-}" in
 start)
     if test -e "$PID" || test -L "$PID"; then
         read_pid || { echo 'Invalid native service PID file' >&2; exit 1; }
-        if kill -0 "$process_id" 2>/dev/null; then
-            ready
+        if process_alive; then
+            owned || { echo 'Native service PID belongs to another process' >&2; exit 1; }
+            wait_ready
             exit $?
         fi
         rm "$PID"
@@ -56,27 +91,12 @@ start)
     start-stop-daemon -S -b -m -p "$PID" -x /bin/sh -- -c \
         'umask 077; exec "$1" serve "$2" >>"$3" 2>&1' \
         dshancontrol-runtime "$BIN" "$CONFIG" "$LOG"
-    # Launch once. Only process ownership and read-only readiness are polled;
-    # recovery finishes before the socket accepts requests.
-    attempts=0
-    while test "$attempts" -lt 30; do
-        if read_pid; then
-            if ready; then exit 0; fi
-            if ! kill -0 "$process_id" 2>/dev/null; then
-                echo "Native service exited; see $LOG; no relaunch attempted" >&2
-                exit 1
-            fi
-        fi
-        attempts=$((attempts + 1))
-        sleep 1
-    done
-    echo "Native service did not become ready; see $LOG; no relaunch attempted" >&2
-    exit 1
+    wait_ready
     ;;
 stop)
     test -e "$PID" || test -L "$PID" || exit 0
     read_pid || { echo 'Invalid native service PID file' >&2; exit 1; }
-    if ! kill -0 "$process_id" 2>/dev/null; then rm "$PID"; exit 0; fi
+    if ! process_alive; then rm "$PID"; exit 0; fi
     owned || { echo 'Native service PID belongs to another process' >&2; exit 1; }
     # The daemon refuses shutdown while a task, update or hardware lock is held.
     # No signal/kill fallback and no automatic retry of a refused stop.

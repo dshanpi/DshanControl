@@ -129,9 +129,10 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
                   "One bounded request required");
           auto json = strictJson(received->trimmed());
           require(json.isObject(), "RPC object required");
-          if (json.toObject()["method"] == "service.shutdown")
+          if (json.toObject()["method"] == "service.shutdown" ||
+              json.toObject()["method"] == "service.ready")
             require(peer.uid == ::getuid(),
-                    "Only the system service owner may stop the service",
+                    "Only the system service owner may manage the service",
                     "authorization", "peer-denied");
           response = {{"protocol", 1},
                       {"ok", true},
@@ -304,6 +305,17 @@ QJsonValue RuntimeService::dispatch(const QJsonObject &request) {
           "Invalid platform request");
   auto method = request["method"].toString();
   auto params = request["params"].toObject();
+  if (method == "service.ready") {
+    require(params.size() == 1 && positiveInteger(params["pid"]),
+            "Explicit daemon PID required", "service");
+    require(params["pid"].toDouble() == static_cast<double>(::getpid()),
+            "Platform socket belongs to another daemon instance", "service",
+            "service-instance-mismatch");
+    NativeUpdater updater(readJson(updaterConfig));
+    return QJsonObject{{"pid", static_cast<int>(::getpid())},
+                       {"system", updater.systemContract()},
+                       {"installed", updater.installed()}};
+  }
   if (method == "service.shutdown") {
     require(params.isEmpty(), "Shutdown has no request fields");
     // Hold the same lock as every independent task until process exit. Never

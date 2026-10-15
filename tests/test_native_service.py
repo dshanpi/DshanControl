@@ -8,6 +8,7 @@ import signal
 import socket
 import shutil
 import subprocess
+import sys
 import time
 import unittest
 import test_application_update_cli as fixtures
@@ -73,6 +74,19 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         self.assertFalse(Path(self.socket_path).exists())
         self.assertEqual([], self.operations())
 
+    def test_readiness_binds_the_real_daemon_pid(self):
+        self.start()
+        response = self.request('service.ready', {'pid': self.service.pid})
+        self.assertTrue(response['ok'], response)
+        self.assertEqual(self.service.pid, response['result']['pid'])
+        self.assertIn('installed', response['result'])
+        wrong = self.request('service.ready', {'pid': self.service.pid + 1})
+        self.assertFalse(wrong['ok'])
+        self.assertEqual('service-instance-mismatch', wrong['error']['code'])
+        for params in ({}, {'pid': True}, {'pid': 0}, {'pid': 1.5},
+                       {'pid': self.service.pid, 'force': True}):
+            self.assertFalse(self.request('service.ready', params)['ok'])
+
     def test_system_init_starts_once_waits_for_rpc_and_refuses_busy_stop(self):
         # Relocate only system-owned paths into this synthetic system fixture.
         # Execute the actual init script and daemon, not a mocked RPC client.
@@ -103,7 +117,7 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         script.chmod(0o755)
 
         def run(action):
-            return subprocess.run([str(script), action], capture_output=True, text=True, timeout=20)
+            return subprocess.run([str(script), action], capture_output=True, text=True, timeout=50)
 
         def cleanup():
             if not pidfile.exists():
@@ -127,8 +141,22 @@ class NativeServiceTests(fixtures.UpdateCliTests):
             'ln -s ' + str(device) + ' ' + str(alias) + '\n'
             'echo alias >> ' + str(root / 'alias.calls') + '\n}\n'
             'do_format_filesystem() { echo forbidden; return 99; }\n')
+        # A real native cold-start recovery must finish before init reports ready.
+        # The previous 30-second loop failed even the default health budget.
+        recovery_root = Path(json.loads(self.config.read_text())['application_root'])
+        (recovery_root / 'transaction.json').write_text(json.dumps({
+            'old': 'factory', 'new': 'recovery-trial', 'phase': 'prepared'}))
+        (recovery_root / 'update-state.json').write_text(json.dumps({'high_water': 1, 'failed': []}))
+        self.hook.write_text(self.hook.read_text().replace(
+            "operation = sys.argv[1]", "operation = sys.argv[1]\nif operation == 'stop':\n"
+            "    import time; time.sleep(31)"))
+        started = time.monotonic()
         result = run('start')
         self.assertEqual(0, result.returncode, result.stderr)
+        self.assertGreaterEqual(time.monotonic() - started, 31)
+        self.assertFalse((recovery_root / 'transaction.json').exists())
+        self.assertEqual(['recovery-trial'], json.loads(
+            (recovery_root / 'update-state.json').read_text())['failed'])
         self.assertEqual(device, alias.resolve())
         self.assertEqual('alias\n', (root / 'alias.calls').read_text())
         first_pid = pidfile.read_text()
@@ -164,6 +192,18 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         self.assertNotEqual(0, run('stop').returncode)
         self.assertTrue(pidfile.exists())
         pidfile.unlink()
+        child = subprocess.Popen([sys.executable, '-c', 'pass'])
+        try:
+            for _ in range(100):
+                stat = Path('/proc/%d/stat' % child.pid)
+                if stat.is_file() and stat.read_text().rsplit(') ', 1)[1].split()[0] == 'Z':
+                    break
+                time.sleep(0.01)
+            pidfile.write_text(str(child.pid) + '\n')
+            self.assertEqual(0, run('stop').returncode)
+            self.assertFalse(pidfile.exists())
+        finally:
+            child.wait(timeout=5)
 
     def start(self):
         self.service = subprocess.Popen([str(self.binary), 'serve', str(self.service_config)],

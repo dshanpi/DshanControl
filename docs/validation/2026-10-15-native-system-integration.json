@@ -287,5 +287,58 @@
     },
     "physical_boot_test": "not-run",
     "clean_rootfs_build": "Paused before application package construction so the frozen app/system source snapshot can be refreshed coherently; same-run dependencies retained"
+  },
+  "readiness_followup": {
+    "recorded_at_utc": "2026-10-15T05:56:45.120953+00:00",
+    "source_base_commit": "7c3bd25145260965e4bda979d1610acf901a875c",
+    "source_files_sha256": {
+      "boards/t113s4-sdnand/runtime/S69dshancontrol-runtime": "39701b30b8ac1581ae74470197c116822fcfbf9c29bf8e3144281bd5c1132f1e",
+      "boards/t113s4-sdnand/buildroot/busybox.fragment": "461e201d950e3b781c36945521376b3e1fba9c4fcc5dc6ca81fafcea7cddf6d1",
+      "components/runtime/src/service.cpp": "4abf142a96166b9cbde7f932c668f626aa55fec479711a8728e7120393db0fe8",
+      "tests/test_native_service.py": "8458005e9427ffb768963e141142a304f16f93673e6be3074c6b5bd0f68cd9ed"
+    },
+    "fixes": [
+      "Match service.ready to the actual owned daemon PID; reject other-instance and malformed PID requests",
+      "Use /proc/uptime and a bounded 1200-second readiness budget covering native callback/health upper bounds; normal readiness returns immediately",
+      "Wait for the owned existing daemon during recovery without relaunching",
+      "Treat exited/zombie processes as dead and refuse foreign live PIDs",
+      "Declare required Busybox applets and fancy background PID options explicitly"
+    ],
+    "tests": {
+      "host_passed": 159,
+      "core_passed": 5,
+      "other_passed": 154,
+      "native_in_other": 30,
+      "service_cases": 15,
+      "real_stop_hook_recovery_delay_seconds": 31,
+      "prepared_transaction_cleared_before_ready": true,
+      "failed_trial_quarantined": true,
+      "exact_final_init_case_passed": true,
+      "other_daemon_pid_refused": true,
+      "zombie_pid_file_cleared_without_signal": true,
+      "qt_source_unchanged": true,
+      "physical_boot_verified": false
+    },
+    "native_cross_build": {
+      "status": "passed",
+      "elf": "ARM32 EABI5 softfp",
+      "path": "dist/continuation-20261015/native-arm/dshancontrol-runtime",
+      "sha256": "9ab545c0282b538a72f5b96aea9ba36bb5c112c43707d60f2d624fed46821242",
+      "fixed_existing_sysroot_reused": true
+    },
+    "local_evidence": [
+      {
+        "path": "dist/continuation-20261015/make-test-recovery-ready-final.log",
+        "sha256": "7405c57199c2d0e000b32e9071f71101db02cd4094cb9884ab216dfa439314d1"
+      },
+      {
+        "path": "dist/continuation-20261015/native-init-recovery-final.log",
+        "sha256": "12931ed484e2d08a063801661b3c4735e6675ab15185e9f03f863d379017b8d7"
+      },
+      {
+        "path": "dist/continuation-20261015/native-arm-ready-build.log",
+        "sha256": "499106e733d048ee1d230f1f7ac460caab123401c2de4a1647db7985a7630426"
+      }
+    ]
   }
 }
