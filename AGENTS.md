@@ -20,6 +20,11 @@ the alias and reject missing/empty/linked files or conflicting aliases.
 Keep site WiFi credentials out of images/Git; the S4 startup configuration is a
 private root-owned `system/wifi.conf` under the persistent DshanControl root.
 Network association, DHCP and reboot persistence require fresh physical evidence.
+The first normal reboot exposed a real wpa_supplicant -B/PID publication race:
+WPA later associated but S72 had already refused, so DHCP was skipped. Preserve
+that failure. Poll owned PID/executable/argv readiness for at most five seconds
+without launching again; test both delayed PID publication and missing PID.
+Manual completion of skipped DHCP does not qualify automatic startup.
 See `docs/S4-DEVELOPMENT-ACCEPTANCE-20261015.md`. Signed synthetic CLI fixtures
 must remain isolated from the live application, contract, trust root and data;
 process interruption tests do not establish physical power-loss qualification.

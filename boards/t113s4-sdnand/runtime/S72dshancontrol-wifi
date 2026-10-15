@@ -50,7 +50,14 @@ start)
         test ! -L "$RUN/wpa.log"
         "$WPA" -B -P "$PID" -i wlan0 -D nl80211 -c "$CONF" -O "$RUN" -f "$RUN/wpa.log"
     fi
-    owned || { echo 'DshanControl WiFi: owned supplicant not ready' >&2; exit 1; }
+    # -B may return before the daemon has published its PID. Readiness polling
+    # must not launch another supplicant or race its first PID-file write.
+    dshan_wifi_wait=0
+    until owned; do
+        dshan_wifi_wait=$((dshan_wifi_wait + 1))
+        test "$dshan_wifi_wait" -lt 6 || { echo 'DshanControl WiFi: owned supplicant not ready' >&2; exit 1; }
+        sleep 1
+    done
     dshan_wifi_wait=0
     until test "$(wpa_cli -p "$RUN" -i wlan0 status 2>/dev/null | sed -n 's/^wpa_state=//p')" = COMPLETED; do
         owned || { echo 'DshanControl WiFi: supplicant exited; no relaunch attempted' >&2; exit 1; }

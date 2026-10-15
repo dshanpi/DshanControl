@@ -34,7 +34,7 @@ class S4WifiTests(unittest.TestCase):
             'wpa_cli': 'case "$*" in *ping*) [ "${TEST_FOREIGN_WPA:-0}" = 1 ] && echo PONG ;; '
                        '*status*) echo "wpa_state=${TEST_WPA_STATE:-COMPLETED}" ;; esac',
             'udhcpc': 'echo dhcp >> "$TEST_WIFI_CALLS"; exit "${TEST_DHCP_EXIT:-0}"',
-            'sleep': 'exit 0',
+            'sleep': '/bin/sleep 0.05',
         }.items():
             path = self.bin / name
             path.write_text('#!/bin/sh\n' + body + '\n')
@@ -52,13 +52,20 @@ class S4WifiTests(unittest.TestCase):
 #include <fcntl.h>
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "--foreign")) { for (;;) pause(); }
+    const char *calls=getenv("TEST_WIFI_CALLS");
+    FILE *events=fopen(calls,"a"); if (!events) return 5;
+    fputs("wpa-launch\n",events); fclose(events);
     char *path = 0;
     for (int i=1; i+1<argc; ++i) if (!strcmp(argv[i], "-P")) path=argv[i+1];
     if (!path) return 2;
     pid_t p=fork();
     if (p<0) return 3;
-    if (p) { FILE *f=fopen(path,"w"); if (!f) return 4; fprintf(f,"%ld\n",(long)p); return fclose(f); }
+    if (p) return 0;
     int fd=open("/dev/null",O_RDWR); for (int n=0;n<3;++n) dup2(fd,n); if(fd>2) close(fd);
+    if (getenv("TEST_WPA_NO_PID")) return 6;
+    if (getenv("TEST_WPA_DELAY_PID")) usleep(120000);
+    FILE *f=fopen(path,"w"); if (!f) return 4;
+    fprintf(f,"%ld\n",(long)getpid()); fclose(f);
     for (;;) pause();
 }
 ''')
@@ -155,6 +162,22 @@ int main(int argc, char **argv) {
         finally:
             foreign.terminate()
             foreign.wait(timeout=5)
+
+    def test_background_parent_returns_before_pid_is_ready_without_duplicate_launch(self):
+        self.configured()
+        result = self.run_init(TEST_WPA_DELAY_PID='1')
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(1, self.calls.read_text().splitlines().count('wpa-launch'))
+        self.assertEqual(0, self.run_init('status').returncode)
+
+    def test_failed_daemon_never_relaunches_when_pid_does_not_appear(self):
+        self.configured()
+        result = self.run_init(TEST_WPA_NO_PID='1')
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('owned supplicant not ready', result.stderr)
+        self.assertFalse(self.pid.exists())
+        self.assertEqual(1, self.calls.read_text().splitlines().count('wpa-launch'))
+        self.assertNotIn('dhcp', self.calls.read_text())
 
 
 if __name__ == '__main__':
