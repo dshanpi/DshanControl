@@ -1,0 +1,133 @@
+{
+  "scope": "Opt-in native read-only supervision, public status and bounded asynchronous health helper; isolated validation only",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 228,
+    "passed": 225,
+    "skipped_root_only": 3,
+    "full_gate_passed": true,
+    "supervision_focused_passed": 4,
+    "initial_focused_run": 4,
+    "initial_focused_failures": 3,
+    "initial_failure_cause": "test assumptions: raw pidfd error suffix, timeout code spelling, SIGTERM vs graceful socket cleanup; corrected and passed"
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "b542d084afc7916bc6d2184757e6615b1b522c9b91ed0e068021fd5a28909389",
+    "compiled_source_files_bound": 27,
+    "source_inputs_sha256": "5973f70f4325450bee73eda4142682f239d8a7b9f524f27aa99ebe6c8dad96e3",
+    "compiled_sources_match_git_index": true,
+    "network_disabled": true,
+    "private_configuration_hidden": true
+  },
+  "arm_pre_refinement": {
+    "sha256": "77ac5bbad4ec0f31a8ffeea8f16dec6b960c14949d3d13b66760fc450d6ae067",
+    "bytes": 2885,
+    "result": {
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native readonly supervision/public peer/system-service fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "arm_final": {
+    "sha256": "44a5a24f3523ec2410cd9c1bf4296d586f19f47d6b9eedd002cc8f8dab4cdb64",
+    "bytes": 2883,
+    "result": {
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native readonly supervision/public peer/system-service fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "refinement": "Read /proc/locks by expected device/inode instead of briefly acquiring application leases; both versions passed their own21-case ARM suite, binary identities kept separate",
+  "observations": {
+    "healthy": {
+      "alarm": false,
+      "application_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "consecutive_failures": 0,
+      "enabled": true,
+      "hardware_watchdog": false,
+      "observed_monotonic_seconds": 17626.482200028,
+      "probe_running": false,
+      "restart_count": 0,
+      "status": "healthy"
+    },
+    "failed": {
+      "alarm": true,
+      "application_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "consecutive_failures": 2,
+      "enabled": true,
+      "error": {
+        "code": "health-process-handle",
+        "stage": "health"
+      },
+      "hardware_watchdog": false,
+      "observed_monotonic_seconds": 17630.58859603,
+      "probe_running": false,
+      "restart_count": 0,
+      "status": "unhealthy"
+    },
+    "dead_role_record_preserved": true,
+    "other_roles_unchanged": true,
+    "databases_unchanged": true
+  },
+  "nonroot_peer": {
+    "private_config_read_denied": true,
+    "observations": [
+      {
+        "method": "update.identity",
+        "uid": 60001,
+        "returncode": 0
+      },
+      {
+        "method": "update.status",
+        "uid": 60001,
+        "returncode": 0
+      },
+      {
+        "method": "service.ready",
+        "uid": 60001,
+        "returncode": 1
+      },
+      {
+        "method": "service.shutdown",
+        "uid": 60001,
+        "returncode": 1
+      },
+      {
+        "method": "update.identity",
+        "uid": 60002,
+        "returncode": 1
+      }
+    ],
+    "daemon_alive": true,
+    "application_hooks_called": false
+  },
+  "live_storage_readonly_probe_passed": true,
+  "live_application_readonly_probe_passed": true,
+  "production_changes": {
+    "accounts": false,
+    "device_modes": false,
+    "startup_policy": false,
+    "application_stopped": false,
+    "trust_root": false
+  },
+  "remaining": [
+    "dedicated role account and private data/named device permission policies",
+    "production startup wiring",
+    "real Qt signed Draft update/reboot/rollback",
+    "actual PCB revision and measured complete power removal"
+  ]
+}

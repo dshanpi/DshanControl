@@ -1,5 +1,21 @@
 # DshanControl engineering gates
 
+## Native read-only supervision source (2026-10-15)
+
+Opt-in native supervision uses bounded asynchronous application-health helpers
+and exposes service.health. It observes /proc/locks by file device/inode without
+acquiring application leases, skips busy/changed-version samples and reports
+consecutive failure alarms with original stage/code. No app signals/relaunch,
+reinstall, database writes or hardware watchdog feeding. Status is in memory,
+not historical alarm persistence. Production enablement requires managed roles.
+Host228 (3 root-only skips), focused4 and final actual ARM21 pass; a separate
+pre-refinement ARM21 also passed and retains distinct evidence/binary identity.
+See docs/S4-NATIVE-SUPERVISION-20261015.md and structured receipt. Factory95/f71,
+accounts, devices, startup and trust remain unchanged; supervision is not enabled
+in live production. Continue typed role/data/device permissions, production
+wiring and real Qt signed update/reboot/rollback/measured power acceptance.
+The whole goal remains active; independent passing suites do not complete it.
+
 ## Public native update identity source (2026-10-15)
 
 Native HMI discovery now uses public update.identity RPC and typed key-configuration

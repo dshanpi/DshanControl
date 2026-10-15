@@ -47,6 +47,8 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
   taskRoot = config["task_root"].toString();
   // Verify the persistent volume before creating even the task directory.
   NativeUpdater updater(readJson(updaterConfig));
+  supervision.reset(
+      new ApplicationSupervision(config, readJson(updaterConfig), this));
   require(QDir::isAbsolutePath(taskRoot) && taskRoot != "/" &&
               QDir::cleanPath(taskRoot) == taskRoot &&
               !QFileInfo(taskRoot).isSymLink() && QDir().mkpath(taskRoot),
@@ -158,6 +160,7 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
   });
 }
 RuntimeService::~RuntimeService() {
+  supervision.reset();
   close();
   QFile::remove(config["socket"].toString());
 }
@@ -305,6 +308,10 @@ QJsonValue RuntimeService::dispatch(const QJsonObject &request) {
           "Invalid platform request");
   auto method = request["method"].toString();
   auto params = request["params"].toObject();
+  if (method == "service.health") {
+    require(params.isEmpty(), "Supervision health has no request fields");
+    return supervision->snapshot();
+  }
   if (method == "service.ready") {
     require(params.size() == 1 && positiveInteger(params["pid"]),
             "Explicit daemon PID required", "service");

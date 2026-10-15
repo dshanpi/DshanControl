@@ -7,3 +7,5 @@ TEMPLATE = app
 SOURCES += src/applicationcredentials.cpp src/applicationrecord.cpp src/applicationlaunch.cpp src/applicationhealth.cpp src/applicationprocess.cpp src/systemstorage.cpp src/main.cpp src/storage.cpp src/protocol.cpp src/updater.cpp src/service.cpp src/display.cpp
 HEADERS += src/applicationcredentials.h src/applicationrecord.h src/applicationlaunch.h src/applicationhealth.h src/applicationprocess.h src/systemstorage.h src/storage.h src/protocol.h src/updater.h src/service.h src/display.h
 LIBS += -lcrypto -lz -lsqlite3
+SOURCES += src/applicationsupervision.cpp
+HEADERS += src/applicationsupervision.h

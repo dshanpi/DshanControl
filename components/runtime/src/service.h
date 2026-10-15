@@ -1,4 +1,5 @@
 #pragma once
+#include "applicationsupervision.h"
 #include "updater.h"
 #include <QLocalServer>
 #include <memory>
@@ -8,6 +9,7 @@ class RuntimeService : public QLocalServer {
   std::unique_ptr<FileLock> serviceOwnership;
   std::unique_ptr<FileLock> shutdownOwnership;
   std::unique_ptr<FileLock> shutdownUpdateOwnership, shutdownControlOwnership;
+  std::unique_ptr<ApplicationSupervision> supervision;
   QJsonObject task(const QString &id) const;
   QJsonObject startTask(const QJsonObject &params);
   QJsonValue dispatch(const QJsonObject &request);
