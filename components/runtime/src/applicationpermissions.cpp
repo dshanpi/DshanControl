@@ -279,6 +279,17 @@ void requireNoRoleProcesses(uid_t web, uid_t hmi) {
     }
     const auto bytes = file.read(65537);
     check(bytes.size() <= 65536, "Unexpected process status size");
+    bool exited = false;
+    for (const auto &line : bytes.split('\n')) {
+      if (!line.startsWith("State:"))
+        continue;
+      const auto state = line.mid(6).trimmed();
+      exited = state.startsWith('Z') || state.startsWith('X');
+    }
+    // Kernel zombies cannot execute or regain file access while PID1 reaps
+    // them. Live descendants with any role identity still refuse below.
+    if (exited)
+      continue;
     bool found = false;
     for (const auto &line : bytes.split('\n')) {
       if (!line.startsWith("Uid:"))

@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class S4ServiceIdentityTests(unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
+        # Rewritten native paths must not themselves contain the production
+        # prefix that a later replacement relocates.
+        temporary = tempfile.TemporaryDirectory(dir='/tmp')
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.calls = self.root / 'calls'
@@ -46,6 +48,17 @@ class S4ServiceIdentityTests(unittest.TestCase):
         self.calls.unlink()
         self.assertEqual(19, self.invoke('health').returncode)
         self.assertEqual(['application-health'], self.calls.read_text().splitlines())
+
+    def test_native_start_delegates_once_without_legacy_processes_and_restart_refuses(self):
+        self.native.write_text('#!/bin/sh\nprintf "%s\\n" "$1" >> "' + str(self.calls) +
+                              '"\n[ "$1" != application-commit ] || printf "%s\\n" "' + 'a'*40 + '"\nexit 0\n')
+        self.assertEqual(0,self.invoke('start').returncode)
+        self.assertEqual(['application-commit','storage-check','application-start'],self.calls.read_text().splitlines())
+        self.assertFalse((self.root/'run').exists())
+        self.calls.unlink()
+        self.assertEqual(1,self.invoke('restart-web').returncode)
+        self.assertEqual(['application-commit'],self.calls.read_text().splitlines())
+        self.assertFalse((self.root/'run').exists())
 
     def test_native_system_with_unavailable_binary_refuses_before_legacy_actions(self):
         self.native.chmod(0o600)

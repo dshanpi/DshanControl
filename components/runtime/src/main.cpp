@@ -66,10 +66,19 @@ int main(int argc, char **argv) {
     if ((command == "storage-check" || command == "storage-mount" ||
          command == "initialize") &&
         args.size() == 1) {
+      const auto policy = configuration["application_health"].toObject();
+      if (command == "initialize")
+        require(!policy.contains("launch_receipts_required") ||
+                    policy["launch_receipts_required"].isBool(),
+                "Managed launch policy must be boolean", "initialize");
       auto result =
           command == "initialize"
               ? initializeApplication(configuration)
               : ensureSystemStorage(configuration, command == "storage-mount");
+      if (command == "initialize") {
+        if (policy["launch_receipts_required"].toBool(false))
+          result["permissions"] = applicationPermissions(configuration, true);
+      }
       QTextStream(stdout) << QJsonDocument(result).toJson(
                                  QJsonDocument::Compact)
                           << '\n';

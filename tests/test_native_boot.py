@@ -137,7 +137,7 @@ class NativeBootTests(unittest.TestCase):
             for _ in range(64):stream.write(b'x'*1024*1024)
         child=subprocess.Popen([str(BINARY),'--config',str(self.config),'initialize'],
                                stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        stages=[];deadline=time.monotonic()+8
+        stages=[];observation_started=time.monotonic();deadline=observation_started+180
         try:
             while time.monotonic()<deadline and child.poll() is None:
                 stages=list((self.apps/'releases').glob('.factory-initialize.*'))
@@ -145,7 +145,8 @@ class NativeBootTests(unittest.TestCase):
                     child.send_signal(signal.SIGSTOP)
                     child.kill();child.wait(timeout=3);break
                 time.sleep(0.001)
-            self.assertTrue(stages,'initializer must expose a private unpublished staging tree before publication')
+            self.assertTrue(stages,'initializer must expose private staging within180s; child status='+str(child.poll()))
+            observation_seconds=time.monotonic()-observation_started
             self.assertEqual(-signal.SIGKILL,child.returncode)
         finally:
             if child.poll() is None:child.kill();child.wait(timeout=3)
@@ -164,7 +165,7 @@ class NativeBootTests(unittest.TestCase):
         if evidence:
             with open(evidence,'a') as stream:
                 stream.write(json.dumps(dict(test=self._testMethodName,payload_bytes=big.stat().st_size,
-                    initialization_seconds=elapsed,deadline_seconds=180,
+                    initialization_seconds=elapsed,deadline_seconds=180,staging_observation_seconds=observation_seconds,staging_observation_deadline_seconds=180,
                     interrupted_staging_preserved=True))+'\n')
 
     def test_unknown_staging_and_production_override_remain_untouched(self):

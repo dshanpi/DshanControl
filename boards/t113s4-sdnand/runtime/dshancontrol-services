@@ -71,6 +71,9 @@ maintenance)
     ;;
 start)
     check_storage
+    if [ -x /usr/bin/dshancontrol-runtime ]; then
+        exec /usr/bin/dshancontrol-runtime application-start
+    fi
     test -d "$CURRENT"
     mkdir -p "$RUN" "$DATA/eds" /var/log
     for name in web hmi supervisor; do
@@ -93,7 +96,8 @@ stop)
     ;;
 restart-web)
     if [ -x /usr/bin/dshancontrol-runtime ]; then
-        /usr/bin/dshancontrol-runtime application-stop web
+        echo 'Native application recovery requires the explicit maintenance workflow' >&2
+        exit 1
     else
         stop_one web
     fi

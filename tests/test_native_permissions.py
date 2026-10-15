@@ -74,7 +74,9 @@ class NativePermissionsTests(unittest.TestCase):
     def test_apply_is_idempotent_preserves_data_and_enforces_separate_role_access(self):
         for name in ['hmi.db-wal','hmi.db-shm']:(self.data/name).write_bytes(b'PRESERVE SQLITE AUX '+name.encode())
         original={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in self.data.iterdir()}
-        value=self.command(apply=True)
+        initialized=subprocess.run([str(BINARY),'--config',str(self.config),'initialize'],capture_output=True,text=True,timeout=20)
+        self.assertEqual(0,initialized.returncode,initialized.stdout+initialized.stderr)
+        value=json.loads(initialized.stdout)['permissions']
         self.assertTrue(value['applied']);self.assertFalse(value['application_data_contents_written'])
         journal=json.loads(Path(value['journal']).read_text());self.assertEqual('completed',journal['status'])
         self.command(apply=True)
@@ -109,3 +111,14 @@ class NativePermissionsTests(unittest.TestCase):
             fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
             self.assertEqual('resource-busy',self.command(apply=True,expected=1)['code'])
         self.assertEqual(original,{p.name:p.stat().st_uid for p in self.data.iterdir()})
+        zombie=subprocess.Popen(['/bin/true'],preexec_fn=drop)
+        try:
+            import time
+            status=Path('/proc/%d/status'%zombie.pid);end=time.monotonic()+3
+            while time.monotonic()<end:
+                state=next(line for line in status.read_text().splitlines() if line.startswith('State:'))
+                if 'Z' in state:break
+                time.sleep(0.01)
+            else:self.fail('fixture child did not reach zombie state')
+            self.assertTrue(self.command(apply=True)['applied'])
+        finally:zombie.wait(timeout=3)

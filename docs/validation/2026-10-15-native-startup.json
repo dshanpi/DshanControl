@@ -1,0 +1,188 @@
+{
+  "scope": "Native production startup template and isolated initialize/permissions/reduced-role execution; live factory unchanged",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 237,
+    "passed": 229,
+    "skipped_root_only": 8,
+    "full_gate_passed": true,
+    "additional_root_initialize_permissions_passed": 5,
+    "additional_root_startup_passed": 1
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "eb5165fa8a0a48331b1d5875fec8490ee6cf1808bcf0e7c6893d27d2ba599099",
+    "compiled_source_files_bound": 31,
+    "source_inputs_sha256": "87610a4744ccde9344a86181e7abca671462b475e8fcffc0fa151bf3a7fb0e44",
+    "compiled_sources_match_git_index": true,
+    "network_disabled": true,
+    "private_configuration_hidden": true
+  },
+  "arm_initial": {
+    "sha256": "2286031022c1d6a29f754afe87a9bf9b65c4c1277a21480c9da161ad55ab82b9",
+    "bytes": 7825,
+    "result": {
+      "run": 91,
+      "failures": 9,
+      "errors": 1,
+      "skipped": 0,
+      "passed": false,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native startup/permissions/launch/boot/health/update/IPC/supervision/snapshot/shell fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "arm_initial_missing_evidence": {
+    "missing": [
+      "permissions.json",
+      "boot-cases.jsonl"
+    ]
+  },
+  "arm_final": {
+    "sha256": "818eaf768950ef75e7176b89dfabcb1d1373c38aecfdc30ebd05b93e5e00a3dc",
+    "bytes": 7247,
+    "result": {
+      "run": 91,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native startup/permissions/launch/boot/health/update/IPC/supervision/snapshot/shell fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "corrections": [
+    "Ignore terminal kernel zombie/exited states in role activity gate, retain refusal for live role processes; actual zombie fixture tested",
+    "Shell test uses private /tmp directory so sequential production-prefix replacements cannot rewrite its inserted fixture paths",
+    "Pre-staging observation test bound8s to180s; retain exact measured observation and copy durations"
+  ],
+  "startup_observations": {
+    "permissions_applied": true,
+    "launched": [
+      "web",
+      "hmi"
+    ],
+    "observations": [
+      {
+        "uid": 60000,
+        "gid": 60000,
+        "nnp": 1,
+        "extra_fds": 0,
+        "secret_env_present": 0,
+        "lease_env_present": 0,
+        "role": "web"
+      },
+      {
+        "uid": 60001,
+        "gid": 60000,
+        "nnp": 1,
+        "extra_fds": 0,
+        "secret_env_present": 0,
+        "lease_env_present": 0,
+        "role": "hmi"
+      }
+    ],
+    "configured_heartbeat_environment": true,
+    "private_records_cleared": 2,
+    "python_supervisor_started": false
+  },
+  "permissions_observations": {
+    "data_hashes_preserved": true,
+    "idempotent": true,
+    "observations": [
+      {
+        "uid": 60000,
+        "target": "session.key",
+        "readable": true
+      },
+      {
+        "uid": 60000,
+        "target": "fb",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "touch",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "updater.json",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "payload",
+        "readable": true
+      },
+      {
+        "uid": 60000,
+        "target": "processes",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "session.key",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "fb",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "touch",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "updater.json",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "payload",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "processes",
+        "readable": false
+      }
+    ],
+    "real_device_modes_modified": false
+  },
+  "boot_observations": [
+    {
+      "test": "test_interrupted_factory_staging_is_preserved_while_new_publish_completes",
+      "payload_bytes": 67108864,
+      "initialization_seconds": 29.20903280499988,
+      "deadline_seconds": 180,
+      "staging_observation_seconds": 8.514128295999399,
+      "staging_observation_deadline_seconds": 180,
+      "interrupted_staging_preserved": true
+    }
+  ],
+  "native_cli_observations": 46,
+  "live_storage_readonly_probe_passed": true,
+  "live_application_readonly_probe_passed": true,
+  "production_changes": {
+    "accounts": false,
+    "data_metadata": false,
+    "device_modes": false,
+    "startup_policy": false,
+    "application_stopped": false,
+    "trust_root": false
+  },
+  "remaining": [
+    "Pinned private Draft signature/download transport",
+    "New native-role system image and actual nonroot Qt/device operation",
+    "Real signed Qt install/reboot/rollback",
+    "Actual PCB revision and measured complete power removal"
+  ]
+}

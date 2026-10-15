@@ -1,5 +1,24 @@
 # DshanControl engineering gates
 
+## Native reduced-role startup integration source (2026-10-15)
+
+New native S4 templates enable managed records, native supervision and fixed-role
+IPC. initialize applies permissions before daemon recovery; native application
+start runs only web/HMI through the C++ launcher, without Python supervisor.
+Private records are run/processes, HMI heartbeat is run/hmi/heartbeat.json and
+launcher receives the configured path. Native restart-web refuses a maintenance
+bypass. Legacy nonnative paths remain. Host237 (8 root-only skips), additional
+root initialize/permissions5 and startup1, and final actual isolated ARM91 pass.
+Initial ARM91 had9 failures/1error including subtests: zombies misclassified as
+active roles, fixture prefix-replacement collision, and an8s pre-staging limit.
+All initial evidence and missing-success-receipt records are retained. Final
+64MiB case observed staging at8.51s and completed initialization29.21s under180s.
+See docs/S4-NATIVE-STARTUP-20261015.md and receipt. No live factory95/imagef71,
+account, data, device, startup or trust modifications occurred. Continue pinned
+private Draft transport and a new reviewed native-role image with fresh backup,
+actual nonroot Qt/device and signed-update/reboot/rollback/measured-power tests.
+Whole goal remains active; source wiring and isolated tests are not deployment.
+
 ## Fixed-role native IPC authorization source (2026-10-15)
 
 Explicit s4-roles-v1 requires root service owner, clientGID400 and exactly
