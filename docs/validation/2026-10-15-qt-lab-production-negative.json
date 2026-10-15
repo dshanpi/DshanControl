@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "helper": "s4_gui_probe.py",
+      "production_scope_refused": true
+    },
+    {
+      "helper": "s4_ota_lab_bootstrap.py",
+      "production_scope_refused": true
+    },
+    {
+      "helper": "s4_ota_lab_maintenance.py",
+      "production_scope_refused": true
+    }
+  ],
+  "events_injected": false,
+  "system_config_unchanged": true,
+  "mounts_unchanged": true,
+  "native_application_health_unchanged": true
+}

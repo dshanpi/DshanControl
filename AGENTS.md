@@ -1,5 +1,27 @@
 # DshanControl engineering gates
 
+## Qt OTA lab preparation source (2026-10-15)
+
+Candidate application VERSION is0.1.0-dev.20261015.3; this is not yet installed.
+Current board remains verified b20/ea53 with original user data and formal pending
+contract. tests/hardware helpers are NOT in image recipes/application payloads.
+Three actual production-scope refusal cases pass without input events/config/
+mount/health changes. Reviewed GT9xx driver uses protocolA (GTP_ICS_SLOT_REPORT0),
+1024x600 axes, ARM input_event16bytes. GUI software event tests require actual
+isolated lab Web/HMI/process/data/mount scope; never claim physical sensor proof.
+Bootstrap prepares actual devices with original fixed production policy, binds
+separate persistent lab apps/data into volatile /run, and keeps role records in
+tmpfs. Maintenance helper verifies inherited already-held leases, default empty
+transport configuration, no configured devices/points and bounded role I/O;
+it is GUI-only development evidence, NOT an industrial safety interlock.
+See docs/S4-QT-OTA-LAB-20261015.md and production-negative receipt. No lab mounts,
+root-config replacement, actual token transfer or positive maintenance test yet.
+Formal PCB/trust and industrial/measured-power qualification stay pending.
+Next compile clean-source ARM HMI, create signed private app Draft, prepare a
+concrete root-private lab bundle, preserve fresh user state, then real Qt GUI
+check/download/install/reboot/rollback. Do not add a production GUI test backdoor.
+Whole long-task goal remains active.
+
 ## Actual native-role full-image delivery (2026-10-15)
 
 Current board now boots corrected immutable imageb20c948f… / factoryea53f86a14283bd3a3b73b59b5224244eaec0a09,
