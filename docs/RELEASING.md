@@ -15,7 +15,8 @@ SmartDesktopMimi 不在本项目范围内。本约定来自 2026-10-12 用户确
 
 S4 底层使用 DongshanPI/100ASK_T113s4-SdNand_TinaSDK5 的 t113_s4/100ask，
 不能替换成 SPI NAND 配置。T153 支持保持原状。通用应用不得写死新板设备节点。
-A133、T527、RK3576 尚未接入，不能标记支持。板级样例不等于经过验证的系统镜像。
+A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 尚未接入，不能标记支持。
+板级样例不等于经过验证的系统镜像，后续目标见 BOARD-PORTING-QUEUE.md。
 
 参考规范：https://github.com/dshanpi/EinkOS/blob/main/standards/linux-board-release/v1.1.0/SPEC.md
 
@@ -32,8 +33,9 @@ A133、T527、RK3576 尚未接入，不能标记支持。板级样例不等于�
 
 ## 自动门禁
 
-清单格式见 platform/contracts/application-update-v1.json。设备与主机打包器共用
-components/updater/update_protocol.py 校验。GitHub Actions 运行主机测试及仓库门禁。
+清单格式见 platform/contracts/application-update-v1.json。新设备运行端使用
+components/runtime 的 C++ 校验；主机打包器/历史参考使用 Python 协议实现，通过原生 CLI
+与故障回归验证一致行为。GitHub Actions 安装 Qt/Charts/OpenSSL/zlib 后运行主机、Qt 和仓库门禁。
 
 1. release_kind、app_id、仓库、渠道、完整提交和目标资产全部明确；禁止 GitHub Latest 盲选。
 2. 逐项匹配 board_id、hardware_revision、architecture、float_abi、libc、runtime_id、
@@ -64,6 +66,13 @@ CAN/RS485/EtherCAT 区分软件可用、接口枚举和外部从站互操作；�
 公开流程需要重新下载附件校验，并冻结标签与资产。源码包工具不等于应用更新包工具。
 
 ## 当前实现边界
+
+当前源码、测试、CI 和脱敏实板记录已同步开发分支；实板第6版通过完整签名包安装、
+健康原码/回退、两处物理断电和临时系统冷启动验证，详见
+[实板继续验证](validation/2026-10-14-board-native-ota-continuation.json)。
+本轮试验工具源码归档在 boards/t113s4-sdnand/validation/20261014-native-pilot，
+不被应用载荷/正式 post-build 自动安装。fixture 契约和故障注入只能用于复核试验；
+不作为正式基线或生产维护回调，也不因代码上传生成公开 Release。
 
 新增 S4 接入与应用更新 v1 是开发实现；主机测试结果见工作记录，不能宣称生产 OTA 就绪。
 已有 T153 短测状态保持原义，不代表新增更新器已在 T153 验证。底层和更新器自身通过系统线升级。

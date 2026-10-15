@@ -2,6 +2,12 @@
 
 ## Latest upload authorization (2026-10-14)
 
+Latest user instruction: organize all current work and synchronize what belongs
+in GitHub. This authorizes reviewed source, tests, board reference sources,
+engineering gates and sanitized evidence on the existing feature branch.
+Keep the production qualification false. Do not publish a Release, upload private
+material or automatically deploy the archived pilot tools as part of this sync.
+
 The user explicitly requested: record/upload the current work, then test locally.
 The primary agent may commit and push the pending DshanControl implementation,
 tests and engineering records to the existing feature branch, then record and

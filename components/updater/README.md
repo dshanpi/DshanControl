@@ -1,9 +1,13 @@
 # DshanControl application updater v1 (development)
 
-This is an application updater, independent of whole-system SWUpdate. The protocol
-and lifecycle are implemented and tested on the host; no physical power-loss or
-S4/T153 OTA qualification is claimed. System-owned identity/public key/maintenance
-and health hooks must be provisioned and validated before enabling installation.
+This directory retains the legacy Python application updater as a protocol and
+regression reference, independent of whole-system SWUpdate. New production
+updater/platform work uses the [C++ runtime](../runtime/README.md).
+The native S4 pilot has full-payload signed install, health rollback, two physical
+power-interruption boundaries, real Qt checking and cold-start evidence; it uses
+a fixture contract, copied data and temporary system hooks. No production S4/T153
+OTA qualification is claimed. System identity, trust, maintenance, permissions
+and health integration must still be provisioned and validated.
 
 ## Runtime layout
 
@@ -23,6 +27,10 @@ GitHub and writes `/var/run/dshancontrol-update.json`. Automatic installation is
 assets, exact compatibility and the system maintenance interlock.
 
 ## Device commands
+
+The commands/layout below describe the legacy integration. Use the C++ runtime
+documentation for native CLI/RPC operation; these instructions do not enable
+production installation on the currently unqualified board.
 
 ```sh
 dshancontrol-update check

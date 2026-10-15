@@ -42,6 +42,17 @@ package and restored-input repack evidence; see [hardware-inputs.md](hardware-in
 It includes an empty factory UDISK payload and remains unqualified on hardware.
 The development helper above still builds only its documented userspace target.
 
+Latest physical development status (2026-10-14): the corrected vendor image
+`ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc`
+has flashed and booted, with writable ext4 UDISK, RGB50 1024x600 and user-confirmed
+GT911 touch. The full signed application pilot is now sequence 6 / commit
+`26088ef1acbc1bf8bf19e6c586d58e38c408a93e`. Native health-code/rollback,
+prepared and switched physical interruption recovery, real Qt GitHub checking,
+temporary-system cold startup, WiFi DHCP and native brightness have evidence.
+This uses a fixture-only contract, copied data and a temporary system overlay;
+hardware revision, formal baseline, GitHub download/install and full qualification
+remain pending. See [current evidence](../../docs/validation/2026-10-14-board-native-ota-continuation.json).
+
 ## Porting choices
 
 - Qt5 Widgets/Charts HMI, Web, core and supervisor use the canonical component sources.
@@ -58,13 +69,15 @@ The development helper above still builds only its documented userspace target.
   during startup. Unknown/FAT/damaged volumes require an explicit data-preserving
   provisioning/recovery process. No A/B system partition layout is introduced.
 - Only the baseline display channel is configured. CAN, RS485, Ethernet fieldbus,
-  cellular and touch are not copied from T153 or declared verified.
+  and cellular are not copied from T153 or declared verified. GT911 has separate
+  S4 driver/event/user confirmation evidence; synthetic UI taps do not qualify
+  touch accuracy or simultaneous CAN0/touch operation.
 
-## Pending board evidence
+## Historical handoff and current qualification boundary
 
 The 2026-10-13 hardware handoff identifies the connected old system as
 `allwinner,t113_s4`: SD media, 3932160 sectors of 512 bytes (2013265920 bytes),
-root `mmcblk0p5`, and UDISK `mmcblk0p9` currently **vfat**. Hardware is available
+root `mmcblk0p5`, and UDISK `mmcblk0p9` was **vfat** in that old-system observation. Hardware is available
 to the primary interactive agent, who owns its UART, power, network and authorized
 trial flashing. The local build loop must not access hardware concurrently.
 These observations do not validate the new image or its ext4 data contract.
@@ -76,10 +89,14 @@ probing reported `set power on fail` and no WLAN interface; module/firmware pres
 does not establish a working connection. Keep private credentials out of builds.
 
 Use [the hardware input review](hardware-inputs.md) for the exact peripheral
-reference, timing differences and remaining evidence. The touch node is disabled
-and still contains an 800x480 range; do not enable it without verified wiring and
-geometry. Hardware revision, new-image display/touch/network, external bus devices,
-cold boot, storage persistence and power-loss recovery remain unverified.
+reference, timing differences and remaining evidence. The original baseline touch
+node was disabled with an 800x480 range. The approved S4 RGB50 correction now uses
+GT911 0x5d/I2C2 engine and 1024x600; exact changes, pin-sharing limits and image
+provenance remain in hardware-inputs.md. The old vfat/network/touch observations
+above are historical. Current ext4, display/touch, network, pilot cold startup
+and two physical interruption phases have development evidence; physical revision,
+production integration, external industrial devices, complete power-loss matrix
+and soak remain unqualified.
 
 `system-contract.json` deliberately contains pending values. Do not publish it as
 a qualified system identity. Before enabling upgrades, derive runtime/libc identity
@@ -135,3 +152,25 @@ preflight against the final target. A zero preflight exit means no configuration
 errors were found, **not** that packing or publication is approved: pending items and
 publishable=false remain authoritative. Raw superblock inspection is not a filesystem
 health check or proof that the image boots.
+
+## Archived physical-pilot sources
+
+[validation/20261014-native-pilot/manifest.json](validation/20261014-native-pilot/manifest.json)
+indexes the exact public source bytes retained from the successful development
+pilot: system startup readiness, lifecycle/health/storage checks, recovery,
+C++ RPC adapter and fixed framebuffer/synthetic-input probe. These files are
+non-executable reference copies, outside runtime/buildroot recipes and the
+application payload mapping. Repository gates check their hashes and syntax.
+
+The archived lifecycle deliberately contains sequence4 health failure and a
+manually armed power-cut window. Do not deploy it as a production lifecycle,
+execute it on another board, or infer that it provisions a complete pilot.
+The original hardware/network session, test signing keys, fixture configuration,
+packages, images, screenshots and raw logs are not part of this archive.
+Legacy Python health/storage are frozen bench references; the production
+platform/updater implementation remains C++.
+
+The successful normal cold boot uses real display RPC readiness before launching
+update recovery, rather than a fixed one-second sleep. The restore tool's
+`--check` passed; `--restore` was not executed. Current source/asset hashes and
+remaining qualification gates stay in the linked physical evidence record.

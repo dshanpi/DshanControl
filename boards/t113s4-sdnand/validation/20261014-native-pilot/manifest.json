@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "kind": "reference-only-physical-pilot-source-archive",
+  "recorded_date": "2026-10-14",
+  "board_id": "100ask-t113s4-sdnand",
+  "pilot_root": "/mnt/UDISK/dshancontrol/native-ota-pilot-20261014",
+  "automatic_updates_qualified": false,
+  "production_runtime": false,
+  "automatically_installed": false,
+  "evidence": "docs/validation/2026-10-14-board-native-ota-continuation.json",
+  "constraints": [
+    "Manual review only; exact sources retained for physical test traceability",
+    "Contains intentional bench failure injection; never select as production lifecycle",
+    "No signing keys, WiFi config, packages, firmware, screenshots, binary builds or raw logs included",
+    "Existing legacy Python health/storage are frozen bench references; production service/updater is C++",
+    "Does not provision a new board, rotate a production trust root or establish a qualified system contract",
+    "Host UART/network/power sessions and helper deployment automation remain local"
+  ],
+  "files": [
+    {
+      "path": "S70native-pilot.sh",
+      "sha256": "a36c758bd44a0e1022713c1365d6052c9a0f06c230a0a69f3faf4e90e617bf32",
+      "local_origin": "dist/board-continue-20261014/S70native-pilot-ready",
+      "scope": "Cold startup readiness order; fixed lab root, temporary UTC seed, private WiFi path only."
+    },
+    {
+      "path": "lifecycle.sh",
+      "sha256": "4d234e56cec0c71623264f040ddf165fccb84d25772364c79a807fc25008dc6c",
+      "local_origin": "dist/board-continue-20261014/lifecycle-continuation",
+      "scope": "Bench lifecycle with deliberate sequence4 exit73 and armed prepared power-cut window; never install as production hook."
+    },
+    {
+      "path": "restore-original-system.sh",
+      "sha256": "80bf6af3002587cbb2695f5b3a8327c9f2cf3f044da39dcf5f37a9e1f1835b6f",
+      "local_origin": "dist/board-ota-20261014/restore/restore-original-system.sh",
+      "scope": "Bounded fixed-pilot restoration; --check passed, --restore was not executed."
+    },
+    {
+      "path": "health.py",
+      "sha256": "d6611cb995a7d32b325d42f351a28e67973edd47976009709fa6d55d15416968",
+      "local_origin": "dist/board-ota-20261014/pilot/health.py",
+      "scope": "Legacy bench health: HTTP/commit, SQLite, real HMI exe/fb/input descriptors; not functional industrial health."
+    },
+    {
+      "path": "storage.py",
+      "sha256": "3359b744714b0707fdff79b2a21f1d30abf9ca5c69c5876f69c278e0d90420ca",
+      "local_origin": "dist/board-ota-20261014/pilot/storage.py",
+      "scope": "Existing legacy bench storage verifier; not a new production Python implementation."
+    },
+    {
+      "path": "update-client.sh",
+      "sha256": "21ec02b00c46155331eef08d333bbc4c45d340f74b7cdc5e262bbbd57de163fa",
+      "local_origin": "dist/board-ota-20261014/pilot/update-client",
+      "scope": "Fixed pilot C++ RPC/CLI adapter."
+    },
+    {
+      "path": "probe/main.cpp",
+      "sha256": "f55bc8fae51f466b351949b40204474a1821cf081d46e94d33488d9391513656",
+      "local_origin": "dist/board-continue-20261014/probe/main.cpp",
+      "scope": "C++ fixed framebuffer capture and synthetic gt9xxnew_ts Type A taps; not human touch accuracy evidence."
+    },
+    {
+      "path": "probe/probe.pro",
+      "sha256": "4d023df29d43725197af42b47849d9643cb1f37873461153b50971e53524f9dd",
+      "local_origin": "dist/board-continue-20261014/probe/probe.pro",
+      "scope": "qmake project for manual diagnostic build; not integrated into system or application package."
+    }
+  ]
+}

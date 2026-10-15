@@ -1201,3 +1201,26 @@ resource-lock/resource-busy：临时启动层固定等 1 秒仍可能与更新�
 新结构化记录：[本轮实板继续验证](validation/2026-10-14-board-native-ota-continuation.json)。
 H04仍in-progress、automatic_updates_qualified=false。尚缺正式硬件修订/系统契约、系统信任根与维护互锁、
 真实匹配的GitHub包下载和GUI安装、工业功能健康、生产数据迁移/权限、完整掉电矩阵和老化。
+
+### Repository/source synchronization（2026-10-14）
+
+用户要求全部整理并同步应上传内容。基线2b58740已与远端开发分支一致，且其
+[CI](https://github.com/dshanpi/DshanControl/actions/runs/38581997406) completed/success。
+本轮对齐落实方案、发布/硬件门禁、S4板卡说明和历史Python更新器说明，清除当前状态中
+“仅检查”“尚未提交”等已过时描述；历史执行记录及未通过的正式发布门禁继续保留。
+
+8份实板试验源码归档于 `boards/t113s4-sdnand/validation/20261014-native-pilot/`，
+manifest记录本地来源、逐文件SHA256、用途和reference-only边界。只归档原字节并设置非执行权限，
+没有接入应用载荷或正式Buildroot安装器。生命周期包含故障注入，旧Python健康/存储为冻结试验参考；
+不能把这些文件当成量产更新服务、通用板卡配置或自动部署入口。
+
+新增仓库门禁校验归档文件集合、路径、哈希、Shell语法和Python3.7语法。实测损坏源码和
+未声明文件均被拒绝，随后还原并重新通过。153项主机测试（5+148，含26原生）通过；
+归档C++ framebuffer/input工具使用同一S4 qmake/sysroot交叉编译退出0。
+实际调用通用应用载荷组装验证11个文件，试验归档/系统运行端均未进入应用包。
+本轮没有UI/运行逻辑修改，35项Qt和此前CI证据沿用对应源码，新提交还由远端CI重新检查。
+
+固件、镜像、测试签名包、图像、原始日志、设备/用户数据和私密配置继续本地保留，
+不纳入Git，不创建公开Release。本轮不烧录、不重启、不执行归档恢复/故障注入，不改设备当前第6版状态。
+SDK为多仓组件工作区，应用仓库已保存适配补丁与来源记录；完整可恢复SDK输入仍是未关闭门禁，
+不把上传应用源码描述成已上传全部厂商SDK或量产镜像。

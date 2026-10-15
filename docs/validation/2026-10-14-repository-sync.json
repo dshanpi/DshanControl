@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-15T02:15:40.307097+00:00",
+  "repository": "dshanpi/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "baseline_before_sync": "2b58740fefeed6e5b93228004a3a63900b506077",
+  "baseline_remote_head_confirmed": true,
+  "baseline_remote_ci": {
+    "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38581997406",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "scope": "Organize and synchronize reviewed source, engineering gates, current status and sanitized evidence; no deployment or release promotion",
+  "automatic_updates_qualified": false,
+  "current_application_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+  "current_sequence": 6,
+  "physical_evidence": "docs/validation/2026-10-14-board-native-ota-continuation.json",
+  "archive_manifest": "boards/t113s4-sdnand/validation/20261014-native-pilot/manifest.json",
+  "archived_source_count": 8,
+  "sources_archived_without_byte_changes": true,
+  "archive_permissions": "0644 reference copies",
+  "production_recipes_changed": false,
+  "device_changed_this_sync": false,
+  "public_release_created": false,
+  "checks": {
+    "host": {
+      "core": 5,
+      "other": 148,
+      "total": 153,
+      "native_in_other": 26,
+      "exit_code": 0
+    },
+    "archived_probe_cross_build_exit_code": 0,
+    "archive_negative_checks": {
+      "changed_source_rejected": true,
+      "unlisted_file_rejected": true,
+      "original_sources_restored": true,
+      "final_gate_exit": 0
+    },
+    "actual_payload_isolation": {
+      "status": "passed",
+      "file_count": 11,
+      "pilot_archive_included": false,
+      "system_runtime_included": false
+    },
+    "qt_reference": {
+      "passed": 35,
+      "application_commit": "26088ef1acbc1bf8bf19e6c586d58e38c408a93e",
+      "test_fix_commit": "59e895f19d8f6388a827c60de9cd46c41d1c9231",
+      "run_url": "https://github.com/dshanpi/DshanControl/actions/runs/38581228668",
+      "no_hmi_code_changes_this_sync": true
+    }
+  },
+  "local_logs": [
+    {
+      "local_path": "dist/sync-20261014/make-test.log",
+      "sha256": "467685418723c3d5b8c68716760dcb2dcbfca97f1c6ece4c6d6e74ef0bdfd98a"
+    },
+    {
+      "local_path": "dist/sync-20261014/ui-probe-cross-build.log",
+      "sha256": "72dcd0abcb663f8e832fdfb8bbbfff176093d90118f909a2b21167f8377b5a07"
+    },
+    {
+      "local_path": "dist/sync-20261014/archive-negative-checks.json",
+      "sha256": "3ac5c9539dba98cd0861d59de8ff32d3d169fe7b820a6159541d090ba667babf"
+    },
+    {
+      "local_path": "dist/sync-20261014/payload-isolation.json",
+      "sha256": "1cd193e6e3f108ae30359856acf35defe07a8dabb41672ac7a245680fab66ea9"
+    }
+  ],
+  "excluded": [
+    "Private signing and SSH keys, tokens, WiFi credentials and user data",
+    "Firmware, images and vendor/SDK build caches",
+    "Synthetic signed application fixture bundles and public-key configuration",
+    "Screenshots, framebuffer captures and raw session/boot/CI logs",
+    "Hardware host session and automatic power/deploy orchestration"
+  ],
+  "remaining": [
+    "Physical revision and qualified system contract/trust/maintenance integration",
+    "Real compatible GitHub download and GUI install chain",
+    "Full power-loss matrix, industrial health, production data migration, permissions and soak",
+    "Legacy runtime migration and recoverable SDK/hardware inputs",
+    "Independent builds and physical qualification for future boards"
+  ]
+}
