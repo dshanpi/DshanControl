@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-15T11:46:37.616179+00:00",
+  "scope": "replacement T113s4 SD NAND development acceptance; isolated native updater matrix",
+  "development_acceptance_passed": true,
+  "automatic_updates_qualified": false,
+  "production_release_authorized": false,
+  "source_commit": "238d98dd9439c1ef973e71629c791f27962c5077",
+  "source_ci": {
+    "id": 38728925561,
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/dshanpi/DshanControl/actions/runs/38728925561",
+    "head_sha": "238d98dd9439c1ef973e71629c791f27962c5077"
+  },
+  "base_system": {
+    "factory_source": "12359ec3ceaec23640fa64764c4c09dc94ce56ef",
+    "sanitized_image_sha256": "dc62a4b5195ffbe34af80a3e74522d15d18fb26e82b9c24058a69d37ab5b3c73",
+    "vendor_flash_verification": "success",
+    "application_sequence": 0,
+    "old_sequence_6_belongs_to_previous_board": true,
+    "draft_assets_changed_in_this_acceptance": false
+  },
+  "board": {
+    "binding_reverified": true,
+    "compatible": "allwinner,t113_s4",
+    "storage_bytes": 2013265920,
+    "display_touch": "user confirmed normal; prior Qt fb0/GT911 descriptor evidence",
+    "pcb_revision": "unknown"
+  },
+  "system_overlay": {
+    "included_in_base_image": false,
+    "firmware_alias": "/lib/firmware/aic8800d80 -> sdio/aic8800d80",
+    "firmware_files_sha_matched_frozen_target": 13,
+    "s72_sha256": "36f19c742ba38d765921f13e856f226526a7aaa2ba73ab52d5e3ff9fa7af53ea",
+    "s73_sha256": "d51e045735c345c99d53d0eef630ec87691b190963a7af4ec0ceee8bcea6dde0",
+    "busybox_utility_sha256": "ad23deebf974905b2497d5371eb536e44554a1ca11652bc0fea62ec73b836f20",
+    "original_bin_busybox_unchanged": true,
+    "new_utility_replaces_original_bin_busybox": false,
+    "deployment_transport": "network, pinned SHA256, bound LYNX proxy peer",
+    "private_wifi_in_source_or_image": false
+  },
+  "normal_reboot": {
+    "passed": true,
+    "old_boot_id": "bdba8891-e937-4d0b-a981-e619c103edf3",
+    "boot_id": "bfaeab97-5641-4116-831b-91ae7f098734",
+    "utc_unix": 1792064705.9551342,
+    "host_time_reference": 1792064700.1294796,
+    "https_default_verification": true,
+    "http_status": 200,
+    "immutable_identity_unchanged": true,
+    "overlay_hashes_unchanged": true,
+    "data_marker_unchanged": true,
+    "udisk_ext4_rw": true,
+    "site_wifi_private": true,
+    "original_busybox_unchanged": true,
+    "no_manual_network_start_after_boot": true
+  },
+  "post_reboot_checks": {
+    "automatic_wpa_association": true,
+    "automatic_dhcp_ipv4": true,
+    "default_route_present": true,
+    "network_clock_current": true,
+    "default_verified_https_200": true,
+    "udisk_auto_ext4_rw": true,
+    "native_health_exit": 0,
+    "application_health_exit": 0,
+    "two_live_sqlite_quick_checks": "ok",
+    "sdk_to_board_http_health": true,
+    "manual_module_wpa_dhcp_time_commands_after_reboot": false,
+    "immutable_identity_and_data_marker_unchanged": true
+  },
+  "native_update_matrix": {
+    "runtime_sha256": "a44ac44aff19323cbc28d1a1e40ed095ea6270b33b5c0692dc4210158334c6a0",
+    "tests": 15,
+    "cli_invocations": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed_seconds": 77.10180524499992,
+    "live_identity_unchanged": true,
+    "live_health_after": "passed",
+    "test_names": [
+      "test_committed_journal_cleanup_preserves_active_version",
+      "test_failed_rollback_keeps_journal_until_recovery",
+      "test_failed_rollback_preserves_original_health_and_recovery_exit_codes",
+      "test_health_failure_keeps_exit_code_after_successful_rollback",
+      "test_killed_after_switch_recovers_in_new_process",
+      "test_killed_before_switch_recovers_in_new_process",
+      "test_maintenance_rejection_then_retry",
+      "test_mismatches_rejected_before_any_hook",
+      "test_native_duplicate_json_is_rejected_before_hooks",
+      "test_native_pax_source_package_and_symlink_rejection",
+      "test_new_health_failure_rolls_back",
+      "test_production_refuses_unknown_storage_before_writing_or_hooks",
+      "test_signature_and_same_size_payload_tampering",
+      "test_signed_package_boundary_rejected_before_hooks",
+      "test_success_replay_and_real_process_lock"
+    ],
+    "evidence_archive_sha256": "c60a89d064b7f98b026ed5960a17a912bb1d1accfd1860bceb300499d66b920a",
+    "actual_live_application_switched": false,
+    "temporary_test_contracts_and_keys_isolated": true
+  },
+  "host_validation": {
+    "tests": 171,
+    "core_tests": 5,
+    "other_tests": 166,
+    "repository_gates": "passed",
+    "git_diff_check": "passed",
+    "arm_busybox_build": "passed",
+    "busybox_source_sha256": "6843ba7977081e735fa0fdb05893e3c002c8c5ad7c9c80da206e603cc0ac47e7",
+    "busybox_vendor_patch_sha256": "ac854cb0c135507e303b970a89c97502d5eda8b90d5453ddfa57106c96f9945b",
+    "busybox_config_sha256": "4f0c59d5eb52ed16f3fbbe83f31e5bf94b7f7b8699c1b013a5f9d7176c1885f9",
+    "busybox_fragment_verified": true,
+    "ntpd_server_disabled": true
+  },
+  "private_backup": {
+    "sha256": "c663d6550b223ff54a5cc5e2484f39989f38eaa3a1dc2ff9b1f0b18c193a70e9",
+    "bytes": 6365834,
+    "files_verified": 33,
+    "sqlite_databases_verified": 2,
+    "mutual_tls": true,
+    "certificate_pin_verified": true,
+    "archive_private_and_excluded_from_git_release": true,
+    "reverified_after_reboot": true
+  },
+  "original_failures_retained": [
+    "D80 vendor firmware directory did not match module CONFIG_AIC_FW_PATH; fixed relative alias after validating all13 files",
+    "first normal reboot: wpa_supplicant -B returned before PID publication, S72 exited before DHCP; fixed bounded owned-PID readiness without relaunch",
+    "normal reboot clock returned1970; added bounded one-shot client NTP; initial staged NTP exit142 retained; query-only DNS/UDP diagnostics then clock validation succeeded",
+    "development deployment preflight rejected a mistyped expected original BusyBox hash before writing; corrected expectation against frozen/live hashes"
+  ],
+  "cleanup": {
+    "owned_sdk_transfer_server_stopped": true,
+    "ephemeral_transfer_private_keys_removed": true,
+    "initial_isolated_fixture_private_key_removed": true,
+    "site_wifi_data_and_private_backup_preserved": true,
+    "health_after_cleanup": "passed"
+  },
+  "remaining_production_gates": [
+    "accurate PCB revision and qualified libc/runtime identity",
+    "system-anchored production signing public key and deployment trust procedure",
+    "industrial maintenance/control interlocks and least privilege",
+    "real Qt application signed-update/GUI acceptance",
+    "measured electrical power removal and full OTA interruption matrix",
+    "remaining Python runtime migration",
+    "authenticated/redundant clock and RTC behavior; present plain NTP requires network/UDP123",
+    "new complete system image containing these overlays has not been built or uploaded"
+  ]
+}

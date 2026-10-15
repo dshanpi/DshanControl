@@ -25,10 +25,15 @@ WPA later associated but S72 had already refused, so DHCP was skipped. Preserve
 that failure. Poll owned PID/executable/argv readiness for at most five seconds
 without launching again; test both delayed PID publication and missing PID.
 Manual completion of skipped DHCP does not qualify automatic startup.
-A normal reboot also reset the no-RTC clock to 1970. System-owned S73 uses one
+A normal reboot also reset the unretained clock to 1970. System-owned S73 uses one
 foreground client-only NTP attempt, bounded by timeout30, after S72; preserve
 errors and reject an epoch clock. Plain NTP is not authenticated NTS or RTC
 qualification. Require real post-reboot UTC and verified HTTPS evidence.
+Corrected source 238d98d passed a normal reboot: automatic WPA/DHCP/route,
+S73 UTC and verified HTTPS200, writable ext4, native/app health, immutable identity
+and data marker. Host 171 and actual ARM native 15 / 45 CLI observations passed.
+These are development overlays, absent from the immutable dc62 base image;
+production identity/signing/maintenance/power-loss remain unqualified.
 See `docs/S4-DEVELOPMENT-ACCEPTANCE-20261015.md`. Signed synthetic CLI fixtures
 must remain isolated from the live application, contract, trust root and data;
 process interruption tests do not establish physical power-loss qualification.
