@@ -1,0 +1,22 @@
+--- a/configs/default/image_linux.cfg
++++ b/configs/default/image_linux.cfg
+@@ -85,7 +85,7 @@
+     {filename = "sunxi_gpt.fex",    maintype = "12345678",        subtype = "1234567890___GPT",},
+     {filename = "sunxi_mbr.fex",    maintype = "12345678",        subtype = "1234567890___MBR",},
+     {filename = "dlinfo.fex",       maintype = "12345678",        subtype = "1234567890DLINFO",},
+-    {filename = "arisc.fex",        maintype = "12345678",        subtype = "1234567890ARISC" ,},
++; S4 has no arisc.config; its separate amp_rv0 payload remains in the partition table.
+ 
+     ;-------------------------------其他----------------------------------------------;
+     {filename = "vmlinux.fex",      maintype = "12345678",        subtype = "123456789VMLINUX",},
+--- a/configs/default/image.cfg
++++ b/configs/default/image.cfg
+@@ -84,7 +84,7 @@
+     {filename = "sunxi_gpt.fex",    maintype = "12345678",        subtype = "1234567890___GPT",},
+     {filename = "sunxi_mbr.fex",       maintype = "12345678",        subtype = "1234567890___MBR",},
+     {filename = "dlinfo.fex",          maintype = "12345678",        subtype = "1234567890DLINFO",},
+-    {filename = "arisc.fex",           maintype = "12345678",        subtype = "1234567890ARISC" ,},
++; S4 has no arisc.config; amp_rv0 remains in the partition table.
+     ;-------------------------------------------others-----------------------------------------------------;
+ 
+ ;------------------------------Attention!Don't change the maintype and subtype-----------------------------;

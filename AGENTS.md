@@ -1,20 +1,22 @@
 # DshanControl engineering gates
 
-## Latest upload authorization (2026-10-14)
+## Latest upload authorization (2026-10-14, compressed system delivery)
 
-Latest user instruction: organize all current work and synchronize what belongs
-in GitHub. This authorizes reviewed source, tests, board reference sources,
-engineering gates and sanitized evidence on the existing feature branch.
-Keep the production qualification false. Do not publish a Release, upload private
-material or automatically deploy the archived pilot tools as part of this sync.
-
-The user explicitly requested: record/upload the current work, then test locally.
-The primary agent may commit and push the pending DshanControl implementation,
-tests and engineering records to the existing feature branch, then record and
-push actual local test results. Earlier no-commit/no-push notes below are history
-and do not block this instruction. Keep new previews, firmware, raw local logs,
-private keys and device credentials out of Git. This does not authorize a public
-Release or change incomplete board/OTA qualification into passed acceptance.
+The user explicitly instructed: upload the S4 SDK differences and images,
+compress them, and complete the delivery workflow. This supersedes earlier
+source-only upload restrictions. The primary agent may commit/push reviewed
+source, gates and sanitized evidence to the existing feature branch, create a
+pinned development tag and GitHub **draft** Release, and upload compressed SDK
+input deltas, matching frozen factory source, sanitized factory firmware and
+version/checksum metadata. Re-download every remote asset and verify its hash.
+Keep firmware/vendor binaries out of application Git. Never upload device
+credentials, operational private keys, previews or raw lab logs. Remove the
+factory FreeRDP shared key on an image copy before uploading; keep the original
+image identity and its physical evidence distinct from the sanitized derivative.
+Do not reflash the board or overwrite its sequence-6 prototype/data for this
+upload. The sanitized derivative has not been physically flashed. This delivery
+is not a production C++ OTA baseline; qualification remains false, and no public
+Release promotion is authorized by incomplete board acceptance.
 
 ## Product scope (user-confirmed 2026-10-12)
 

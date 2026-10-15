@@ -1,0 +1,10 @@
+--- a/configs/100ask/buildroot/sys_partition.fex
++++ b/configs/100ask/buildroot/sys_partition.fex
+@@ -90,6 +90,7 @@
+ 
+ [partition]
+     name         = UDISK
++    downloadfile = "udisk.fex"
+     user_type    = 0x8100
+ 
+ 

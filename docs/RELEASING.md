@@ -88,3 +88,10 @@ by the matching vendor buildserver/update_chip configuration. See
 `boards/t113s4-sdnand/hardware-inputs.md`. Missing information can pass ordinary
 flash checksums yet panic in OP-TEE, so a successful USB flash is not boot
 acceptance. Application releases do not carry or change Boot0.
+
+## 2026-10-14 压缩系统草稿交付
+
+用户已明确授权上传 SDK 差异与镜像。执行
+[S4 系统交付说明](S4-SYSTEM-DELIVERY-20261014.md)：完整版本配对、压缩、私密材料检查、
+草稿附件上传及逐项回下载校验。原始含共享私钥镜像不上传；脱敏副本单列哈希与未重新
+实板验证状态。不因上传而提高 OTA 资格，也不重新烧写现有板上试验环境。

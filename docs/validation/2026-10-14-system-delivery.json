@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-14",
+  "release_kind": "system",
+  "stage": "prepared_for_draft_upload",
+  "automatic_updates_qualified": false,
+  "board": "t113_s4/100ask",
+  "storage": "SD NAND",
+  "filesystem": "Buildroot",
+  "hardware_repository": "DongshanPI/100ASK_T113s4-SdNand_TinaSDK5",
+  "hardware_commit": "0bbdbbabcfad8da15696e803f6714bfd1748a0a6",
+  "sdk_components": 122,
+  "sdk_tracked_changed_files": 67,
+  "sdk_untracked_additions": 36,
+  "sdk_delta_restoration_verified": true,
+  "full_clean_system_rebuild_verified": false,
+  "factory_application_commit": "52d05e9769d33e4001dd752081b657a1324460f7",
+  "factory_application_dirty": true,
+  "factory_source_files": 111,
+  "factory_build_info_unexplained_mismatches": [],
+  "source_image_sha256": "ac593abd7666393c2b7e554ea8d775b7255fb7c75e8868b8f6c505159ae233bc",
+  "sanitized_image_sha256": "47ad0042898e5f27cd175531dd1ef1b296085b8437671f8d411060644df21d65",
+  "shared_factory_rdp_key_removed": true,
+  "sanitized_image_physically_flashed": false,
+  "existing_board_modified_by_delivery": false,
+  "host_tests": 153,
+  "hmi_tests": 35,
+  "git_diff_check": "passed",
+  "remote_assets_redownloaded_and_verified": false,
+  "assets_prepared": {
+    "DshanControl-system-t113s4-sdnand-rgb50-development-sanitized-20261014.img.gz": {
+      "size": 174942180,
+      "sha256": "0cd0e080aa8457edf7425b2fe9ca403423efa76a305af5d0e79e2877bbe5dabf"
+    },
+    "DshanControl-t113s4-factory-source-20261014.tar.gz": {
+      "size": 6320908,
+      "sha256": "0baf92b53fa8494fbc848063fc29036d2f09a2621496fc2064e8bf1fc16c663b"
+    },
+    "DshanControl-t113s4-sdnand-sdk-delta-20261014.tar.gz": {
+      "size": 1211253,
+      "sha256": "fb69abe44c8335c33041030c12e5857f42f80401df2b0e4cb6f3a0add76bc123"
+    }
+  },
+  "limits": [
+    "draft only",
+    "factory image is not the current sequence-6 C++ pilot",
+    "factory UDISK is empty and overwritten by full flashing",
+    "formal production contract and complete physical OTA acceptance pending"
+  ]
+}

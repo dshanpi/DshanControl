@@ -1,0 +1,13 @@
+diff --git a/pack b/pack
+index 4af66aa..6d519dc 100755
+--- a/pack
++++ b/pack
+@@ -1552,7 +1552,7 @@ function do_finish()
+ 		#15269888 is from emmc datasheet, sec_count in Extended CSD is 0xe90000 = 15269888.
+ 		#40960 is the mbr location for emmc
+ 		#0  is emmc/nand ; 1 is spinor
+-		wrapper_run_logd update_mbr sys_partition.bin 4 sunxi_mbr.fex dlinfo.fex 61079552 40960 0
++		wrapper_run_logd update_mbr sys_partition.bin 4 sunxi_mbr.fex dlinfo.fex 3932160 40960 0
+ 		if [ $? -ne 0 ]; then
+ 			LOGF "update_mbr_gpt failed"
+ 		fi

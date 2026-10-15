@@ -324,3 +324,12 @@ Archive SHA256: be4d35794515429a345c5067a4f08ee17caa9cd5fb107b3616a64de0b1e847da
 ARM binary SHA256: 2ce162040811c28e8c18237cc8e2ea90d0b5a97759cd27fac9ba654c94e87cfd.
 This used an explicitly temporary diagnostic service with the actual still-pending
 system contract; it does not provision production update keys or qualify OTA.
+
+## SDK 差异与压缩工厂镜像交付（2026-10-14）
+
+见 [交付说明](../../docs/S4-SYSTEM-DELIVERY-20261014.md) 与其版本/校验回执。
+新增 Tina 0003～0005 补丁分别记录 3932160 扇区容量、ext4 UDISK 工厂下载与
+移除未使用 ARISC 容器项；结合 0001/0002 在固定基线上试应用通过。
+实际 SDK 差异另以压缩附件交付，含内核/AIC 输入与有效配置；不把厂商二进制提交
+到应用 Git，不把部分源码恢复检查宣称成全 SDK 重建。共享 FreeRDP 私钥移除后的
+上传副本与原始已烧录镜像哈希不同，前者未重新实板验证。
