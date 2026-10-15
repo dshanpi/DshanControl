@@ -1,0 +1,66 @@
+{
+  "scope": "native application identity, functional health and sealed lab backup",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "core": 5,
+    "repository": 181,
+    "total": 186,
+    "passed": true
+  },
+  "qt_tests": {
+    "passed": 36,
+    "failed": 0,
+    "gui_event_loop_freeze_observation_seconds": 6.5
+  },
+  "target_build": {
+    "passed": true,
+    "isa": "ARM ELF32",
+    "float_abi": "softfp",
+    "toolchain": "existing S4 Buildroot sysroot, GCC Linaro 5.3.1, Qt 5.11.3",
+    "network_during_build": false,
+    "private_config_and_ssh_hidden_during_build": true,
+    "native_runtime_sha256": "4ac12f480623f6c67fd3512e2457d2c6f1b315ec2b736fff175c1d82c3805818",
+    "hmi_sha256": "a2041576deb8bf78224a602dad9b6a987be0e8a0d7a51134aab96341c86ebab8"
+  },
+  "board_evidence": {
+    "sha256": "c1048a7b3167872dfea68631a12d693aa78509788cf81c9e50119f5dcada5b5a",
+    "bytes": 3040,
+    "network": "mutual TLS; certificate and hostname verified",
+    "tests": {
+      "run": 27,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native health/update fixtures; live application unchanged"
+    },
+    "live_application_health": {
+      "application_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+      "databases": 2,
+      "hmi_functional_heartbeat": false,
+      "ok": true,
+      "processes": {
+        "hmi": 1437,
+        "supervisor": 1440,
+        "web": 1434
+      }
+    },
+    "native_cli_observations": 45
+  },
+  "compatibility": {
+    "new_s4_source_contract": "dshancontrol-platform-2",
+    "t153_contract_unchanged": true,
+    "currently_flashed_image_modified": false,
+    "live_probe_requires_heartbeat": false,
+    "live_probe_reason": "immutable platform-1 image; mandatory producer is in newly compiled HMI, not installed into live factory"
+  },
+  "remaining": [
+    "Native HMI heartbeat producer has host Qt tests and ARM build; no claim of physical new-HMI execution yet",
+    "Root Python init/storage/supervision and root application lifecycle remain to migrate/harden",
+    "No real signed Qt application install/boot/rollback acceptance in this step",
+    "Exact PCB revision and measured full power removal remain external facts",
+    "Production identity/signing/maintenance/least privilege and automatic update qualification remain pending"
+  ]
+}

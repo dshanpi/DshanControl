@@ -1,6 +1,9 @@
 #include "../../components/hmi/src/mainwindow.h"
 #include "../../components/hmi/src/visuals.h"
 #include "../../components/hmi/src/updatepanel.h"
+#include "../../components/hmi/src/applicationheartbeat.h"
+#include <QSaveFile>
+#include <time.h>
 #include <QCheckBox>
 #include <QFileDialog>
 #include <QDir>
@@ -110,6 +113,49 @@ class HmiUiTest : public QObject
             r->abort();
     }
   private slots:
+    void functionalHeartbeatRequiresBackendIdentityAndLiveGuiLoop()
+    {
+        QTemporaryDir temp; QVERIFY(temp.isValid());
+        QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+        const QString commit(40, 'a');
+        QJsonObject body{{"ok",true},{"service","omnigate-web"},{"application_commit",QString(40,'b')}};
+        connect(&server,&QTcpServer::newConnection,this,[&] {
+            auto *socket=server.nextPendingConnection();
+            connect(socket,&QTcpSocket::readyRead,socket,[&,socket] {
+                auto request=socket->property("request").toByteArray()+socket->readAll();
+                socket->setProperty("request",request);
+                if(!request.contains("\r\n\r\n") || socket->property("responded").toBool()) return;
+                socket->setProperty("responded",true);
+                auto bytes=QJsonDocument(body).toJson(QJsonDocument::Compact);
+                socket->write("HTTP/1.1 200 OK\r\nContent-Length: "+QByteArray::number(bytes.size())+
+                              "\r\nConnection: close\r\n\r\n"+bytes);
+                socket->disconnectFromHost();
+            });
+            connect(socket,&QTcpSocket::disconnected,socket,&QObject::deleteLater);
+        });
+        const auto url=QUrl(QString("http://127.0.0.1:%1/api/health").arg(server.serverPort()));
+        const auto file=temp.filePath("heartbeat.json");
+        ApplicationHeartbeat writer(file,commit,url);
+        QTest::qWait(1200); QVERIFY(!QFile::exists(file));
+        body["application_commit"]=commit;
+        QTRY_VERIFY_WITH_TIMEOUT(QFile::exists(file),3000);
+        auto read=[&] {QFile value(file); if(!value.open(QIODevice::ReadOnly))return QByteArray();return value.readAll();};
+        auto before=read();auto value=QJsonDocument::fromJson(before).object();
+        QCOMPARE(value["commit"].toString(),commit);
+        QCOMPARE(qint64(value["pid"].toDouble()),QCoreApplication::applicationPid());
+        QVERIFY(value["gui_event_loop"].toBool());QVERIFY(value["backend_identity_verified"].toBool());
+        QVERIFY(!(QFileInfo(file).permissions() & (QFile::WriteGroup|QFile::WriteOther)));
+        // A live PID with a blocked GUI thread must stop publishing functional health.
+        QTest::qSleep(6500);
+        QCOMPARE(read(),before);
+        struct timespec now;QVERIFY(::clock_gettime(CLOCK_BOOTTIME,&now)==0);
+        QVERIFY(double(now.tv_sec)+now.tv_nsec/1e9-value["monotonic_seconds"].toDouble()>=6);
+        const auto outside=temp.filePath("must-preserve");QFile target(outside);QVERIFY(target.open(QIODevice::WriteOnly));
+        target.write("preserve this file");target.close();
+        const auto linked=temp.filePath("linked.json");QVERIFY(QFile::link(outside,linked));
+        ApplicationHeartbeat unsafe(linked,commit,url);QTest::qWait(1200);
+        QVERIFY(target.open(QIODevice::ReadOnly));QCOMPARE(target.readAll(),QByteArray("preserve this file"));
+    }
     void initTestCase()
     {
         // Each clean test run, including a single selected test, owns its output.

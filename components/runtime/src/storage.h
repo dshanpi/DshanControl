@@ -33,3 +33,5 @@ public:
   FileLock(const FileLock &) = delete;
   FileLock &operator=(const FileLock &) = delete;
 };
+
+void verifyPersistentStorage(const QString &root, const QJsonObject &contract);

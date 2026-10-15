@@ -83,7 +83,11 @@ def main():
               'health_observation_seconds': 30, 'startup_timeout_seconds': 30,
               'health_interval_seconds': 2}
     if args.runtime:
-        config.update(task_service=True,
+        config.update(application_health={'pid_root': '/var/run/dshancontrol',
+                                          'http_url': 'http://127.0.0.1/api/health',
+                                          'require_hmi_heartbeat': True,
+                                          'hmi_heartbeat': '/var/run/dshancontrol/hmi-heartbeat.json'},
+                      task_service=True,
                       control_lock='/mnt/UDISK/dshancontrol/apps/.control.lock')
         service = {'socket': '/var/run/dshancontrol/platform.sock',
                    'updater_config': '/etc/dshancontrol/updater.json',

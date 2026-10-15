@@ -119,6 +119,16 @@ provide a verified maintenance interlock and board health probe, and test the fu
 factory-image → application-update → interruption/rollback chain. Until then,
 packages are development drafts and the device refuses installation by default.
 
+New S4 source uses software contract `dshancontrol-platform-2`: its native health
+probe requires the matching application's GUI event loop to publish a private,
+fresh boot-monotonic heartbeat after checking backend identity. It also checks
+owned process executable/argv, the fixed loopback API and read-only SQLite/schema
+health. A live PID alone is insufficient. This is a software compatibility change,
+not a PCB revision or industrial-control qualification; T153 retains its existing
+contract. The previously delivered netclock image still has its original contract
+and binaries. Production identity, maintenance interlocks and least privilege
+remain separate gates.
+
 After the target rootfs is complete, derive its runtime identity (before image
 packing) with:
 

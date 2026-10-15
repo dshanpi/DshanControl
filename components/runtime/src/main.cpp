@@ -1,3 +1,4 @@
+#include "applicationhealth.h"
 #include "service.h"
 #include "updater.h"
 #include <QCoreApplication>
@@ -33,8 +34,17 @@ int main(int argc, char **argv) {
       args.removeFirst();
       args.removeFirst();
     }
-    NativeUpdater updater(readJson(config));
+    auto configuration = readJson(config);
     auto command = args.value(0);
+    if (command == "application-commit" && args.size() == 1) {
+      QTextStream(stdout) << applicationIdentity(configuration)["commit"].toString() << '\n';
+      return 0;
+    }
+    if (command == "application-health" && args.size() == 1) {
+      QTextStream(stdout) << QJsonDocument(applicationHealth(configuration)).toJson(QJsonDocument::Compact) << '\n';
+      return 0;
+    }
+    NativeUpdater updater(configuration);
     QJsonValue result;
     if (command == "recover" && args.size() == 1) {
       updater.recover();
@@ -55,7 +65,8 @@ int main(int argc, char **argv) {
       throw Failure(
           "invalid-command", "preparing",
           "Usage: dshancontrol-runtime [--config FILE] "
-          "check|download|recover|install MANIFEST SIGNATURE PACKAGE");
+          "application-commit|application-health|check|download|recover|"
+          "install MANIFEST SIGNATURE PACKAGE");
     if (result.isObject())
       QTextStream(stdout)
           << QJsonDocument(result.toObject()).toJson(QJsonDocument::Compact)

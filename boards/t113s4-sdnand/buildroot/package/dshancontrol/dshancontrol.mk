@@ -3,7 +3,7 @@ DSHANCONTROL_SITE = $(BR2_EXTERNAL_DSHANCONTROL_PATH)/app-source
 DSHANCONTROL_SITE_METHOD = local
 DSHANCONTROL_LICENSE = GPL-3.0-only OFL-1.1
 DSHANCONTROL_LICENSE_FILES = LICENSE components/hmi/src/fonts/OFL.txt
-DSHANCONTROL_DEPENDENCIES = busybox-init-base-files qt5base qt5charts python3 dshancontrol-python openssl zlib ca-certificates host-python3 wqy-zenhei
+DSHANCONTROL_DEPENDENCIES = busybox-init-base-files qt5base qt5charts python3 dshancontrol-python openssl zlib sqlite ca-certificates host-python3 wqy-zenhei
 
 # Buildroot 201902 has no qmake-package infrastructure. Keep T153's recipe intact.
 define DSHANCONTROL_CONFIGURE_CMDS

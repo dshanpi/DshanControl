@@ -9,3 +9,6 @@ RESOURCES += ../../components/hmi/src/icons.qrc
 
 SOURCES += ../../components/hmi/src/visuals.cpp
 HEADERS += ../../components/hmi/src/visuals.h
+
+SOURCES += ../../components/hmi/src/applicationheartbeat.cpp
+HEADERS += ../../components/hmi/src/applicationheartbeat.h

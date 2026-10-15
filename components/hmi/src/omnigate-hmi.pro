@@ -11,3 +11,6 @@ RESOURCES += icons.qrc
 
 SOURCES += visuals.cpp
 HEADERS += visuals.h
+
+SOURCES += applicationheartbeat.cpp
+HEADERS += applicationheartbeat.h

@@ -1,11 +1,22 @@
 #!/bin/sh
 # System-owned lifecycle hook; application bundles cannot replace it.
 set -eu
+umask 077
 ROOT=/mnt/UDISK/dshancontrol
 CURRENT=$ROOT/apps/current
 DATA=$ROOT/data
 RUN=/var/run/dshancontrol
-export DSHANCONTROL_APPLICATION_COMMIT=$(python3 -c 'import json; print(json.load(open("/mnt/UDISK/dshancontrol/apps/current/installed.json"))["commit"])')
+# Broken application identity must not prevent stop or maintenance/recovery.
+case "${1:-}" in
+start|restart-web)
+    if [ -x /usr/bin/dshancontrol-runtime ]; then
+        dshan_application_commit=$(/usr/bin/dshancontrol-runtime application-commit)
+    else
+        dshan_application_commit=$(python3 -c 'import json; print(json.load(open("/mnt/UDISK/dshancontrol/apps/current/installed.json"))["commit"])')
+    fi
+    export DSHANCONTROL_APPLICATION_COMMIT=$dshan_application_commit
+    ;;
+esac
 export OMNIGATE_CORE_PATH=$CURRENT/lib/core
 export PYTHONPATH=/usr/lib/dshancontrol-python:$OMNIGATE_CORE_PATH
 export OMNIGATE_WEB_ASSETS=$CURRENT/share/web
@@ -23,6 +34,7 @@ if [ -x /usr/bin/dshancontrol-runtime ]; then
     export DSHANCONTROL_PLATFORM_SOCKET=$DSHANCONTROL_NATIVE_PLATFORM_SOCKET
     export DSHANCONTROL_UPDATER_EXECUTABLE=/usr/bin/dshancontrol-runtime
     export DSHANCONTROL_UPDATER_CONFIG=/etc/dshancontrol/updater.json
+    export DSHANCONTROL_HMI_HEARTBEAT=$RUN/hmi-heartbeat.json
 fi
 export QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
 export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/qt/plugins
@@ -69,11 +81,15 @@ restart-web)
     start-stop-daemon -S -b -m -p "$RUN/web.pid" -x /usr/bin/python3 -- "$CURRENT/lib/web/app.py"
     ;;
 health)
-    for name in web hmi supervisor; do
-        test -s "$RUN/$name.pid"
-        kill -0 "$(cat "$RUN/$name.pid")"
-    done
-    python3 /usr/lib/dshancontrol-update/health.py
+    if [ -x /usr/bin/dshancontrol-runtime ]; then
+        /usr/bin/dshancontrol-runtime application-health
+    else
+        for name in web hmi supervisor; do
+            test -s "$RUN/$name.pid"
+            kill -0 "$(cat "$RUN/$name.pid")"
+        done
+        python3 /usr/lib/dshancontrol-update/health.py
+    fi
     # Board validation may add a system-owned display/IPC/fieldbus health probe.
     [ ! -x /etc/dshancontrol/health-check ] || /etc/dshancontrol/health-check
     ;;

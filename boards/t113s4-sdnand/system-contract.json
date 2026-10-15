@@ -8,7 +8,7 @@
   "float_abi": "softfp",
   "libc": "pending",
   "runtime_id": "pending",
-  "contract_id": "dshancontrol-platform-1",
+  "contract_id": "dshancontrol-platform-2",
   "updater_protocol": 1,
   "data_schema": 1,
   "allowed_channels": [
