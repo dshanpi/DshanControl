@@ -1,5 +1,26 @@
 # DshanControl engineering gates
 
+## Netclock full system delivery and next phase (2026-10-15)
+
+The subsequent sustained task's first stage is complete. New immutable source
+`9594e8b105915bd450af69d48d4631e46031ca93` produced sanitized image `f71bcfff...`;
+the bound replacement board was flashed once, private data restored, and a normal
+reboot passed automatic WiFi/DHCP/UTC/default-verified HTTPS and application health.
+All 157 original telemetry rows were preserved. New Draft 413927654 has 17 assets,
+all re-downloaded and verified; older drafts and images remain unchanged.
+See `docs/S4-NETCLOCK-SYSTEM-DELIVERY-20261015.md` and its structured receipt.
+This supersedes earlier statements that network/time fixes are absent from the
+latest image. BSP/toolchain and unchanged installed dependencies were reused;
+this is not a completely fresh SDK reproduction. Do not mix later working-tree
+health changes into that frozen image's identity or move its tag.
+Continue stages 2–4 from `docs/S4-COMPLETION-PLAN-20261015.md`. Exact PCB revision,
+production signing/maintenance/least privilege, real Qt signed update acceptance
+and measured complete power removal remain unqualified. A relay command alone
+does not prove 0 V or absence of USB backfeed. Keep private backups and keys local.
+SQLite connection context managers do not close connections: explicitly close and
+seal snapshots, verify logical rows, and exclude volatile auxiliary files from
+static post-reboot preservation expectations.
+
 ## Replacement board and development acceptance (2026-10-15)
 
 The user confirmed a replacement board and authorized reflashing it, then asked

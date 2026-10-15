@@ -1,0 +1,334 @@
+{
+  "scope": "netclock complete system development delivery",
+  "factory_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "delivery": {
+    "verified_at_utc": "2026-10-15T15:03:03.357685+00:00",
+    "release_id": 413927654,
+    "release_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-4dbf081a5c6026763485",
+    "tag": "system-v0.1.0-dev.20261015.1--t113s4-sdnand",
+    "source_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+    "draft": true,
+    "automatic_updates_qualified": false,
+    "verified_asset_count": 17,
+    "assets": [
+      {
+        "id": 644170459,
+        "name": "DELIVERY-NOTES.txt",
+        "size": 1168,
+        "sha256": "02a128005ceb82433f75392d676b5204d7caa32858961ea399d72e3fc7f31187",
+        "redownload_verified": true
+      },
+      {
+        "id": 644170571,
+        "name": "DshanControl-system-t113s4-sdnand-rgb50-netclock-sanitized-20261015.img.gz",
+        "size": 174576491,
+        "sha256": "72d255b6b90281c27a3378e074233e1160b2478f0456d5647845f3b7046d3dc3",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172083,
+        "name": "DshanControl-t113s4-netclock-factory-source-20261015.tar.gz",
+        "size": 6381179,
+        "sha256": "2dee0e05a99496e562c23dbd02e4466fe1c2cf8494e111a49fc3d372cc0d7b58",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172210,
+        "name": "DshanControl-t113s4-sdnand-netclock-sdk-delta-20261015.tar.gz",
+        "size": 1235852,
+        "sha256": "e5d860ee8307ffeea7197cf1efc2a535c45eec8f456bc84c5395f0482424be12",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172290,
+        "name": "SHA256SUMS",
+        "size": 1560,
+        "sha256": "e267415dccdc5bc495ded81e2cda4871da6244ec03279c404e91ae1b25650138",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172449,
+        "name": "board-development-acceptance.json",
+        "size": 4254,
+        "sha256": "0365dd7ab8ef498007b49bf8db6ebe2bcbfa2d87604ab94a8756d780e4522670",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172525,
+        "name": "boot0-gate.json",
+        "size": 291,
+        "sha256": "56b8f5ad7b32923cd630b91ee99b6a07b161fee010fbb25ddec1d5d6ebd83d53",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172590,
+        "name": "build-summary.json",
+        "size": 2845,
+        "sha256": "465b0fbf945981a7fd04fa8e4fd2c8bb33f357f01d6a15591e9fea66d5d9ae66",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172649,
+        "name": "factory-build-info.json",
+        "size": 24374,
+        "sha256": "acf4941a3bcbd434321f45a1c095de695b9ab724d6a1c1945e37c137ad4280a5",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172727,
+        "name": "factory-system-contract.json",
+        "size": 671,
+        "sha256": "6c0891093b4e8bab1131ff4dca06fdc47e6fb1ac5430df88f2b3f3abc59ef294",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172774,
+        "name": "image-privacy-check.json",
+        "size": 1004,
+        "sha256": "bb9726900ad30bb005e76e1c474fa484ebdde4c83851e684a852d5608f470db1",
+        "redownload_verified": true
+      },
+      {
+        "id": 644172817,
+        "name": "package-inspection.json",
+        "size": 15548,
+        "sha256": "d485eeb49c39fe11d0cbab0a438daf085d5a0bcf625f92da3197c3c25b0b256e",
+        "redownload_verified": true
+      },
+      {
+        "id": 644173051,
+        "name": "release-lock.json",
+        "size": 4887,
+        "sha256": "25fbd5f608069008abf0fb454fe98a29190a57a98130ba5de149ccdf16d2866a",
+        "redownload_verified": true
+      },
+      {
+        "id": 644173164,
+        "name": "rootfs-validation.json",
+        "size": 33967,
+        "sha256": "af0dd3343dc213dad6d1ec65b9c73dddbb3f13ba07e6537e2bee90eb1fa7f1c8",
+        "redownload_verified": true
+      },
+      {
+        "id": 644173257,
+        "name": "runtime-observations.json",
+        "size": 190970,
+        "sha256": "96aaa4c4f966a29efc0786a314d34182ab2701c44983fcbac011c5530016a8a8",
+        "redownload_verified": true
+      },
+      {
+        "id": 644173349,
+        "name": "sanitization-report.json",
+        "size": 675,
+        "sha256": "c0f5f64e195ed45cf6e12db0d4572418ff8683a14bfc6925f5723287fa12b1d6",
+        "redownload_verified": true
+      },
+      {
+        "id": 644173403,
+        "name": "sdk-components.lock.json",
+        "size": 21710,
+        "sha256": "dd2aeec9dff0a09764deac651c0fb4ebf2aa7427180c079c71b685d492e1ea23",
+        "redownload_verified": true
+      }
+    ],
+    "sha256sums_verified": true,
+    "archive_file_checks": [
+      {
+        "name": "DshanControl-t113s4-netclock-factory-source-20261015.tar.gz",
+        "files_verified": 148,
+        "unsafe_members": false
+      },
+      {
+        "name": "DshanControl-t113s4-sdnand-netclock-sdk-delta-20261015.tar.gz",
+        "files_verified": 340,
+        "unsafe_members": false
+      }
+    ],
+    "raw_image_sha256": "f71bcfff7dd90238fb1150c633ff56d9ecda3d2f0b83f0e2786838aef61127da",
+    "raw_image_bytes": 1426203648,
+    "github_token_forwarded_to_cdn": false
+  },
+  "physical_acceptance": {
+    "scope": "replacement-board complete netclock image, managed data restore and normal reboot",
+    "production_qualified": false,
+    "automatic_updates_qualified": false,
+    "image_sha256": "f71bcfff7dd90238fb1150c633ff56d9ecda3d2f0b83f0e2786838aef61127da",
+    "image_bytes": 1426203648,
+    "factory_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+    "flash": {
+      "state": "success",
+      "verify_state": "success",
+      "verify_error_code": 0,
+      "written_bytes": 1362353584,
+      "exit_code": 0,
+      "post_action_note": "Backend reports success but also a second reboot device-not-found; actual UART new image identity/health independently verified. No replay issued."
+    },
+    "normal_reboot": {
+      "passed": true,
+      "boot_id": "93b3ddc9-56ed-427b-b14e-4b4a02e06691",
+      "previous_boot_id": "2c761b45-c55b-421e-9c9c-1095c988a267",
+      "factory_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+      "factory_sequence": 0,
+      "unix": 1792074573.8373992,
+      "host_time_reference": 1792074568.7659166,
+      "static_user_files_verified": 4,
+      "databases_restored_hash_verified_before_start": true,
+      "site_wifi_private": true,
+      "firmware_alias_in_image": true,
+      "no_temporary_busybox_overlay": true,
+      "default_https_verification": true,
+      "http_status": 200,
+      "no_manual_network_or_time_after_reboot": true
+    },
+    "network_http_health": true,
+    "native_health_exit": 0,
+    "application_health_exit": 0,
+    "private_backup": {
+      "sha256": "61d919a328108fbb6463a633cdddbc909ada1e79e4fec10e01192abd1eee5216",
+      "files_verified": 35,
+      "sqlite_databases_verified": 2,
+      "services_quiesced": true,
+      "mutual_tls": true,
+      "not_uploaded": true
+    },
+    "restoration": {
+      "restored": true,
+      "files": 9,
+      "sqlite_quick_checks": 2,
+      "archive_sha256": "4e9b6a637e0c8fec0891a8bec858940f39c430e4462f42e3c6e94ad6b622bc03",
+      "original_backup_sha256": "61d919a328108fbb6463a633cdddbc909ada1e79e4fec10e01192abd1eee5216",
+      "factory_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+      "original_initialized_directories_preserved": true
+    },
+    "database_logical_preservation": {
+      "edge.db": {
+        "metadata": {
+          "snapshot_rows": 1,
+          "live_rows": 1,
+          "all_snapshot_rows_preserved": true
+        },
+        "devices": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "points": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "audit": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        }
+      },
+      "hmi.db": {
+        "alarms": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "audit": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "telemetry": {
+          "snapshot_rows": 157,
+          "live_rows": 175,
+          "all_snapshot_rows_preserved": true
+        }
+      }
+    },
+    "initial_observations": [
+      "First unconfigured boot intentionally has no site WiFi; bounded NTP failed offline.",
+      "First provisioned NTP -q returned142; query-only diagnosis receivedvalid replies, dualIPv4diagnostic setUTC; later actual normalreboot autoNTP/defaultHTTPS passed.",
+      "One-off WPA bootstrap SAVE_CONFIG inherited022; privateparent0700 preventedotheruseraccess, leaf0644 rejected byS72. Leafrepaired600; bootstrap nowsetsumask077andchmod600.",
+      "Board-initiated pull to SDK TLS reset104 beforepayload; successful restore uses proven SDK-initiated mutualTLS PUT.",
+      "Initial static-file checker incorrectlyincluded SQLite volatile-shm; fixedclassification and verifiedalloriginaldatabase rows, including157telemetry rows."
+    ],
+    "remaining": [
+      "ExactPCBrevisionpendinguserfact; measuredglibc/runtimevaluesnotwrittenintoformalcontract",
+      "Productiontrustrootandmaintenance/functionalhealth/leastprivilegepending",
+      "RealQt signedGitHubdownload/installandcompletephysicalpowerlossmatrixpending",
+      "PlainNTPhasnoNTSauthentication; nofullRTC/powerretentionclaim",
+      "RemainingrootPythoninit/storage/health/supervisionmigrationpending"
+    ],
+    "old_release_assets_changed": false
+  },
+  "build": {
+    "source_commit": "9594e8b105915bd450af69d48d4631e46031ca93",
+    "dirty": false,
+    "host_tests": 172,
+    "source_ci": [
+      {
+        "id": 38743726282,
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/dshanpi/DshanControl/actions/runs/38743726282",
+        "head_sha": "9594e8b105915bd450af69d48d4631e46031ca93"
+      }
+    ],
+    "incremental_rootfs_build": {
+      "command": [
+        "make",
+        "-C",
+        "/home/ubuntu/T113-tina5v1.2-sdk/buildroot/buildroot-201902",
+        "O=/home/ubuntu/dshancontrol-s4-clean-20261015/buildroot",
+        "BR2_EXTERNAL=/home/ubuntu/dshancontrol-s4-clean-20261015/external",
+        "BR2_DEFCONFIG=/home/ubuntu/dshancontrol-s4-clean-20261015/dshancontrol_defconfig",
+        "BR2_JLEVEL=4",
+        "LICHEE_ARCH=arm",
+        "LICHEE_BOARD=100ask",
+        "LICHEE_BR_OUT=/home/ubuntu/dshancontrol-s4-clean-20261015/buildroot",
+        "LICHEE_BSP_DIR=/home/ubuntu/T113-tina5v1.2-sdk/bsp",
+        "LICHEE_BUILDING_SYSTEM=buildroot",
+        "LICHEE_CBBPKG_DIR=/home/ubuntu/T113-tina5v1.2-sdk/platform",
+        "LICHEE_CHIP=sun8iw20p1",
+        "LICHEE_CROSS_COMPILER=arm-linux-gnueabi",
+        "LICHEE_FLASH=default",
+        "LICHEE_IC=t113_s4",
+        "LICHEE_KERN_VER=linux-5.4",
+        "LICHEE_LINUX_DEV=buildroot",
+        "LICHEE_OUT_DIR=/home/ubuntu/dshancontrol-s4-clean-20261015/bsp-out",
+        "LICHEE_PLATFORM=linux",
+        "LICHEE_TOP_DIR=/home/ubuntu/T113-tina5v1.2-sdk",
+        "LICHEE_USE_INDEPENDENT_BSP=",
+        "all"
+      ],
+      "target": "rootfs",
+      "status": "passed",
+      "board_validation": "not-run",
+      "build_policy": {
+        "reused_target_dependencies": true,
+        "full_clean_sdk_rebuild": false,
+        "baseline_rootfs_bytes": 536870912,
+        "baseline_rootfs_sha256": "d37cecdb164395af512d0e29615215c0f75c4a9987b0072014a92b0a0c63d3a0",
+        "reused_baseline_files": {
+          "host/bin/qmake": "8f4f4fdb0bd4296c7a0d8e3b1320dc884bb554a4dd6fd8abcf2b60d960fae4cf",
+          ".config": "f758dd98e92626e423e03ddc8276be92f05397bd07f3912746904b5bd5f3fb80",
+          "target/usr/lib/libQt5Core.so.5.11.3": "eca38e243adfaae336613eef29da5fd5549c8edbd5ff5bbaf8a951c4df1b3fa0",
+          "target/lib/libc-2.21.so": "d75b536b4b7da0294c4f97af8427272ae57a02392ef846dafae4bb66f4301aed"
+        },
+        "installed_qt_stamps": [
+          "build/qt5base-5.11.3/.stamp_target_installed"
+        ],
+        "minimum_free_bytes": 4294967296,
+        "free_bytes_at_preflight": 15943098368
+      },
+      "exit_code": 0,
+      "rootfs_sha256": "a74faf744b887b08e89c7d64d1284656157fc9f59328c41695adb6343a979aaf",
+      "rootfs_size": 536870912
+    },
+    "sdk_input_capture_before_after_identical": true,
+    "components_captured": 122,
+    "reused_bsp_and_dependencies": true,
+    "full_sdk_clean_reproduction_verified": false,
+    "rootfs_files_verified": 104,
+    "elfs_verified": 43,
+    "container_entries": 41
+  }
+}
