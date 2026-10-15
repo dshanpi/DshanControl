@@ -61,6 +61,12 @@ least privilege and physical baseline/OTA acceptance remain pending. The actual
 target-package build and host tests are recorded
 [here](../../docs/validation/2026-10-15-native-system-integration.json).
 
+The vendor MMC environment requires `init=/init`. The post-build hook installs
+`/init -> bin/busybox` against the staged executable, including on a fresh ext4
+target with no previous boot link. Unexpected init files/links and symlinked
+BusyBox destinations stop the hook before any replacement. The image preflight
+also checks this entry; this source check is separate from physical boot evidence.
+
 ## Porting choices
 
 - Qt5 Widgets/Charts HMI, Web, core and supervisor use the canonical component sources.

@@ -20,6 +20,11 @@ Bind startup readiness to the actual owned daemon PID with service.ready, and
 use the monotonic bounded recovery wait. IPC readiness is not application or
 industrial health qualification. Keep the required BusyBox applets/fancy
 start-stop-daemon options in the S4 fragment.
+The MMC environment explicitly sets init=/init. A fresh ext4 build installs
+only /sbin/init; the S4 post-build hook must create /init -> bin/busybox after
+validating the staged executable. Refuse unexpected init files/links and symlinked
+BusyBox destinations before writing. Keep this boot entry in the source recipe
+and audit; do not depend on a previous target directory's leftover link.
 
 ## Latest upload authorization (2026-10-14, compressed system delivery)
 

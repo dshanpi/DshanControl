@@ -340,5 +340,35 @@
         "sha256": "499106e733d048ee1d230f1f7ac460caab123401c2de4a1647db7985a7630426"
       }
     ]
+  },
+  "boot_entry_followup": {
+    "recorded_at_utc": "2026-10-15T06:29:36.149766+00:00",
+    "source_base_commit": "47a48cbb812bc3790730fee122a52b4a5d98f732",
+    "observed_problem": "Fresh ext4 target has /sbin/init but no /init; vendor MMC environment explicitly uses init=/init. The prior factory target had an inherited bin/busybox link. CPIO init hook is disabled and no later configured hook supplies it.",
+    "changes": [
+      "Formal S4 post-build installs /init -> bin/busybox only against a staged regular executable",
+      "Unexpected init files/links and symlinked BusyBox or bin directory refuse before replacements",
+      "S4 image preflight verifies the entry; full image gate checks the actual ext4 symlink and BusyBox init applet"
+    ],
+    "source_files_sha256": {
+      "scripts/finalize_s4_rootfs.py": "95b2e455cdc80e4a142fed22510226c67f6f6eb6f6678212e7dd96604e481b23",
+      "scripts/audit_s4_system.py": "7ce2231f2263b04b46e886606767de1ea63b263e2af1189a452c37a84f5afaaa",
+      "tests/test_s4_system.py": "f6c60d74ea636964f63c6aac8f8015083715f3274f1c59ae801574f2b073ed7a"
+    },
+    "tests": {
+      "host_passed": 161,
+      "core_passed": 5,
+      "other_passed": 156,
+      "s4_system_cases": 18,
+      "qt_source_unchanged": true,
+      "native_cpp_source_unchanged": true,
+      "physical_boot_verified": false
+    },
+    "local_evidence": {
+      "path": "dist/continuation-20261015/init-entry-make-test.log",
+      "sha256": "fd298d19681bf6b9753c6a8edb4f46c7863edfd2b74a2d3bf524ce0cf06af74e"
+    },
+    "clean_rootfs_build": "Paused before application package; same-run dependencies retained for a coherent final source refresh",
+    "automatic_updates_qualified": false
   }
 }

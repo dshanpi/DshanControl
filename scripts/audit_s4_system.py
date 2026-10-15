@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import struct
@@ -130,8 +131,14 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
         errors.append('MMC root parameter missing')
     if root and not re.fullmatch(r'/dev/mmcblk[0-9]+p' + str(layout.index(root) + 1), environment.get('mmc_root', '')):
         errors.append('MMC root device index differs from selected partition table')
-    if not (buildroot / 'target/init').exists():
-        pending.append('vendor /init not installed; application target alone cannot boot')
+    init = buildroot / 'target/init'
+    busybox = buildroot / 'target/bin/busybox'
+    if not init.exists() and not init.is_symlink():
+        pending.append('S4 /init not installed; vendor MMC environment requires init=/init')
+    elif (not init.is_symlink() or os.readlink(str(init)) != 'bin/busybox'
+          or busybox.parent.is_symlink() or busybox.is_symlink()
+          or not busybox.is_file() or not busybox.stat().st_mode & 0o111):
+        errors.append('S4 /init must resolve to the staged executable bin/busybox')
     fixed = sum(p['size_bytes'] or 0 for p in layout)
     # Conservative engineering reserve, not a measurement of the physical GPT.
     reserve = 32 * 1024**2

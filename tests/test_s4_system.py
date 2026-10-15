@@ -22,6 +22,12 @@ spec.loader.exec_module(storage)
 
 
 class S4SystemTests(unittest.TestCase):
+    def boot_fixture(self, target):
+        busybox = target / 'bin/busybox'
+        busybox.parent.mkdir(parents=True, exist_ok=True)
+        busybox.write_text('#!/bin/sh\nexit 0\n')
+        busybox.chmod(0o755)
+
     def fixture(self, base):
         hardware, br = base / 'hardware', base / 'buildroot'
         board = hardware / 'device/config/chips/t113_s4/configs/100ask'
@@ -36,6 +42,7 @@ class S4SystemTests(unittest.TestCase):
         (br / 'target/etc/dshancontrol').mkdir(parents=True)
         (br / 'target/etc/dshancontrol/system-release.json').write_text(json.dumps(
             {'app_id': 'dshancontrol', 'board_id': '100ask-t113s4-sdnand'}))
+        self.boot_fixture(br / 'target')
         rootfs.finalize(br / 'target')
         (br / '.config').write_text('BR2_TARGET_ROOTFS_EXT2_4=y\nBR2_TARGET_ROOTFS_EXT2_SIZE="512M"\n')
         return hardware, board, br
@@ -98,6 +105,7 @@ class S4SystemTests(unittest.TestCase):
             (br / 'target/etc/dshancontrol').mkdir(parents=True)
             (br / 'target/etc/dshancontrol/system-release.json').write_text(json.dumps(
                 {'app_id': 'dshancontrol', 'board_id': '100ask-t113s4-sdnand'}))
+            self.boot_fixture(br / 'target')
             rootfs.finalize(br / 'target')
             (br / '.config').write_text('BR2_TARGET_ROOTFS_EXT2_4=y\nBR2_TARGET_ROOTFS_EXT2_SIZE="512M"\n')
             value = audit.audit(base / 'hardware', br, capacity_bytes=2 * 1024**3)
@@ -253,6 +261,7 @@ class S4SystemTests(unittest.TestCase):
             init = target / 'etc/init.d/S60mount_udisk'
             init.parent.mkdir(parents=True)
             init.write_text('mkfs.vfat /dev/by-name/UDISK')
+            self.boot_fixture(target)
             rootfs.finalize(target)
             self.assertIn('storage.py --mount', init.read_text())
             self.assertNotIn('mkfs', init.read_text())
@@ -260,6 +269,54 @@ class S4SystemTests(unittest.TestCase):
             contract.write_text('{"app_id":"dshancontrol","board_id":"t153"}')
             with self.assertRaises(ValueError):
                 rootfs.finalize(target)
+
+    def test_clean_ext4_postbuild_installs_boot_entry_and_audit_rejects_other_entry(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, _, br = self.fixture(Path(temp))
+            init = br / 'target/init'
+            self.assertEqual('bin/busybox', os.readlink(str(init)))
+            rootfs.finalize(br / 'target')
+            self.assertEqual([], audit.audit(hardware, br)['configuration_errors'])
+            init.unlink()
+            self.assertTrue(any('init=/init' in p for p in audit.audit(hardware, br)['pending']))
+            init.symlink_to('/sbin/init')
+            self.assertTrue(any('S4 /init' in e for e in audit.audit(hardware, br)['configuration_errors']))
+
+    def test_postbuild_boot_preflight_preserves_other_files(self):
+        for bad in ('missing-busybox', 'non-executable', 'busybox-symlink',
+                    'bin-symlink', 'init-file', 'init-symlink'):
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                _, _, br = self.fixture(base)
+                target = br / 'target'
+                policy = target / 'etc/init.d/S60mount_udisk'
+                policy.write_bytes(b'unchanged until all destinations are valid')
+                outside = base / 'outside'
+                outside.mkdir()
+                busybox = target / 'bin/busybox'
+                init = target / 'init'
+                if bad in ('missing-busybox', 'busybox-symlink'):
+                    busybox.unlink()
+                    if bad == 'busybox-symlink':
+                        busybox.symlink_to('/bin/busybox')
+                elif bad == 'non-executable':
+                    busybox.chmod(0o644)
+                elif bad == 'bin-symlink':
+                    busybox.unlink()
+                    busybox.parent.rmdir()
+                    busybox.parent.symlink_to(outside, target_is_directory=True)
+                else:
+                    init.unlink()
+                    if bad == 'init-file':
+                        init.write_bytes(b'preserve existing init')
+                    else:
+                        init.symlink_to('/sbin/init')
+                with self.assertRaises(ValueError):
+                    rootfs.finalize(target)
+                self.assertEqual(b'unchanged until all destinations are valid', policy.read_bytes())
+                self.assertEqual([], list(outside.iterdir()))
+                if bad == 'init-file':
+                    self.assertEqual(b'preserve existing init', init.read_bytes())
 
     def test_sdk_capture_records_dirty_inputs_and_missing_component(self):
         with tempfile.TemporaryDirectory() as temp:

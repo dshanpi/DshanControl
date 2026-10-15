@@ -1262,3 +1262,10 @@ BusyBox fragment 显式启用所需 start-stop-daemon、fancy PID、readlink 和
 159 项主机测试（5+154，含30原生）通过，原生 ARM 重新交叉构建通过。
 真实 C++ 进程在 prepared 恢复中执行一次 31 秒 stop hook，事务清理、失败隔离后才报告就绪；
 最终 init 单项再次通过。主机夹具验证不能替代目标 BusyBox 冷启动/物理掉电测试。
+
+2026-10-15 干净 ext4 构建的启动入口补全：厂商 MMC 环境明确 `init=/init`，
+但直接 Buildroot ext4 只安装 `/sbin/init`；旧 target 遗留的 BusyBox 链接不能作为
+构建输入。正式 post-build 现验证目标 BusyBox 后建立 `/init -> bin/busybox`，遇到
+异物、错误链接或 BusyBox 路径链接先拒绝，完整镜像预检同步验证。161 项主机
+测试通过（含18项 S4 系统测试）；C++/Qt 源码未变，实板启动仍未验证。详见同一
+[系统接入记录](validation/2026-10-15-native-system-integration.json) 的 boot_entry_followup。
