@@ -15,6 +15,11 @@ independent launch receipts, nonroot roles, complete shared lifecycle leases and
 supervision migration remain required before qualification. Live factory9594 and
 imagef71 remain immutable; physical new-init/privilege/realQt OTA/power acceptance
 is not implied by isolated tests. Continue the active goal, do not stop here.
+The subsequent credential primitive has host208 (2 root-only skips), additional
+host-root4 and actual ARM4 passing probes across exec. Web-shaped bit10-only and
+HMI-shaped zero-cap profiles could not regain root or read the private test sample.
+See docs/S4-NATIVE-CREDENTIALS-20261015.md. TestUID60000/60001 do not assign real
+application accounts; the function is not yet wired to the production launcher.
 
 ## Native functional health and boot storage source (2026-10-15)
 

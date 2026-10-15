@@ -27,6 +27,8 @@ test-native: build-native build-native-fixtures
 build-native-fixtures:
 	mkdir -p dist/native-storage-tests
 	cd dist/native-storage-tests && $(HMI_QMAKE) ../../tests/native/storage-test.pro && $(MAKE)
+	mkdir -p dist/native-credentials-tests
+	cd dist/native-credentials-tests && $(HMI_QMAKE) ../../tests/native/credentials-test.pro && $(MAKE)
 .PHONY: test-hmi
 test-hmi:
 	mkdir -p dist/ui-test
