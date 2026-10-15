@@ -165,6 +165,7 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
     policy = {}
     for name, relative in [('S60mount_udisk', 'etc/init.d/S60mount_udisk'),
                            ('S72dshancontrol-wifi', 'etc/init.d/S72dshancontrol-wifi'),
+                           ('S73dshancontrol-time', 'etc/init.d/S73dshancontrol-time'),
                            ('storage.py', 'usr/lib/dshancontrol-update/storage.py')]:
         script = buildroot / 'target' / relative
         expected = ROOT / 'boards/t113s4-sdnand/runtime' / name

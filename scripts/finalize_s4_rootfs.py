@@ -65,6 +65,7 @@ def finalize(target):
     runtime = ROOT / 'boards/t113s4-sdnand/runtime'
     files = [('S60mount_udisk', 'etc/init.d/S60mount_udisk', 0o755),
              ('S72dshancontrol-wifi', 'etc/init.d/S72dshancontrol-wifi', 0o755),
+             ('S73dshancontrol-time', 'etc/init.d/S73dshancontrol-time', 0o755),
              ('storage.py', 'usr/lib/dshancontrol-update/storage.py', 0o644),
              ('display.env', 'etc/dshancontrol/display.env', 0o644)]
     # Validate all destinations before replacing anything, including symlinked

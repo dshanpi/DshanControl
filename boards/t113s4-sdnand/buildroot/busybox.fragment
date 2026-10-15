@@ -13,3 +13,8 @@ CONFIG_UDHCPC=y
 CONFIG_IP=y
 CONFIG_FEATURE_IP_ADDRESS=y
 CONFIG_FEATURE_IP_LINK=y
+# Bounded client-only network clock recovery on boards without retained RTC.
+CONFIG_TIMEOUT=y
+CONFIG_NTPD=y
+# CONFIG_FEATURE_NTPD_SERVER is not set
+# CONFIG_FEATURE_NTPD_CONF is not set

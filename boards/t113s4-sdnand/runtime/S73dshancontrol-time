@@ -1,0 +1,15 @@
+#!/bin/sh
+# System-owned one-shot clock recovery after S72 networking. Plain NTP is not NTS.
+set -eu
+case "${1:-}" in
+start)
+    # Foreground + one-shot; timeout bounds DNS and polling. Preserve its error.
+    timeout 30 /usr/sbin/ntpd -n -q -p time.cloudflare.com
+    # A successful client must not leave this no-RTC board at the Unix epoch.
+    test "$(date -u +%s)" -ge 1767225600
+    echo 'DshanControl time: network clock initialization completed'
+    ;;
+stop) : ;; # No resident daemon is started.
+status) date -u ;;
+*) echo "usage: $0 {start|stop|status}" >&2; exit 2 ;;
+esac

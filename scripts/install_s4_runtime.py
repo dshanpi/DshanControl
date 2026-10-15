@@ -40,6 +40,7 @@ def main():
              (src / 'components/hmi/hmi-config.json', 'usr/share/dshancontrol/defaults/hmi.json', 0o600)]
     files.append((board / 'runtime/S60mount_udisk', 'etc/init.d/S60mount_udisk', 0o755))
     files.append((board / 'runtime/S72dshancontrol-wifi', 'etc/init.d/S72dshancontrol-wifi', 0o755))
+    files.append((board / 'runtime/S73dshancontrol-time', 'etc/init.d/S73dshancontrol-time', 0o755))
     for name in ('health.py', 'initialize.py', 'storage.py'):
         files.append((board / 'runtime' / name, 'usr/lib/dshancontrol-update/' + name, 0o644))
     for path in (src / 'components/updater').glob('*.py'):
