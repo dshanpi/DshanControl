@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import signal
 import socket
+import shutil
 import subprocess
 import time
 import unittest
@@ -34,6 +35,116 @@ class NativeServiceTests(fixtures.UpdateCliTests):
             self.service.terminate(); self.service.wait(timeout=5)
         if self.service:
             self.service.stdout.close(); self.service.stderr.close()
+
+    def test_shutdown_refuses_busy_resources_and_preserves_service_until_idle(self):
+        self.start()
+        self.assertFalse(self.request('service.shutdown', {'force': True})['ok'])
+        config = json.loads(self.config.read_text())
+        for path in (self.tasks / '.task.lock',
+                     Path(config['application_root']) / '.update.lock',
+                     Path(config['application_root']) / '.control.lock'):
+            with path.open('a') as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                response = self.request('service.shutdown')
+                self.assertFalse(response['ok'], response)
+                self.assertEqual('resource-busy', response['error']['code'])
+                self.assertTrue(self.request('update.identity')['ok'])
+                self.assertIsNone(self.service.poll())
+        self.assertEqual([], self.operations())
+        response = self.request('service.shutdown')
+        self.assertTrue(response['ok'], response)
+        self.assertEqual('stopping', response['result']['status'])
+        self.assertEqual(0, self.service.wait(timeout=5))
+        self.assertFalse(Path(self.socket_path).exists())
+
+    def test_production_storage_failure_does_not_create_task_directory(self):
+        config = json.loads(self.config.read_text())
+        config['development_mode'] = False
+        self.config.write_text(json.dumps(config))
+        task_root = self.f.root / 'must-not-create/tasks'
+        service = json.loads(self.service_config.read_text())
+        service['task_root'] = str(task_root)
+        self.service_config.write_text(json.dumps(service))
+        result = subprocess.run([str(self.binary), 'serve', str(self.service_config)],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(1, result.returncode)
+        self.assertEqual('storage-contract-missing', json.loads(result.stderr)['code'])
+        self.assertFalse(task_root.parent.exists())
+        self.assertFalse(Path(self.socket_path).exists())
+        self.assertEqual([], self.operations())
+
+    def test_system_init_starts_once_waits_for_rpc_and_refuses_busy_stop(self):
+        # Relocate only system-owned paths into this synthetic system fixture.
+        # Execute the actual init script and daemon, not a mocked RPC client.
+        root = self.f.root
+        binary = root / 'dshancontrol-runtime'
+        shutil.copy2(str(self.binary), str(binary))
+        pidfile = root / 'native.pid'
+        script = root / 'S69native'
+        source = (fixtures.fixtures.ROOT / 'boards/t113s4-sdnand/runtime/S69dshancontrol-runtime').read_text()
+        for old, new in [('BIN=/usr/bin/dshancontrol-runtime', 'BIN=' + str(binary)),
+                         ('CONFIG=/etc/dshancontrol/platform-service.json', 'CONFIG=' + str(self.service_config)),
+                         ('PID=/var/run/dshancontrol-runtime.pid', 'PID=' + str(pidfile)),
+                         ('SOCKET=/var/run/dshancontrol/platform.sock', 'SOCKET=' + self.socket_path),
+                         ('LOG=/var/log/dshancontrol-runtime.log', 'LOG=' + str(root / 'runtime.log')),
+                         ('mkdir -p /var/run/dshancontrol', 'mkdir -p ' + str(root / 'run'))]:
+            self.assertIn(old, source)
+            source = source.replace(old, new)
+        bootprobe = root / 'bootprobe.py'
+        bootprobe.write_text("from pathlib import Path\np=Path(__file__).with_suffix('.calls')\n"
+                             "with p.open('a') as f: f.write('called\\n')\n")
+        for name in ('storage.py', 'initialize.py'):
+            source = source.replace('/usr/lib/dshancontrol-update/' + name, str(bootprobe))
+        script.write_text(source)
+        script.chmod(0o755)
+
+        def run(action):
+            return subprocess.run([str(script), action], capture_output=True, text=True, timeout=20)
+
+        def cleanup():
+            if not pidfile.exists():
+                return
+            try:
+                pid = int(pidfile.read_text())
+                if Path('/proc/%d/exe' % pid).resolve() == binary:
+                    os.kill(pid, signal.SIGTERM)
+            except (OSError, ValueError):
+                pass
+        self.addCleanup(cleanup)
+        result = run('start')
+        self.assertEqual(0, result.returncode, result.stderr)
+        first_pid = pidfile.read_text()
+        self.assertTrue(self.request('update.identity')['ok'])
+        self.assertEqual(0, run('status').returncode)
+        self.assertEqual(0, run('start').returncode)
+        self.assertEqual(first_pid, pidfile.read_text())
+        self.assertEqual(['called', 'called'], bootprobe.with_suffix('.calls').read_text().splitlines())
+        with (self.tasks / '.task.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            refused = run('stop')
+            self.assertNotEqual(0, refused.returncode)
+            self.assertIn('resource-busy', refused.stderr)
+            self.assertEqual(first_pid, pidfile.read_text())
+            self.assertTrue(self.request('update.identity')['ok'])
+        self.assertEqual(0, run('stop').returncode)
+        self.assertFalse(pidfile.exists())
+        self.assertFalse(Path(self.socket_path).exists())
+        self.assertNotEqual(0, run('status').returncode)
+        config = json.loads(self.config.read_text())
+        config['development_mode'] = False
+        self.config.write_text(json.dumps(config))
+        failed = run('start')
+        self.assertNotEqual(0, failed.returncode)
+        log = root / 'runtime.log'
+        self.assertEqual(0o600, log.stat().st_mode & 0o777)
+        self.assertEqual(1, log.read_text().count('storage-contract-missing'))
+        self.assertEqual(['called'] * 4, bootprobe.with_suffix('.calls').read_text().splitlines())
+        self.assertFalse(Path(self.socket_path).exists())
+        # A reused PID never grants permission to stop an unrelated process.
+        pidfile.write_text(str(os.getpid()) + '\n')
+        self.assertNotEqual(0, run('stop').returncode)
+        self.assertTrue(pidfile.exists())
+        pidfile.unlink()
 
     def start(self):
         self.service = subprocess.Popen([str(self.binary), 'serve', str(self.service_config)],

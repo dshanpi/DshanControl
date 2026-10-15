@@ -53,6 +53,14 @@ This uses a fixture-only contract, copied data and a temporary system overlay;
 hardware revision, formal baseline, GitHub download/install and full qualification
 remain pending. See [current evidence](../../docs/validation/2026-10-14-board-native-ota-continuation.json).
 
+2026-10-15 source integration: new S4 package builds compile both HMI and the C++
+system runtime. S69 owns update/display IPC, S70 waits for real readiness, and
+native-mode S71 leaves the old Python watcher stopped. System-owned runtime,
+config and init files stay outside application packages. Production identity/key,
+least privilege and physical baseline/OTA acceptance remain pending. The actual
+target-package build and host tests are recorded
+[here](../../docs/validation/2026-10-15-native-system-integration.json).
+
 ## Porting choices
 
 - Qt5 Widgets/Charts HMI, Web, core and supervisor use the canonical component sources.

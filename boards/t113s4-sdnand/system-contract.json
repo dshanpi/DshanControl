@@ -17,5 +17,10 @@
   "validation": "not-run",
   "updater_version": "0.1.0",
   "application_root": "/mnt/UDISK/dshancontrol/apps",
-  "data_root": "/mnt/UDISK/dshancontrol/data"
+  "data_root": "/mnt/UDISK/dshancontrol/data",
+  "storage": {
+    "mount_point": "/mnt/UDISK",
+    "device": "/dev/by-name/UDISK",
+    "filesystem": "ext4"
+  }
 }

@@ -18,6 +18,12 @@ export OMNIGATE_HMI_SETTINGS=$DATA/hmi.json
 export OMNIGATE_EDS_DIR=$DATA/eds
 export OMNIGATE_LISTEN_PORT=80
 export HEALTH_URL=http://127.0.0.1/api/health
+if [ -x /usr/bin/dshancontrol-runtime ]; then
+    export DSHANCONTROL_NATIVE_PLATFORM_SOCKET=/var/run/dshancontrol/platform.sock
+    export DSHANCONTROL_PLATFORM_SOCKET=$DSHANCONTROL_NATIVE_PLATFORM_SOCKET
+    export DSHANCONTROL_UPDATER_EXECUTABLE=/usr/bin/dshancontrol-runtime
+    export DSHANCONTROL_UPDATER_CONFIG=/etc/dshancontrol/updater.json
+fi
 export QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
 export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/qt/plugins
 export QT_QPA_FONTDIR=/usr/share/fonts/wqy-zenhei

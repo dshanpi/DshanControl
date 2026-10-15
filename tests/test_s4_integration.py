@@ -13,6 +13,83 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class S4IntegrationTests(unittest.TestCase):
+    def install_source(self, base):
+        source = base / 'source'
+        for name in ('components', 'boards/t113s4-sdnand'):
+            shutil.copytree(str(ROOT / name), str(source / name))
+        (source / 'build-provenance.json').write_text(json.dumps({
+            'version': '0.1.0-dev', 'application_commit': 'a' * 40,
+            'status': 'development-draft'}))
+        hmi = base / 'omnigate-hmi'
+        hmi.write_text('#!/bin/sh\nexit 0\n')
+        return source, hmi
+
+    def test_native_system_install_keeps_updater_outside_application_and_trust_pending(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            source, hmi = self.install_source(base)
+            target = base / 'target'
+            native = ROOT / 'dist/native-runtime/dshancontrol-runtime'
+            subprocess.run([sys.executable, str(ROOT / 'scripts/install_s4_runtime.py'),
+                '--source', str(source), '--target', str(target), '--hmi', str(hmi),
+                '--runtime', str(native)], check=True)
+            self.assertEqual(native.read_bytes(), (target / 'usr/bin/dshancontrol-runtime').read_bytes())
+            self.assertIn('exec /usr/bin/dshancontrol-runtime "$@"',
+                          (target / 'usr/bin/dshancontrol-update').read_text())
+            config = json.loads((target / 'etc/dshancontrol/updater.json').read_text())
+            self.assertIs(True, config['task_service'])
+            self.assertIs(False, config['development_mode'])
+            self.assertIs(False, config['automatic_install'])
+            service = json.loads((target / 'etc/dshancontrol/platform-service.json').read_text())
+            self.assertEqual([0], service['allowed_uids'])
+            self.assertEqual(0o600, (target / 'etc/dshancontrol/platform-service.json').stat().st_mode & 0o777)
+            self.assertTrue(os.access(target / 'etc/init.d/S69dshancontrol-runtime', os.X_OK))
+            contract = json.loads((target / 'etc/dshancontrol/system-release.json').read_text())
+            self.assertEqual('ext4', contract['storage']['filesystem'])
+            self.assertEqual('pending', contract['hardware_revision'])
+            self.assertEqual('not-run', contract['validation'])
+            self.assertFalse((target / 'etc/dshancontrol/update-public.pem').exists())
+            self.assertFalse((target / 'mnt/UDISK').exists())
+            factory = target / 'usr/share/dshancontrol/factory'
+            self.assertFalse(list(factory.rglob('*runtime*')))
+            self.assertFalse((factory / 'etc').exists())
+            # Reproduction of the old Python image cannot silently leave a mixed target.
+            result = subprocess.run([sys.executable, str(ROOT / 'scripts/install_s4_runtime.py'),
+                '--source', str(source), '--target', str(target), '--hmi', str(hmi)],
+                capture_output=True, text=True)
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn('native target requires --runtime', result.stderr)
+            self.assertIs(True, json.loads((target / 'etc/dshancontrol/updater.json').read_text())['task_service'])
+
+    def test_native_install_rejects_links_before_replacing_existing_factory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            source, hmi = self.install_source(base)
+            outside = base / 'outside'
+            outside.mkdir()
+            sentinel = outside / 'sentinel'
+            sentinel.write_bytes(b'preserve external data')
+            for index, relative in enumerate(('usr/bin', 'etc/dshancontrol/platform-service.json',
+                    'etc/init.d/S69dshancontrol-runtime', 'usr/share/dshancontrol/defaults/web.json',
+                    'usr/lib/dshancontrol-update/health.py')):
+                with self.subTest(path=relative):
+                    target = base / ('target-' + str(index))
+                    old = target / 'usr/share/dshancontrol/factory/preserve'
+                    old.parent.mkdir(parents=True)
+                    old.write_bytes(b'old factory')
+                    link = target / relative
+                    link.parent.mkdir(parents=True, exist_ok=True)
+                    link.symlink_to(outside if relative == 'usr/bin' else sentinel)
+                    result = subprocess.run([sys.executable, str(ROOT / 'scripts/install_s4_runtime.py'),
+                        '--source', str(source), '--target', str(target), '--hmi', str(hmi),
+                        '--runtime', str(ROOT / 'dist/native-runtime/dshancontrol-runtime')],
+                        capture_output=True, text=True)
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn('symlink staging destination', result.stderr)
+                    self.assertEqual(b'old factory', old.read_bytes())
+                    self.assertEqual(b'preserve external data', sentinel.read_bytes())
+                    self.assertEqual([sentinel], list(outside.iterdir()))
+
     def test_vendor_stages_build_gnu_cpp11_without_leaking_to_dependencies(self):
         # Exercise GNU make's real target scoping with a compiler whose default
         # is deliberately C++98, as on the S4 GCC 5 toolchain.

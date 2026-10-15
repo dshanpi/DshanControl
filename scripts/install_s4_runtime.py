@@ -15,20 +15,20 @@ def main():
     p.add_argument('--source', required=True, type=Path)
     p.add_argument('--target', required=True, type=Path)
     p.add_argument('--hmi', required=True, type=Path)
+    p.add_argument('--runtime', type=Path,
+                   help='target C++ system runtime; omitted only for legacy image reproduction')
     args = p.parse_args()
     src, target = args.source, args.target.resolve()
     if str(target) == '/':
         p.error('refusing host root')
+    if args.runtime and (not args.runtime.is_file() or not args.runtime.stat().st_mode & 0o111):
+        p.error('native runtime must be an executable build artifact')
     verify_hmi_resources(src)
     board = src / 'boards/t113s4-sdnand'
     factory = target / 'usr/share/dshancontrol/factory'
-    if factory.exists():
-        shutil.rmtree(str(factory))
-    payload(src, factory, args.hmi)
     provenance = json.loads((src / 'build-provenance.json').read_text())
     installed = {'version': provenance['version'], 'commit': provenance['application_commit'],
                  'sequence': 0, 'data_schema': 1}
-    (factory / 'installed.json').write_text(json.dumps(installed, indent=2) + '\n')
     files = [(board / 'runtime/S71dshancontrol-update', 'etc/init.d/S71dshancontrol-update', 0o755),
              (board / 'platform.json', 'etc/omnigate/platform.json', 0o644),
              (board / 'system-contract.json', 'etc/dshancontrol/system-release.json', 0o644),
@@ -43,8 +43,33 @@ def main():
         files.append((board / 'runtime' / name, 'usr/lib/dshancontrol-update/' + name, 0o644))
     for path in (src / 'components/updater').glob('*.py'):
         files.append((path, 'usr/lib/dshancontrol-update/' + path.name, 0o644))
+    if args.runtime:
+        files += [(args.runtime, 'usr/bin/dshancontrol-runtime', 0o755),
+                  (board / 'runtime/S69dshancontrol-runtime',
+                   'etc/init.d/S69dshancontrol-runtime', 0o755)]
+    # Check every leaf and parent before replacing the old factory or writing
+    # any files. In particular, config symlinks must not escape the staging root.
+    destinations = [name for _, name, _ in files]
+    destinations += ['usr/share/dshancontrol/factory', 'usr/bin/dshancontrol-update',
+                     'usr/bin/dshancontrol-runtime', 'etc/dshancontrol/updater.json',
+                     'etc/dshancontrol/platform-service.json']
+    for relative in destinations:
+        path = target / relative
+        for part in (path,) + tuple(path.parents):
+            if part == target:
+                break
+            if part.is_symlink():
+                p.error('refusing symlink staging destination: ' + relative)
+    if not args.runtime and (target / 'usr/bin/dshancontrol-runtime').exists():
+        p.error('native target requires --runtime; refusing mixed legacy installation')
+    if factory.exists():
+        shutil.rmtree(str(factory))
+    payload(src, factory, args.hmi)
+    (factory / 'installed.json').write_text(json.dumps(installed, indent=2) + '\n')
     for source, name, mode in files:
         destination = target / name
+        if destination.is_symlink():
+            p.error('refusing symlink staging destination: ' + name)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(str(source), str(destination))
         destination.chmod(mode)
@@ -55,10 +80,23 @@ def main():
               'development_mode': False, 'automatic_install': False, 'poll_interval_seconds': 3600,
               'health_observation_seconds': 30, 'startup_timeout_seconds': 30,
               'health_interval_seconds': 2}
+    if args.runtime:
+        config.update(task_service=True,
+                      control_lock='/mnt/UDISK/dshancontrol/apps/.control.lock')
+        service = {'socket': '/var/run/dshancontrol/platform.sock',
+                   'updater_config': '/etc/dshancontrol/updater.json',
+                   'task_root': '/mnt/UDISK/dshancontrol/update-tasks',
+                   'client_gid': 0, 'allowed_uids': [0],
+                   'platform_manifest': '/etc/omnigate/platform.json',
+                   'display': {'channel': 'display0', 'backend': 'sunxi-disp2', 'screen': 0}}
+        (target / 'etc/dshancontrol/platform-service.json').write_text(json.dumps(service, indent=2) + '\n')
+        (target / 'etc/dshancontrol/platform-service.json').chmod(0o600)
     (target / 'etc/dshancontrol/updater.json').write_text(json.dumps(config, indent=2) + '\n')
     executable = target / 'usr/bin/dshancontrol-update'
     executable.parent.mkdir(parents=True, exist_ok=True)
-    executable.write_text('#!/bin/sh\nexec python3 /usr/lib/dshancontrol-update/updater.py "$@"\n')
+    command = ('/usr/bin/dshancontrol-runtime' if args.runtime else
+               'python3 /usr/lib/dshancontrol-update/updater.py')
+    executable.write_text('#!/bin/sh\nexec ' + command + ' "$@"\n')
     executable.chmod(0o755)
     # S4 has no verified CAN/cellular mapping; do not inherit T153 physical defaults.
     defaults = target / 'usr/share/dshancontrol/defaults/web.json'

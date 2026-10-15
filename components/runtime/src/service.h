@@ -6,6 +6,8 @@ class RuntimeService : public QLocalServer {
   QJsonObject config;
   QString taskRoot, updaterConfig;
   std::unique_ptr<FileLock> serviceOwnership;
+  std::unique_ptr<FileLock> shutdownOwnership;
+  std::unique_ptr<FileLock> shutdownUpdateOwnership, shutdownControlOwnership;
   QJsonObject task(const QString &id) const;
   QJsonObject startTask(const QJsonObject &params);
   QJsonValue dispatch(const QJsonObject &request);

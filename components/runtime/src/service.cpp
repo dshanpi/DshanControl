@@ -1,5 +1,6 @@
 #include "service.h"
 #include "display.h"
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
@@ -44,13 +45,14 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
             "Invalid allowed platform UID", "authorization");
   updaterConfig = config["updater_config"].toString();
   taskRoot = config["task_root"].toString();
+  // Verify the persistent volume before creating even the task directory.
+  NativeUpdater updater(readJson(updaterConfig));
   require(QDir::isAbsolutePath(taskRoot) && taskRoot != "/" &&
               QDir::cleanPath(taskRoot) == taskRoot &&
               !QFileInfo(taskRoot).isSymLink() && QDir().mkpath(taskRoot),
           "Invalid system task directory", "storage");
   require(::chmod(QFile::encodeName(taskRoot).constData(), 0700) == 0,
           "Cannot protect task directory", "storage");
-  NativeUpdater updater(readJson(updaterConfig));
   serviceOwnership.reset(
       new FileLock(updater.applicationRoot() + "/.runtime-service.lock"));
   updater.recover();
@@ -127,6 +129,10 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
                   "One bounded request required");
           auto json = strictJson(received->trimmed());
           require(json.isObject(), "RPC object required");
+          if (json.toObject()["method"] == "service.shutdown")
+            require(peer.uid == ::getuid(),
+                    "Only the system service owner may stop the service",
+                    "authorization", "peer-denied");
           response = {{"protocol", 1},
                       {"ok", true},
                       {"result", dispatch(json.toObject())}};
@@ -290,12 +296,30 @@ QJsonObject RuntimeService::startTask(const QJsonObject &params) {
   return value;
 }
 QJsonValue RuntimeService::dispatch(const QJsonObject &request) {
+  require(!shutdownOwnership, "System service is stopping", "service",
+          "service-stopping");
   require(request.size() == 3 && request["protocol"].isDouble() &&
               request["protocol"].toDouble() == 1 &&
               request["params"].isObject(),
           "Invalid platform request");
   auto method = request["method"].toString();
   auto params = request["params"].toObject();
+  if (method == "service.shutdown") {
+    require(params.isEmpty(), "Shutdown has no request fields");
+    // Hold the same lock as every independent task until process exit. Never
+    // terminate an installation merely because init was asked to stop us.
+    NativeUpdater updater(readJson(updaterConfig));
+    std::unique_ptr<FileLock> taskLock(new FileLock(taskRoot + "/.task.lock"));
+    std::unique_ptr<FileLock> updateLock(
+        new FileLock(updater.applicationRoot() + "/.update.lock"));
+    std::unique_ptr<FileLock> controlLock(new FileLock(updater.controlLock()));
+    shutdownOwnership = std::move(taskLock);
+    shutdownUpdateOwnership = std::move(updateLock);
+    shutdownControlOwnership = std::move(controlLock);
+    QTimer::singleShot(50, QCoreApplication::instance(),
+                       &QCoreApplication::quit);
+    return QJsonObject{{"status", "stopping"}};
+  }
   if (method == "display.brightness.get" ||
       method == "display.brightness.set") {
     NativeUpdater updater(readJson(updaterConfig));

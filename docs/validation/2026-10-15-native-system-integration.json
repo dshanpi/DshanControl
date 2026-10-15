@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-15T05:03:41.481126+00:00",
+  "scope": "S4 native system source/package integration; host and target build evidence only",
+  "automatic_updates_qualified": false,
+  "source_parent_commit": "5556f213c79dc91dff7fdd02b6b75aaeeeb85954",
+  "source_dirty_at_build": true,
+  "source_files_sha256": {
+    "boards/t113s4-sdnand/buildroot/package/dshancontrol/Config.in": "524bca6bca8acb26bd5dd99f3f3af7c469b03cb945cc4b050942ca84838a5aca",
+    "boards/t113s4-sdnand/buildroot/package/dshancontrol/dshancontrol.mk": "b815e6317a49891ca800953a8e84c36dbfa26e5b559086d916c73e5165427840",
+    "boards/t113s4-sdnand/runtime/S69dshancontrol-runtime": "94f030116092f57fe35c3efda2d6a2a87352ffb9a6a9eca4ededb38834cdbea6",
+    "boards/t113s4-sdnand/runtime/S70dshancontrol": "6cd0d3fc7081abe3d41f334d51a7ee22956461054ef495a45bc0ef64d68117cd",
+    "boards/t113s4-sdnand/runtime/S71dshancontrol-update": "0b2185200cd06589918f9bc0d9f3e5de4c9428ebd18b8d0900d8a2048e5c728f",
+    "boards/t113s4-sdnand/runtime/dshancontrol-services": "88d7e8626dfac661fbf02dcad49831afcf306d5cc29f16e298ac3cc8e094f51e",
+    "boards/t113s4-sdnand/system-contract.json": "6c0891093b4e8bab1131ff4dca06fdc47e6fb1ac5430df88f2b3f3abc59ef294",
+    "components/runtime/src/service.cpp": "4632881de67c8ed186298c4e942e239e8488a925133bd68a296b366edfd8851c",
+    "components/runtime/src/service.h": "649beb7d2a8f1fc375b804231b68793ce01ecb28ec0b55a28ca838788fb8cb33",
+    "scripts/install_s4_runtime.py": "9edcb44a79534161e67574cacb6fc89b3de86ff57dc4fd6b0c99ab57a9e24a67",
+    "scripts/test_all.sh": "7f0784f90ed4c1a0dc3e62732fe6565347a4e3ed98b6e52f7794517ef7ce8d24",
+    "tests/test_native_service.py": "024a45aa3c49383f8dc26242222b581c840be6bff0f75697c797235d82dfff8d",
+    "tests/test_s4_integration.py": "de7982d76acf9454dfc02e9c335056074cf919887cc082b1787dc44922799bd0"
+  },
+  "tests": {
+    "host_total_passed": 158,
+    "core_passed": 5,
+    "other_passed": 153,
+    "native_in_other": 29,
+    "qt_passed": 35,
+    "qt_failed": 0,
+    "qt_skipped": 0,
+    "latest_targeted_native_service_passed": 14,
+    "s4_integration_passed": 11,
+    "init_execution_environment": "host Linux and host start-stop-daemon, not target BusyBox"
+  },
+  "target_package": {
+    "status": "passed",
+    "kind": "target-package-macro-rehearsal",
+    "full_sdk_rebuild": false,
+    "target_dependencies_reused": true,
+    "input_snapshot_sha256": "bbba18af48eafdb3fefc8f8b8003e32636aa209e75cdd1d2ac91c3f1dc1bab96",
+    "input_file_count": 144,
+    "native_binary_and_init_outside_application": true,
+    "production_key_provisioned": false,
+    "persistent_data_created": false,
+    "binaries": [
+      {
+        "path": "usr/bin/dshancontrol-runtime",
+        "size": 325988,
+        "sha256": "00e439626e8c4b6b86a153ac11d17675ada27169a8f3fde019a8c0d223d72cb9",
+        "elf": "ARM32 EABI5 softfp",
+        "needed_libraries_in_fixed_sysroot": {
+          "libcrypto.so.1.1": {
+            "path": "usr/lib/libcrypto.so.1.1",
+            "sha256": "0e57f5793f5c64c099301a9fe45de0ad55146cdddeaed85a3dff2657ba9d36b0"
+          },
+          "libz.so.1": {
+            "path": "usr/lib/libz.so.1",
+            "sha256": "93e0b12df95b5c2e38f7e39e37b231cc2a358596ed5daa2140f3c6f239b3a5f9"
+          },
+          "libQt5Network.so.5": {
+            "path": "usr/lib/libQt5Network.so.5",
+            "sha256": "9b0f13eb496e78d2fadaa05a85c053c5ea6b230073942604313a6a8a2c77b57f"
+          },
+          "libQt5Core.so.5": {
+            "path": "usr/lib/libQt5Core.so.5",
+            "sha256": "21a8cb5810d3a770dbbbaa2e057adbd59bc600bf8bbf22d7cab2af25eb2be132"
+          },
+          "librt.so.1": {
+            "path": "lib/librt.so.1",
+            "sha256": "aad36980c23b8897ec211a32ae72251e56419724e7f7df1c16ae8b3885974a0b"
+          },
+          "libdl.so.2": {
+            "path": "lib/libdl.so.2",
+            "sha256": "ca4d8188558dec32c72e1a9c026aa6c6e5827a113febe223634bb8784c50e92b"
+          },
+          "libatomic.so.1": {
+            "path": "lib/libatomic.so.1",
+            "sha256": "42bc3506ec645b4db27a2cbe31d2100fdf39c97dc2a57fe5c392b0c1a0588e43"
+          },
+          "libpthread.so.0": {
+            "path": "lib/libpthread.so.0",
+            "sha256": "414ac9f2dea5e93c10e960913bbf55a27a9d8935a5d7f09a8c572d3b4356683f"
+          },
+          "libstdc++.so.6": {
+            "path": "lib/libstdc++.so.6",
+            "sha256": "f00e880d42a93814e38e417b8c0490d9bd110f79aa22e1b3f4d9efa657f61a8a"
+          },
+          "libm.so.6": {
+            "path": "lib/libm.so.6",
+            "sha256": "355cd04624d12452c8bcf222eb66c3678a7473fc8ab8ce2cfb7d6a83bd14fdc6"
+          },
+          "libgcc_s.so.1": {
+            "path": "lib/libgcc_s.so.1",
+            "sha256": "48c8af6728d07bc91165ef3d3c5da235526adaec15d42fd5f5389759fd731342"
+          },
+          "libc.so.6": {
+            "path": "lib/libc.so.6",
+            "sha256": "7c22f64d5ba7616394554ab96cc64bbc9f460c6640191c25ffd996214bc325c8"
+          }
+        }
+      },
+      {
+        "path": "usr/share/dshancontrol/factory/bin/omnigate-hmi",
+        "size": 7781256,
+        "sha256": "26ff2284a466d935ab651ffeb4acfd2f46e2263ec500f6242d64d11799b6a0fd",
+        "elf": "ARM32 EABI5 softfp",
+        "needed_libraries_in_fixed_sysroot": {
+          "libQt5Widgets.so.5": {
+            "path": "usr/lib/libQt5Widgets.so.5",
+            "sha256": "4a4ede8993a52b867a07296f278f6dcba8249a9866bc9d348e9f92da85167a94"
+          },
+          "libQt5Gui.so.5": {
+            "path": "usr/lib/libQt5Gui.so.5",
+            "sha256": "918dc5008bcf0817d60799b833374078cf707be4a6f6fe5e2dbcbde26b4fa1c1"
+          },
+          "libQt5Network.so.5": {
+            "path": "usr/lib/libQt5Network.so.5",
+            "sha256": "9b0f13eb496e78d2fadaa05a85c053c5ea6b230073942604313a6a8a2c77b57f"
+          },
+          "libQt5Core.so.5": {
+            "path": "usr/lib/libQt5Core.so.5",
+            "sha256": "21a8cb5810d3a770dbbbaa2e057adbd59bc600bf8bbf22d7cab2af25eb2be132"
+          },
+          "librt.so.1": {
+            "path": "lib/librt.so.1",
+            "sha256": "aad36980c23b8897ec211a32ae72251e56419724e7f7df1c16ae8b3885974a0b"
+          },
+          "libdl.so.2": {
+            "path": "lib/libdl.so.2",
+            "sha256": "ca4d8188558dec32c72e1a9c026aa6c6e5827a113febe223634bb8784c50e92b"
+          },
+          "libatomic.so.1": {
+            "path": "lib/libatomic.so.1",
+            "sha256": "42bc3506ec645b4db27a2cbe31d2100fdf39c97dc2a57fe5c392b0c1a0588e43"
+          },
+          "libpthread.so.0": {
+            "path": "lib/libpthread.so.0",
+            "sha256": "414ac9f2dea5e93c10e960913bbf55a27a9d8935a5d7f09a8c572d3b4356683f"
+          },
+          "libstdc++.so.6": {
+            "path": "lib/libstdc++.so.6",
+            "sha256": "f00e880d42a93814e38e417b8c0490d9bd110f79aa22e1b3f4d9efa657f61a8a"
+          },
+          "libm.so.6": {
+            "path": "lib/libm.so.6",
+            "sha256": "355cd04624d12452c8bcf222eb66c3678a7473fc8ab8ce2cfb7d6a83bd14fdc6"
+          },
+          "libgcc_s.so.1": {
+            "path": "lib/libgcc_s.so.1",
+            "sha256": "48c8af6728d07bc91165ef3d3c5da235526adaec15d42fd5f5389759fd731342"
+          },
+          "libc.so.6": {
+            "path": "lib/libc.so.6",
+            "sha256": "7c22f64d5ba7616394554ab96cc64bbc9f460c6640191c25ffd996214bc325c8"
+          }
+        }
+      }
+    ]
+  },
+  "integration": {
+    "single_system_service": "S69dshancontrol-runtime",
+    "legacy_watcher_in_native_mode": false,
+    "automatic_install": false,
+    "development_mode": false,
+    "public_key_provisioned": false,
+    "pending_contract_fields": [
+      "hardware_revision",
+      "libc",
+      "runtime_id"
+    ],
+    "system_peer_uids": [
+      0
+    ],
+    "application_least_privilege_verified": false,
+    "shutdown_busy_resources_refused": [
+      "task",
+      "update",
+      "control"
+    ],
+    "unmounted_task_directory_creation_refused": true,
+    "staging_symlink_escape_refused_before_factory_replacement": true,
+    "source_snapshot_files": 144
+  },
+  "hardware": {
+    "endpoint": "http://127.0.0.1:38928/mcp",
+    "tcp": "unavailable",
+    "error": "[Errno 111] Connection refused",
+    "hardware_actions": 0,
+    "checked_at_utc": "2026-10-15T04:55:57.609787+00:00"
+  },
+  "full_clean_system_rebuild_verified": false,
+  "local_evidence": [
+    {
+      "path": "dist/continuation-20261015/make-test.log",
+      "sha256": "658cd896b0650c6aaee33d6b561b77678a53885efde6124cb7c73bad50dcadb5"
+    },
+    {
+      "path": "dist/continuation-20261015/hmi-tests.log",
+      "sha256": "fabd5fbbb0b93a2cff7070115f81e6a9a6e05cce83fb2eef968fc00f89587104"
+    },
+    {
+      "path": "dist/continuation-20261015/native-service-tests.log",
+      "sha256": "215b2a3f26bf24eb21c85c0fefc8ad5169beb5ba7d958c545bec0e53c30c3634"
+    },
+    {
+      "path": "dist/continuation-20261015/s4-integration-tests.log",
+      "sha256": "cbdc61b93f0a8f3134ebffe4afb5e0f2a3a4c9300f327b3aab0e7119e6a0ef01"
+    },
+    {
+      "path": "dist/continuation-20261015/native-arm-build.log",
+      "sha256": "1e8beda15aeaf6d4b6bf95961dcf317c238e53188f706edf5cfe3229dcb02afb"
+    },
+    {
+      "path": "dist/continuation-20261015/package-rehearsal-final.log",
+      "sha256": "768d0190399f743a623ff9978e704044b50329f7f88d6b8861443917e9b3dea1"
+    },
+    {
+      "path": "dist/continuation-20261015/package-rehearsal-verification.json",
+      "sha256": "7edec789fd1a8c301709be40ae6ed20014e4366fa9c0d07fc4523408ced39c74"
+    },
+    {
+      "path": "dist/continuation-20261015/hardware-connectivity.json",
+      "sha256": "bfd5d461257e4efe6b44876d11f33d598ae89f823f6eb2f85a72308ee3cef452"
+    }
+  ],
+  "remaining": [
+    "Restore bound LYNX MCP and re-identify board before hardware actions",
+    "Clean rootfs/BSP/system build and container checks from fixed inputs",
+    "Sanitized derivative physical flash requires verified network backup of the current pilot/data",
+    "Real production board revision, trust, maintenance and health integration",
+    "BusyBox cold startup, real GitHub download/GUI installation, full power-loss matrix and data qualification",
+    "Least privilege and remaining Python system helpers/platform operations migration"
+  ]
+}

@@ -5,6 +5,9 @@
 真实 Qt→GitHub 检查任务、冷启动服务就绪及 WiFi 通过。使用 fixture 契约、数据副本和临时系统层，
 正式系统集成、硬件修订匹配和 GitHub 下载/安装闭环仍未验收。最新源版本、哈希和边界见
 [实板继续验证记录](validation/2026-10-14-board-native-ota-continuation.json)。
+2026-10-15 继续：S4 新系统配方已构建/安装 C++ 运行端和单服务启动入口，停用原生模式下的
+旧 watcher，补充挂载前拒写和占用时拒绝关停；见
+[本机系统接入记录](validation/2026-10-15-native-system-integration.json)。这不改变旧镜像或第 6 版实板证据。
 补充的 BL-04/BL-05 外部约束与应用更新执行门禁见
 [硬件操作与应用更新门禁](HARDWARE-AND-UPDATE-GATES.md)。
 

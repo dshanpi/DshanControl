@@ -1,5 +1,18 @@
 # DshanControl engineering gates
 
+## Native S4 system build continuation (2026-10-15)
+
+New S4 package builds include the C++ runtime and the single S69 system service;
+S70 waits for its real RPC readiness, and native-mode S71 does not run the old
+Python watcher. Keep these system-owned files outside application payloads.
+Graceful shutdown must refuse active task/update/control locks and verify PID
+ownership; do not add kill/relaunch fallbacks. The default template still has
+pending production identity, no signing key, root-only peers and automatic
+installation disabled. This source integration is not physical baseline, least
+privilege, complete Python migration or OTA qualification. Preserve the separate
+factory-image and sequence-6 pilot evidence. See
+`docs/validation/2026-10-15-native-system-integration.json` for tested inputs.
+
 ## Latest upload authorization (2026-10-14, compressed system delivery)
 
 The user explicitly instructed: upload the S4 SDK differences and images,
