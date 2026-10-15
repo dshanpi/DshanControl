@@ -1,4 +1,5 @@
 #include "service.h"
+#include "applicationauthorization.h"
 #include "display.h"
 #include <QCoreApplication>
 #include <QDateTime>
@@ -47,6 +48,7 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
   taskRoot = config["task_root"].toString();
   // Verify the persistent volume before creating even the task directory.
   NativeUpdater updater(readJson(updaterConfig));
+  validateApplicationPeers(config, readJson(updaterConfig));
   supervision.reset(
       new ApplicationSupervision(config, readJson(updaterConfig), this));
   require(QDir::isAbsolutePath(taskRoot) && taskRoot != "/" &&
@@ -131,6 +133,8 @@ RuntimeService::RuntimeService(const QJsonObject &configuration)
                   "One bounded request required");
           auto json = strictJson(received->trimmed());
           require(json.isObject(), "RPC object required");
+          authorizeApplicationPeer(config, peer.uid,
+                                   json.toObject()["method"].toString());
           if (json.toObject()["method"] == "service.shutdown" ||
               json.toObject()["method"] == "service.ready")
             require(peer.uid == ::getuid(),

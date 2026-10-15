@@ -1,5 +1,19 @@
 # DshanControl engineering gates
 
+## Fixed-role native IPC authorization source (2026-10-15)
+
+Explicit s4-roles-v1 requires root service owner, clientGID400 and exactly
+UID0/400/401. Managed production roles require this policy. Web400 may only
+use display/health methods; HMI401 additionally uses update identity/status/tasks.
+Neither app controls service lifecycle. Real SO_PEERCRED identity precedes typed
+method/parameter/maintenance/signature checks; policy is never client-selected.
+Host235 (7 root-only skips), additional root2 and actual isolated ARM23 pass,
+including12 role RPC observations. See docs/S4-NATIVE-ROLE-PEERS-20261015.md and
+receipt. No live accounts, startup, data, device or trust changes. Next wire
+native initialize-permissions/startup/heartbeat and validate actual nonroot Qt,
+then signed update/reboot/rollback and measured physical acceptance. Whole goal
+remains active; isolated numeric UID checks do not deploy the production policy.
+
 ## Native permission policy source (2026-10-15)
 
 C++ permissions-plan/apply preflight immutable application versions, known data,

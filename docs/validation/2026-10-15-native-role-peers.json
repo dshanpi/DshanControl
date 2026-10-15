@@ -1,0 +1,132 @@
+{
+  "scope": "Fixed-role native IPC authorization by real SO_PEERCRED UID; isolated sockets and numeric UIDs only",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 235,
+    "passed": 228,
+    "skipped_root_only": 7,
+    "full_gate_passed": true,
+    "additional_root_role_peer_passed": 2,
+    "initial_root_role_peer_failures": 1,
+    "initial_failure_cause": "test expected generic rejected instead of original display-unbound for deliberately missing display binding; corrected assertion and passed"
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "e7d04721810e3c83386fb349e4475a178400b25e8a3354646cc801959bf1e673",
+    "compiled_source_files_bound": 31,
+    "source_inputs_sha256": "90932f4e66d2304d7f9956a31688d2ff6488ff79ff8eec3cab9421698ee88d7f",
+    "compiled_sources_match_git_index": true,
+    "network_disabled": true,
+    "private_configuration_hidden": true
+  },
+  "arm": {
+    "sha256": "de5b04aca6a74f2eb4a83598de768f752cd790e0e5042eefe7f4284a2e744e2b",
+    "bytes": 3181,
+    "result": {
+      "run": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native fixed-role RPC/public peer/system-service/supervision fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "role_observations": {
+    "observations": [
+      {
+        "uid": 400,
+        "method": "service.health",
+        "returncode": 0,
+        "code": null
+      },
+      {
+        "uid": 400,
+        "method": "update.identity",
+        "returncode": 1,
+        "code": "method-denied"
+      },
+      {
+        "uid": 400,
+        "method": "update.start",
+        "returncode": 1,
+        "code": "method-denied"
+      },
+      {
+        "uid": 400,
+        "method": "service.shutdown",
+        "returncode": 1,
+        "code": "method-denied"
+      },
+      {
+        "uid": 401,
+        "method": "update.identity",
+        "returncode": 0,
+        "code": null
+      },
+      {
+        "uid": 401,
+        "method": "update.status",
+        "returncode": 0,
+        "code": null
+      },
+      {
+        "uid": 401,
+        "method": "service.health",
+        "returncode": 0,
+        "code": null
+      },
+      {
+        "uid": 401,
+        "method": "update.start",
+        "returncode": 1,
+        "code": "rejected"
+      },
+      {
+        "uid": 401,
+        "method": "service.shutdown",
+        "returncode": 1,
+        "code": "method-denied"
+      },
+      {
+        "uid": 401,
+        "method": "service.ready",
+        "returncode": 1,
+        "code": "method-denied"
+      },
+      {
+        "uid": 402,
+        "method": "service.health",
+        "returncode": 1,
+        "code": "peer-denied"
+      },
+      {
+        "uid": 400,
+        "method": "display.brightness.get",
+        "returncode": 1,
+        "code": "display-unbound"
+      }
+    ],
+    "application_hooks_called": false,
+    "system_owner_ready_allowed": true
+  },
+  "live_storage_readonly_probe_passed": true,
+  "live_application_readonly_probe_passed": true,
+  "production_changes": {
+    "accounts": false,
+    "data_metadata": false,
+    "device_modes": false,
+    "startup_policy": false,
+    "application_stopped": false,
+    "trust_root": false
+  },
+  "remaining": [
+    "production initialize/permission/startup/heartbeat integration",
+    "actual nonroot Qt and named-device validation",
+    "real signed Draft update/reboot/rollback",
+    "actual PCB revision and measured complete power removal"
+  ]
+}

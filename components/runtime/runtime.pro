@@ -11,3 +11,5 @@ SOURCES += src/applicationsupervision.cpp
 HEADERS += src/applicationsupervision.h
 SOURCES += src/applicationpermissions.cpp
 HEADERS += src/applicationpermissions.h
+SOURCES += src/applicationauthorization.cpp
+HEADERS += src/applicationauthorization.h
