@@ -107,7 +107,7 @@ struct Profile {
       const auto shared = ::getgrnam("dshan-app");
       check(shared && shared->gr_gid == group,
             "Dedicated application group missing or mismatched");
-      run = "/var/run/dshancontrol";
+      run = "/run/dshancontrol";
       framebuffer = "/dev/fb0";
       for (const auto &entry :
            QDir("/sys/class/input").entryList({"event*"}, QDir::Dirs)) {

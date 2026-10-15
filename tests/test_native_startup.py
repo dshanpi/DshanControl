@@ -44,3 +44,33 @@ class NativeStartupTests(unittest.TestCase):
         if os.environ.get('NATIVE_STARTUP_EVIDENCE'):
             Path(os.environ['NATIVE_STARTUP_EVIDENCE']).write_text(json.dumps({'permissions_applied':True,'launched':['web','hmi'],
                 'observations':observations,'configured_heartbeat_environment':True,'private_records_cleared':2,'python_supervisor_started':False},indent=2)+'\n')
+
+    @unittest.skipUnless(Path('/run/dshancontrol-runtime.pid').is_file(),'requires the existing board system daemon for read-only supervisor binding')
+    def test_existing_system_supervisor_is_bound_through_real_run_directory_without_fixture_override(self):
+        import test_native_application_health as health
+        from unittest import mock
+        import tempfile
+        f=health.NativeApplicationHealthTests();self.addCleanup(f.doCleanups)
+        with mock.patch.object(tempfile,'tempdir','/tmp'):f.setUp()
+        f.stop_children()
+        for path in f.pids.glob('*.pid'):path.unlink()
+        for path in [f.root,f.apps,f.apps/'releases',f.factory]:path.chmod(0o755)
+        for relative in ['bin','lib','lib/web']:(f.factory/relative).mkdir(exist_ok=True);(f.factory/relative).chmod(0o755)
+        process=Path(os.environ.get('DSHANCONTROL_LAUNCH_PROCESS',str(reference.ROOT/'dist/native-launch-tests/launch-process-fixture')))
+        hmi=f.factory/'bin/omnigate-hmi';shutil.copy2(str(process),str(hmi));hmi.chmod(0o755)
+        web=f.factory/'lib/web/app.py';web.write_text('import time\nwhile True:time.sleep(1)\n');web.chmod(0o644)
+        f.settings['application_health'].pop('fixture_processes')
+        f.settings['application_health'].update(launch_receipts_required=True,native_supervisor=True)
+        f.save()
+        def command(name):
+            result=subprocess.run([str(health.BINARY),'--config',str(f.config),name],capture_output=True,text=True,timeout=30)
+            self.assertEqual(0,result.returncode,result.stdout+result.stderr);return json.loads(result.stdout)
+        self.addCleanup(lambda:command('application-stop'))
+        command('application-start');value=command('application-health')
+        expected=int(Path('/run/dshancontrol-runtime.pid').read_text().strip())
+        self.assertEqual(expected,value['processes']['supervisor'])
+        self.assertEqual(2,command('application-stop')['cleared_process_records'])
+        os.kill(expected,0)
+        if os.environ.get('NATIVE_SYSTEM_SUPERVISOR_EVIDENCE'):
+            Path(os.environ['NATIVE_SYSTEM_SUPERVISOR_EVIDENCE']).write_text(json.dumps({'actual_system_supervisor_pid':expected,'canonical_run_parent_verified':True,
+                'fixture_process_override':False,'isolated_application_roles_cleared':2,'system_supervisor_unchanged':True},indent=2)+'\n')

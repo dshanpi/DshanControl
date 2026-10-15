@@ -1,5 +1,22 @@
 # DshanControl engineering gates
 
+## Pinned development Draft transport source (2026-10-15)
+
+Explicit development mode with automatic installation disabled permits one fixed
+Draft release ID and a root-private tmpfs token file. TLS verification remains
+mandatory; Authorization is confined to the initial fixed GitHub API endpoint
+and stripped from asset redirects. Signed metadata, candidate identity, asset
+IDs, exact size and SHA256 are verified again before publishing a download.
+Production configuration rejects this path. Test-only TLS driver is not shipped.
+Use canonical /run/dshancontrol: /var/run is a symlink on the selected board and
+must not be passed as an O_NOFOLLOW directory. Host243 (9 skips), Qt37 and final
+actual isolated ARM46 pass. The new read-only supervisor also verified the live
+system daemon PID without stopping it. See docs/S4-PINNED-DEVELOPMENT-RELEASE-20261015.md
+and its structured receipt. No actual GitHub token or operational signing private
+key was sent to the board. No new physical GUI, real upgrade or power acceptance
+is implied. Continue the new native-role image, fresh backup, real nonroot Qt and
+signed-update/reboot/rollback work. The whole goal remains active.
+
 ## Native reduced-role startup integration source (2026-10-15)
 
 New native S4 templates enable managed records, native supervision and fixed-role

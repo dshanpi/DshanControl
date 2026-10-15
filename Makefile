@@ -31,6 +31,8 @@ build-native-fixtures:
 	cd dist/native-credentials-tests && $(HMI_QMAKE) ../../tests/native/credentials-test.pro && $(MAKE)
 	mkdir -p dist/native-launch-tests
 	$(CC) -std=c99 -Wall -Wextra -Werror tests/native/launch_process_fixture.c -o dist/native-launch-tests/launch-process-fixture
+	mkdir -p dist/native-development-release-tests
+	cd dist/native-development-release-tests && $(HMI_QMAKE) ../../tests/native/development-release-test.pro && $(MAKE)
 .PHONY: test-hmi
 test-hmi:
 	mkdir -p dist/ui-test

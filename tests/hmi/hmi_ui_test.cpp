@@ -250,7 +250,7 @@ class HmiUiTest : public QObject
         QTRY_VERIFY(panel.nativeIdentityReady);
         QTRY_COMPARE(panel.process.state(), QProcess::NotRunning);
         const QString checked(32, 'a'), downloaded(32, 'b'), failed(32, 'c');
-        const QJsonObject candidate{{"version", "1.2.3"}, {"package_sha256", QString(64, 'd')}};
+        const QJsonObject candidate{{"version", "1.2.3"}, {"package_sha256", QString(64, 'd')}, {"development_release", true}};
         auto response = [&](const QString &id, const QString &operation, const QString &state) {
             return QJsonObject{{"task_id", id}, {"operation", operation}, {"status", state},
                                {"stage", "completed"}, {"candidate", candidate}};
@@ -258,6 +258,8 @@ class HmiUiTest : public QObject
         QVERIFY(write("result", json(response(checked, "check", "success"))));
         panel.requestNative("update.status", {});
         QTRY_VERIFY(panel.download->isEnabled());
+        QVERIFY(panel.availableVersion->text().contains("开发草稿"));
+        QVERIFY(panel.releaseSummary->text().contains("开发验证"));
         QVERIFY(!panel.install->isEnabled());
         QVERIFY(panel.status->text().contains("历史"));
         QVERIFY(write("result", json(response(downloaded, "download", "success"))));

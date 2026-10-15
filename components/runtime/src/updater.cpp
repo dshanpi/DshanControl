@@ -1,4 +1,5 @@
 #include "updater.h"
+#include "developmentrelease.h"
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -190,9 +191,47 @@ void writeBytes(const QString &path, const QByteArray &data) {
               file.flush() && ::fsync(file.handle()) == 0,
           "Downloaded metadata write failed", "storage");
 }
+QJsonObject draftReleasePin(const QJsonObject &release) {
+  return {{"id", release["id"]},
+          {"tag_name", release["tag_name"]},
+          {"draft", release["draft"]},
+          {"prerelease", release["prerelease"]}};
+}
+QJsonObject draftAssets(const QJsonObject &release) {
+  require(release["assets"].isArray(), "Pinned draft assets missing",
+          "checking");
+  QJsonObject assets;
+  for (const auto &value : release["assets"].toArray()) {
+    require(value.isObject(), "Invalid pinned draft asset", "checking");
+    const auto asset = value.toObject();
+    const auto name = asset["name"].toString();
+    require(identifier(name) && !assets.contains(name) &&
+                positiveInteger(asset["id"]) &&
+                positiveInteger(asset["size"]) && asset["state"] == "uploaded",
+            "Invalid or duplicate pinned draft asset", "checking");
+    require(asset["digest"].isUndefined() || asset["digest"].isNull() ||
+                asset["digest"].isString(),
+            "Invalid pinned asset digest type", "checking");
+    const auto digest =
+        asset["digest"].isString() ? asset["digest"].toString() : QString();
+    require(digest.isEmpty() ||
+                (digest.startsWith("sha256:") && sha256(digest.mid(7))),
+            "Unknown pinned asset digest", "checking");
+    assets[name] = QJsonObject{{"id", asset["id"]},
+                               {"name", name},
+                               {"size", asset["size"]},
+                               {"digest", digest}};
+  }
+  return assets;
+}
+QString draftAssetUrl(const QJsonObject &asset) {
+  return "https://api.github.com/repos/" + Repo + "/releases/assets/" +
+         QString::number(qint64(asset["id"].toDouble()));
+}
 } // namespace
 NativeUpdater::NativeUpdater(const QJsonObject &configuration)
     : config(configuration) {
+  DevelopmentRelease development(configuration);
   require(!config.contains("development_mode") ||
               config["development_mode"].isBool(),
           "development_mode must be a boolean");
@@ -449,6 +488,9 @@ QString NativeUpdater::install(const QString &manifestPath,
   return name;
 }
 QJsonObject NativeUpdater::check() {
+  DevelopmentRelease development(config);
+  if (development.enabled())
+    return checkDevelopment(development);
   progress("checking");
   QJsonObject best;
   auto currentInfo = installed();
@@ -524,6 +566,11 @@ QJsonObject NativeUpdater::check() {
 }
 QJsonObject NativeUpdater::download(const QJsonObject &candidate,
                                     const QString &directory) {
+  DevelopmentRelease development(config);
+  if (development.enabled())
+    return downloadDevelopment(development, candidate, directory);
+  require(!candidate.contains("development_release"),
+          "Development candidate is not enabled", "download");
   FileLock lock(root + "/.update.lock");
   progress("download-metadata");
   require(QDir().mkpath(directory), "Cannot create download directory",
@@ -579,5 +626,109 @@ QJsonObject NativeUpdater::download(const QJsonObject &candidate,
     QFile::remove(partial);
     throw;
   }
+  return target;
+}
+
+QJsonObject NativeUpdater::checkDevelopment(const DevelopmentRelease &source,
+                                            QByteArray *manifestBytes,
+                                            QByteArray *signatureBytes) {
+  if (!manifestBytes)
+    progress("checking");
+  const auto release = source.metadata(), assets = draftAssets(release);
+  const auto manifestAsset = assets["application-release.json"].toObject();
+  const auto signatureAsset = assets["application-release.json.sig"].toObject();
+  require(!manifestAsset.isEmpty() && !signatureAsset.isEmpty(),
+          "Pinned draft manifest/signature missing", "checking");
+  require(manifestAsset["size"].toDouble() <= 1024 * 1024 &&
+              signatureAsset["size"].toDouble() <= 16384,
+          "Pinned metadata exceeds size bound", "checking");
+  const auto bytes =
+      source.asset(qint64(manifestAsset["id"].toDouble()), 1024 * 1024);
+  const auto signature =
+      source.asset(qint64(signatureAsset["id"].toDouble()), 16384);
+  require(bytes.size() == manifestAsset["size"].toDouble() &&
+              signature.size() == signatureAsset["size"].toDouble(),
+          "Pinned metadata size changed", "checking");
+  verifySignature(bytes, signature, config["public_key"].toString());
+  const auto value = strictJson(bytes);
+  require(value.isObject(), "Invalid pinned draft manifest");
+  const auto manifest = value.toObject();
+  validateManifest(manifest, false);
+  require(manifest["release_state"] == "draft" &&
+              manifest["tag"] == release["tag_name"] &&
+              (manifest["channel"] == "prerelease") ==
+                  release["prerelease"].toBool(),
+          "Pinned draft identity/channel mismatch", "checking");
+  const auto target = matchTarget(manifest, contract, installed(),
+                                  qint64(state()["high_water"].toDouble()));
+  const auto package = assets[target["filename"].toString()].toObject();
+  require(!package.isEmpty() && package["size"] == target["size"],
+          "Pinned target asset missing or changed", "checking");
+  const auto digest = package["digest"].toString();
+  require(digest.isEmpty() || digest == "sha256:" + target["sha256"].toString(),
+          "Pinned target digest differs from signed manifest", "checking");
+  const auto name = QString::number(qint64(manifest["sequence"].toDouble())) +
+                    '-' + target["sha256"].toString().left(16);
+  require(!state()["failed"].toArray().contains(name),
+          "Failed pinned draft remains quarantined", "checking");
+  if (manifestBytes)
+    *manifestBytes = bytes;
+  if (signatureBytes)
+    *signatureBytes = signature;
+  return {{"version", manifest["version"]},
+          {"sequence", manifest["sequence"]},
+          {"development_release", true},
+          {"release", draftReleasePin(release)},
+          {"asset_pins", QJsonObject{{"manifest", manifestAsset},
+                                     {"signature", signatureAsset},
+                                     {"package", package}}},
+          {"manifest_url", draftAssetUrl(manifestAsset)},
+          {"signature_url", draftAssetUrl(signatureAsset)},
+          {"package_url", draftAssetUrl(package)},
+          {"manifest_sha256", hashBytes(bytes)},
+          {"signature_sha256", hashBytes(signature)},
+          {"package_sha256", target["sha256"]}};
+}
+
+QJsonObject NativeUpdater::downloadDevelopment(const DevelopmentRelease &source,
+                                               const QJsonObject &candidate,
+                                               const QString &directory) {
+  FileLock lock(root + "/.update.lock");
+  progress("download-metadata");
+  require(candidate["development_release"].isBool() &&
+              candidate["development_release"].toBool(),
+          "Pinned development candidate required", "download");
+  QByteArray bytes, signature;
+  const auto fresh = checkDevelopment(source, &bytes, &signature);
+  require(fresh == candidate, "Selected draft or asset identity changed",
+          "download", "development-release-changed");
+  const auto manifest = strictJson(bytes).toObject();
+  const auto target = matchTarget(manifest, contract, installed(),
+                                  qint64(state()["high_water"].toDouble()));
+  const auto package = candidate["asset_pins"].toObject()["package"].toObject();
+  require(QDir().mkpath(directory) && !QFileInfo(directory).isSymLink(),
+          "Cannot create private download directory", "storage");
+  const auto size = qint64(target["size"].toDouble());
+  const auto partial = directory + "/.package.part";
+  QFile output(partial);
+  require(QStorageInfo(directory).bytesAvailable() > size + 16 * 1024 * 1024 &&
+              output.open(QIODevice::WriteOnly | QIODevice::NewOnly),
+          "No download space or existing partial retained", "storage");
+  progress("download-package");
+  source.asset(qint64(package["id"].toDouble()), size, &output);
+  require(output.flush() && ::fsync(output.handle()) == 0,
+          "Pinned payload fsync failed", "storage");
+  output.close();
+  require(QFileInfo(partial).size() == size &&
+              hashFile(partial) == target["sha256"].toString(),
+          "Pinned payload hash/size mismatch", "download");
+  writeBytes(directory + "/application-release.json", bytes);
+  writeBytes(directory + "/application-release.json.sig", signature);
+  const auto destination = directory + '/' + target["filename"].toString();
+  require(!QFileInfo(destination).exists() &&
+              !QFileInfo(destination).isSymLink() &&
+              QFile::rename(partial, destination),
+          "Pinned download destination exists; state retained", "storage");
+  syncDirectory(directory);
   return target;
 }

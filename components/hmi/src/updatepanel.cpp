@@ -445,16 +445,20 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         status->setText("系统返回的发布身份无效，未启动后续操作。");
         return;
     }
-    availableVersion->setText("版本 " + selectedRelease["version"].toString());
+    const bool development = selectedRelease["development_release"].isBool() &&
+                             selectedRelease["development_release"].toBool();
+    availableVersion->setText((development ? "开发草稿 " : "版本 ") + selectedRelease["version"].toString());
     if (operation == "check") {
         checkTaskId = id;
         download->setEnabled(true);
-        releaseSummary->setText("已找到可信兼容版本，可以下载应用包。");
+        releaseSummary->setText(development ? "已验证开发草稿清单，可下载用于开发验证的应用包。"
+                                            : "已找到可信兼容版本，可以下载应用包。");
         preflightValues.last()->setText("清单已验证");
     } else if (operation == "download") {
         downloadTaskId = id;
         install->setEnabled(true);
-        releaseSummary->setText("应用包已下载并校验，安装前需要设备允许维护。");
+        releaseSummary->setText(development ? "开发草稿已下载并校验，安装前仍需设备允许维护。"
+                                            : "应用包已下载并校验，安装前需要设备允许维护。");
         preflightValues.last()->setText("清单与应用包已验证");
     } else {
         resetPreflight("未验证");

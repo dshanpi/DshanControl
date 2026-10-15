@@ -290,7 +290,7 @@ QJsonObject ApplicationProcesses::health(const QString &commit) const {
   QJsonObject pids;
   for (auto it = commands.cbegin(); it != commands.cend(); ++it) {
     const bool system = nativeSupervisor && it.key() == "supervisor";
-    Owned process(system && !fixture ? "/var/run" : pidRoot,
+    Owned process(system && !fixture ? "/run" : pidRoot,
                   system && !fixture ? "dshancontrol-runtime" : it.key(),
                   it.value(), stage, false, receiptsRequired && !system,
                   commit);

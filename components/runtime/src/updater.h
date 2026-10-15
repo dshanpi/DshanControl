@@ -1,6 +1,7 @@
 #pragma once
 #include "protocol.h"
 #include <functional>
+class DevelopmentRelease;
 
 class NativeUpdater {
   QJsonObject config, contract;
@@ -12,6 +13,12 @@ class NativeUpdater {
   void switchTo(const QString &name);
   bool hook(const QString &operation, bool checked = true);
   bool healthy();
+  QJsonObject checkDevelopment(const DevelopmentRelease &source,
+                               QByteArray *manifest = nullptr,
+                               QByteArray *signature = nullptr);
+  QJsonObject downloadDevelopment(const DevelopmentRelease &source,
+                                  const QJsonObject &candidate,
+                                  const QString &directory);
 
 public:
   std::function<void(const QString &)> progress = [](const QString &) {};

@@ -1,0 +1,9 @@
+QT += core network
+QT -= gui
+CONFIG += console c++11 release
+CONFIG -= app_bundle
+TARGET = development-release-test-driver
+TEMPLATE = app
+SOURCES += development_release_test_driver.cpp ../../components/runtime/src/storage.cpp ../../components/runtime/src/protocol.cpp ../../components/runtime/src/updater.cpp ../../components/runtime/src/developmentrelease.cpp
+LIBS += -lcrypto -lz
+SOURCES += ../../components/runtime/src/systemstorage.cpp

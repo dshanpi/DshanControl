@@ -1,0 +1,178 @@
+{
+  "date": "2026-10-15",
+  "scope": "pinned development Draft transport; isolated ARM fixtures",
+  "host": {
+    "run": 243,
+    "skipped": 9,
+    "passed": 234
+  },
+  "qt": {
+    "passed": 37,
+    "failed": 0
+  },
+  "arm": {
+    "sha256": "87f8d623d5a3be30e74f80e731619dbc969425519c99520b740cdafd29d01362",
+    "bytes": 6026,
+    "result": {
+      "run": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated Qt TLS pinned Draft/update/service/role/supervision/startup fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "artifacts": {
+    "development-release-final-arm/runtime/dshancontrol-runtime": {
+      "sha256": "5174c5d93f4337eda0cf9449d0de196b9d182f947d791cbd8a9937898c13cf0e",
+      "bytes": 741064
+    },
+    "development-release-final-arm/driver/development-release-test-driver": {
+      "sha256": "eec2c50315704487828bfb9b56a1f2563187db5b21fbea94e5be1256705599b8",
+      "bytes": 333036
+    },
+    "development-release-hmi-arm/hmi/omnigate-hmi": {
+      "sha256": "c890931ac2732be9b9d6e0e88d11f3e0696ad3509d1ea4652b183b6969b7891d",
+      "bytes": 7797616
+    }
+  },
+  "tls_observations": {
+    "signed_candidate_verified": true,
+    "payload_hash_verified": true,
+    "cdn_authorization_absent": true,
+    "credential_value_logged": false,
+    "requests": [
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/73",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/assets/101",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "release-assets.githubusercontent.com",
+        "path": "/asset/101?sig=fixture-only",
+        "authorization_present": false,
+        "authorization_matches_fixture": false
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/assets/102",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "release-assets.githubusercontent.com",
+        "path": "/asset/102?sig=fixture-only",
+        "authorization_present": false,
+        "authorization_matches_fixture": false
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/73",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/assets/101",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "release-assets.githubusercontent.com",
+        "path": "/asset/101?sig=fixture-only",
+        "authorization_present": false,
+        "authorization_matches_fixture": false
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/assets/102",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "release-assets.githubusercontent.com",
+        "path": "/asset/102?sig=fixture-only",
+        "authorization_present": false,
+        "authorization_matches_fixture": false
+      },
+      {
+        "host": "api.github.com",
+        "path": "/repos/dshanpi/DshanControl/releases/assets/103",
+        "authorization_present": true,
+        "authorization_matches_fixture": true
+      },
+      {
+        "host": "release-assets.githubusercontent.com",
+        "path": "/asset/103?sig=fixture-only",
+        "authorization_present": false,
+        "authorization_matches_fixture": false
+      }
+    ]
+  },
+  "system_supervision": {
+    "actual_system_supervisor_pid": 1366,
+    "canonical_run_parent_verified": true,
+    "fixture_process_override": false,
+    "isolated_application_roles_cleared": 2,
+    "system_supervisor_unchanged": true
+  },
+  "startup": {
+    "permissions_applied": true,
+    "launched": [
+      "web",
+      "hmi"
+    ],
+    "observations": [
+      {
+        "uid": 60000,
+        "gid": 60000,
+        "nnp": 1,
+        "extra_fds": 0,
+        "secret_env_present": 0,
+        "lease_env_present": 0,
+        "role": "web"
+      },
+      {
+        "uid": 60001,
+        "gid": 60000,
+        "nnp": 1,
+        "extra_fds": 0,
+        "secret_env_present": 0,
+        "lease_env_present": 0,
+        "role": "hmi"
+      }
+    ],
+    "configured_heartbeat_environment": true,
+    "private_records_cleared": 2,
+    "python_supervisor_started": false
+  },
+  "canonical_runtime_root": "/run/dshancontrol",
+  "evidence_export": {
+    "initial_helper_failed": true,
+    "failed_artifacts_preserved": true,
+    "test_replay": false,
+    "corrected_followup_archive_verified": true
+  },
+  "real_github_sdk_api": "HTTP200 readonly existing system Draft; separate from Qt fixture tests",
+  "actual_github_credential_sent_to_board": false,
+  "operational_signing_private_key_sent_to_board": false,
+  "live_application_unchanged": true,
+  "new_physical_hmi_run": false,
+  "production_qualified": false,
+  "remaining": [
+    "New native-role image and fresh backup",
+    "Actual nonroot Qt/device operation",
+    "Real signed Qt install/reboot/rollback",
+    "PCB revision and measured complete power removal"
+  ]
+}
