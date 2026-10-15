@@ -1,5 +1,29 @@
 # DshanControl engineering gates
 
+## Replacement board and development acceptance (2026-10-15)
+
+The user confirmed a replacement board and authorized reflashing it, then asked
+the primary agent to define and execute a sustained development acceptance task.
+The sanitized native image `dc62a4b5...` was flashed once with vendor verification.
+Fresh UART confirmed a changed boot ID, automatic writable ext4 UDISK mounting,
+factory source `12359ec...`, and native/application health exit 0. The user
+confirmed normal display and physical touch. This supersedes the earlier
+unavailable-Gateway/no-new-board-operation state; the previous sequence-6 pilot
+belongs to the old board. Complete electrical power removal was not measured.
+
+WiFi diagnosis found the selected modules expect `/lib/firmware/aic8800d80`,
+while the vendor package installs `lib/firmware/sdio/aic8800d80`. All 13 files
+matched the frozen target; adding the relative alias restored driver loading
+and wlan0. Keep this as a documented system overlay, separate from the immutable
+uploaded image. The post-build preflight must validate firmware before creating
+the alias and reject missing/empty/linked files or conflicting aliases.
+Keep site WiFi credentials out of images/Git; the S4 startup configuration is a
+private root-owned `system/wifi.conf` under the persistent DshanControl root.
+Network association, DHCP and reboot persistence require fresh physical evidence.
+See `docs/S4-DEVELOPMENT-ACCEPTANCE-20261015.md`. Signed synthetic CLI fixtures
+must remain isolated from the live application, contract, trust root and data;
+process interruption tests do not establish physical power-loss qualification.
+
 ## Native S4 system build continuation (2026-10-15)
 
 New S4 package builds include the C++ runtime and the single S69 system service;

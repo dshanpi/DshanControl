@@ -27,6 +27,10 @@ class S4SystemTests(unittest.TestCase):
         busybox.parent.mkdir(parents=True, exist_ok=True)
         busybox.write_text('#!/bin/sh\nexit 0\n')
         busybox.chmod(0o755)
+        firmware = target / 'lib/firmware/sdio/aic8800d80'
+        firmware.mkdir(parents=True, exist_ok=True)
+        for name in rootfs.AIC_D80_FILES:
+            (firmware / name).write_bytes(b'fixture firmware: ' + name.encode())
 
     def fixture(self, base):
         hardware, br = base / 'hardware', base / 'buildroot'
@@ -281,6 +285,54 @@ class S4SystemTests(unittest.TestCase):
             self.assertTrue(any('init=/init' in p for p in audit.audit(hardware, br)['pending']))
             init.symlink_to('/sbin/init')
             self.assertTrue(any('S4 /init' in e for e in audit.audit(hardware, br)['configuration_errors']))
+
+    def test_postbuild_maps_the_actual_sdio_firmware_and_audit_detects_missing_alias(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, _, br = self.fixture(Path(temp))
+            target = br / 'target'
+            alias = target / 'lib/firmware/aic8800d80'
+            self.assertEqual('sdio/aic8800d80', os.readlink(str(alias)))
+            self.assertTrue((alias / 'fw_patch_table_8800d80_u02.bin').is_file())
+            rootfs.finalize(target)
+            alias.unlink()
+            self.assertTrue(any('firmware alias' in e for e in audit.audit(hardware, br)['configuration_errors']))
+            rootfs.finalize(target)
+            self.assertEqual([], audit.audit(hardware, br)['configuration_errors'])
+
+    def test_bad_firmware_or_alias_refuses_before_replacing_any_policy(self):
+        for bad in ('missing-u02', 'empty', 'file-symlink', 'directory-symlink',
+                    'parent-symlink', 'wrong-alias', 'existing-directory'):
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                _, _, br = self.fixture(base)
+                target = br / 'target'
+                policy = target / 'etc/init.d/S60mount_udisk'
+                policy.write_bytes(b'preserve policy until firmware preflight passes')
+                alias = target / 'lib/firmware/aic8800d80'
+                directory = target / 'lib/firmware/sdio/aic8800d80'
+                file = directory / 'fw_patch_table_8800d80_u02.bin'
+                outside = base / 'outside'
+                outside.mkdir()
+                if bad in ('missing-u02', 'file-symlink'):
+                    file.unlink()
+                    if bad == 'file-symlink':
+                        file.symlink_to(outside / 'firmware')
+                elif bad == 'empty':
+                    file.write_bytes(b'')
+                elif bad in ('directory-symlink', 'parent-symlink'):
+                    import shutil
+                    path = directory if bad == 'directory-symlink' else directory.parent
+                    shutil.move(str(path), str(outside / 'original'))
+                    path.symlink_to(outside / 'original', target_is_directory=True)
+                else:
+                    alias.unlink()
+                    if bad == 'wrong-alias':
+                        alias.symlink_to('/tmp/untrusted-firmware')
+                    else:
+                        alias.mkdir()
+                with self.assertRaises(ValueError):
+                    rootfs.finalize(target)
+                self.assertEqual(b'preserve policy until firmware preflight passes', policy.read_bytes())
 
     def test_postbuild_boot_preflight_preserves_other_files(self):
         for bad in ('missing-busybox', 'non-executable', 'busybox-symlink',

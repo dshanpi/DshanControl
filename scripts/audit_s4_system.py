@@ -8,6 +8,7 @@ import re
 import shutil
 import struct
 from pathlib import Path
+from finalize_s4_rootfs import validate_wifi_firmware
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -139,6 +140,10 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
           or busybox.parent.is_symlink() or busybox.is_symlink()
           or not busybox.is_file() or not busybox.stat().st_mode & 0o111):
         errors.append('S4 /init must resolve to the staged executable bin/busybox')
+    try:
+        validate_wifi_firmware(buildroot / 'target', require_alias=True)
+    except ValueError as error:
+        errors.append(str(error))
     fixed = sum(p['size_bytes'] or 0 for p in layout)
     # Conservative engineering reserve, not a measurement of the physical GPT.
     reserve = 32 * 1024**2
@@ -159,13 +164,14 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
         pending.append('less than 16 GiB free for full SDK/image build')
     policy = {}
     for name, relative in [('S60mount_udisk', 'etc/init.d/S60mount_udisk'),
+                           ('S72dshancontrol-wifi', 'etc/init.d/S72dshancontrol-wifi'),
                            ('storage.py', 'usr/lib/dshancontrol-update/storage.py')]:
         script = buildroot / 'target' / relative
         expected = ROOT / 'boards/t113s4-sdnand/runtime' / name
         policy[relative] = {'expected_sha256': sha_file(expected),
                             'installed_sha256': sha_file(script) if script.is_file() else None}
         if (script.is_symlink() or policy[relative]['installed_sha256'] != policy[relative]['expected_sha256']
-                or (name == 'S60mount_udisk' and script.stat().st_mode & 0o111 == 0)):
+                or (name.startswith('S') and script.stat().st_mode & 0o111 == 0)):
             errors.append('S4 non-formatting storage policy missing or changed: ' + relative)
     pending.extend(['UDISK ext4 factory provisioning not verified', 'kernel/bootloader image chain not verified',
                     'hardware function/power-loss/rollback acceptance not run'])
