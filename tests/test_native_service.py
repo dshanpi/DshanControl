@@ -82,11 +82,15 @@ class NativeServiceTests(fixtures.UpdateCliTests):
         pidfile = root / 'native.pid'
         script = root / 'S69native'
         source = (fixtures.fixtures.ROOT / 'boards/t113s4-sdnand/runtime/S69dshancontrol-runtime').read_text()
+        vendor = root / 'partition_op.sh'
+        alias = root / 'dev/by-name/UDISK'
         for old, new in [('BIN=/usr/bin/dshancontrol-runtime', 'BIN=' + str(binary)),
                          ('CONFIG=/etc/dshancontrol/platform-service.json', 'CONFIG=' + str(self.service_config)),
                          ('PID=/var/run/dshancontrol-runtime.pid', 'PID=' + str(pidfile)),
                          ('SOCKET=/var/run/dshancontrol/platform.sock', 'SOCKET=' + self.socket_path),
                          ('LOG=/var/log/dshancontrol-runtime.log', 'LOG=' + str(root / 'runtime.log')),
+                         ('/etc/partition_op.sh', str(vendor)),
+                         ('/dev/by-name/UDISK', str(alias)),
                          ('mkdir -p /var/run/dshancontrol', 'mkdir -p ' + str(root / 'run'))]:
             self.assertIn(old, source)
             source = source.replace(old, new)
@@ -111,13 +115,28 @@ class NativeServiceTests(fixtures.UpdateCliTests):
             except (OSError, ValueError):
                 pass
         self.addCleanup(cleanup)
+        # Missing vendor alias support refuses before initialization or launch.
+        refused = run('start')
+        self.assertNotEqual(0, refused.returncode)
+        self.assertFalse(pidfile.exists())
+        self.assertFalse(bootprobe.with_suffix('.calls').exists())
+        device = root / 'device'
+        device.write_text('synthetic boot-mapped device')
+        vendor.write_text('do_device_node_switch() {\n'
+            'mkdir -p ' + str(alias.parent) + '\n'
+            'ln -s ' + str(device) + ' ' + str(alias) + '\n'
+            'echo alias >> ' + str(root / 'alias.calls') + '\n}\n'
+            'do_format_filesystem() { echo forbidden; return 99; }\n')
         result = run('start')
         self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(device, alias.resolve())
+        self.assertEqual('alias\n', (root / 'alias.calls').read_text())
         first_pid = pidfile.read_text()
         self.assertTrue(self.request('update.identity')['ok'])
         self.assertEqual(0, run('status').returncode)
         self.assertEqual(0, run('start').returncode)
         self.assertEqual(first_pid, pidfile.read_text())
+        self.assertEqual('alias\n', (root / 'alias.calls').read_text())
         self.assertEqual(['called', 'called'], bootprobe.with_suffix('.calls').read_text().splitlines())
         with (self.tasks / '.task.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

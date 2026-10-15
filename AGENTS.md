@@ -12,6 +12,10 @@ installation disabled. This source integration is not physical baseline, least
 privilege, complete Python migration or OTA qualification. Preserve the separate
 factory-image and sequence-6 pilot evidence. See
 `docs/validation/2026-10-15-native-system-integration.json` for tested inputs.
+S69 must initialize vendor partition aliases using only do_device_node_switch,
+then validate UDISK with the boot map before initialization/native startup. Never
+call the vendor formatting helpers. busybox-init-base-files is an explicit S4
+dependency; do not assume its alias creation survived replacing vendor S60.
 
 ## Latest upload authorization (2026-10-14, compressed system delivery)
 

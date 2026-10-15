@@ -94,12 +94,15 @@ S4 Buildroot 配方使用同一目标 qmake 构建 HMI 与 C++ 运行端，通�
 `dshancontrol-update` 和 HMI/Web 转发均指向原生服务；旧 T153 配方保持原入口。
 省略 `--runtime` 仅保留历史安装器调用兼容性，不能在已有原生目标上混装旧入口。
 
-`S69dshancontrol-runtime` 先检查存储并复用现有出厂初始化，再启动一个拥有显示与更新
+`S69dshancontrol-runtime` 先复用厂商 `do_device_node_switch` 创建分区别名，
+再检查存储并复用现有出厂初始化，启动一个拥有显示与更新
 IPC 的服务。服务完成持久事务恢复后才监听 socket，启动器验证所拥有 PID 的 executable、
 参数和实际 identity RPC，避免固定 1 秒延迟或两个服务同时恢复的竞争。
 一次调用只启动一次，不因失败重启。原始结构化启动错误保留在权限 0600 的
 `/var/log/dshancontrol-runtime.log`。`S70` 在服务就绪后启动/检查应用，原生模式的
 `S71` 不启动旧 Python watcher；当前仍由明确的检查/下载/安装任务驱动。
+仅调用厂商的别名创建函数，不调用格式化函数；随后 storage.py 核对 UDISK 别名与
+实际启动分区映射及块设备。配方显式依赖提供该函数的 busybox-init-base-files。
 
 服务所有者可使用 `service.shutdown {}` 请求关停。任务锁、安装锁或控制锁被占用时
 返回原始 resource-busy，进程继续运行；没有强制 kill 或自动重试。接受关停后保持三把锁、

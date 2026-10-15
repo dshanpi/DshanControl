@@ -230,5 +230,62 @@
     "Real production board revision, trust, maintenance and health integration",
     "BusyBox cold startup, real GitHub download/GUI installation, full power-loss matrix and data qualification",
     "Least privilege and remaining Python system helpers/platform operations migration"
-  ]
+  ],
+  "startup_alias_followup": {
+    "recorded_at_utc": "2026-10-15T05:36:00.231507+00:00",
+    "source_base_commit": "d8d1856ba88470036ca0d9cc5b0b708a9d4d289d",
+    "problem": "Native storage expects /dev/by-name/UDISK, but replacing vendor S60 removed its do_device_node_switch call",
+    "fix": "Initialize only the vendor aliases, then validate boot map/block device before persistent initialization. Declare the vendor init package as a dependency. No formatting call.",
+    "source_files_sha256": {
+      "boards/t113s4-sdnand/runtime/S69dshancontrol-runtime": "d1649bb2645579d486973900fde9593b6061cad3556ea0a7ccb2ca648b499f2a",
+      "boards/t113s4-sdnand/buildroot/package/dshancontrol/Config.in": "ca0f216ff6bb825646e6226c5c3cbbae6e1385bc89b1c7b849d3a5b3a20f0299",
+      "boards/t113s4-sdnand/buildroot/package/dshancontrol/dshancontrol.mk": "dd4e416129e37a0b09c8eac52a69f9b81b470b5cf822c02f5f0fd94317910150",
+      "tests/test_native_service.py": "d425dd2bd92294a3a903c5df8e19f7a3edca8bf5fd3688a55eaaf4dc7331704d"
+    },
+    "host_tests_passed": 158,
+    "qt_repeated": false,
+    "qt_reason": "No HMI source change; 35-test result above applies",
+    "native_process_fixture": "Missing vendor helper refused before launch; alias initialization occurred once; real native startup/shutdown/locks and original storage errors preserved",
+    "actual_vendor_alias_probe": {
+      "status": "passed",
+      "vendor_source": "/home/ubuntu/T113-tina5v1.2-sdk/buildroot/config/buildroot/allwinner/system/busybox-init-base-files/etc/partition_op.sh",
+      "vendor_source_sha256": "6d4dddafff1169dde51de7aa12822c8518a7ad1b1c887c55693fe37805bac9d1",
+      "argv": [
+        "bwrap",
+        "--ro-bind",
+        "/",
+        "/",
+        "--proc",
+        "/proc",
+        "--bind",
+        "/home/ubuntu/DshanControl/dist/continuation-20261015/vendor-alias-fixture/dev",
+        "/dev",
+        "--ro-bind",
+        "/home/ubuntu/DshanControl/dist/continuation-20261015/vendor-alias-fixture/cmdline",
+        "/proc/cmdline",
+        "--unshare-net",
+        "sh",
+        "-ec",
+        ". \"$1\"; do_device_node_switch; test -f /dev/by-name/UDISK; test \"$(readlink /dev/by-name/UDISK)\" = /dev/mmcblk0p9",
+        "alias-probe",
+        "/home/ubuntu/T113-tina5v1.2-sdk/buildroot/config/buildroot/allwinner/system/busybox-init-base-files/etc/partition_op.sh"
+      ],
+      "exit_code": 0,
+      "aliases": {
+        "rootfs": "/dev/mmcblk0p5",
+        "UDISK": "/dev/mmcblk0p9"
+      },
+      "simulated_device_data_preserved": true,
+      "formatting_called": false,
+      "physical_test": false,
+      "dev_directory_bound_to_synthetic_files": true,
+      "real_device_access_performed": false
+    },
+    "test_log": {
+      "path": "dist/continuation-20261015/make-test-alias-fix.log",
+      "sha256": "9ae7c6226c70ad9fb752792d92a8ad5b3e35081bfc973452906ba71faefd07ba"
+    },
+    "physical_boot_test": "not-run",
+    "clean_rootfs_build": "Paused before application package construction so the frozen app/system source snapshot can be refreshed coherently; same-run dependencies retained"
+  }
 }
