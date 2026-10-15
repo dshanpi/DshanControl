@@ -26,6 +26,23 @@ validating the staged executable. Refuse unexpected init files/links and symlink
 BusyBox destinations before writing. Keep this boot entry in the source recipe
 and audit; do not depend on a previous target directory's leftover link.
 
+## Native development delivery (2026-10-15)
+
+New pinned draft `system-v0.1.0-dev.20261015--t113s4-sdnand` uses clean factory source
+`12359ec3ceaec23640fa64764c4c09dc94ce56ef`. See
+`docs/S4-NATIVE-SYSTEM-DELIVERY-20261015.md` and its structured receipt.
+All 17 remote assets were re-downloaded and verified. New selected BSP
+and Buildroot target outputs passed static/container/privacy checks; no full
+122-component fresh checkout or complete SDK reproduction was performed.
+Compute DTB relocation from this build's raw/compressed kernel ELF and BSS
+inputs, then compare the unmodified vendor function and actual boot header.
+The old image's fixed 0x4113f100 expectation is not reusable; this image uses
+0x4113f000 with its smaller compressed kernel. Do not bypass the relocation gate.
+No new board flash/acceptance occurred. Preserve sequence-6/data and verify a
+network backup plus live device identity before any full factory flash.
+Formal identity/signing/maintenance, physical OTA, least privilege and remaining
+Python migration remain pending; automatic_updates_qualified=false, Draft only.
+
 ## Latest upload authorization (2026-10-14, compressed system delivery)
 
 The user explicitly instructed: upload the S4 SDK differences and images,
