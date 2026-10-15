@@ -9,7 +9,10 @@ int main(int argc, char **argv) {
     require(argc==2,"Fixture input file required");
     const auto input=readJson(QString::fromLocal8Bit(argv[1]));
     QJsonObject output;
-    if(input["operation"]=="boot-map")
+    if(input["operation"]=="sysfs-attribute")
+      output={{"value",QString::fromUtf8(readSysfsAttribute(input["path"].toString(),
+          input["limit"].toInt()))}};
+    else if(input["operation"]=="boot-map")
       output={{"device",bootPersistentDevice(input["cmdline"].toString().toUtf8())}};
     else if(input["operation"]=="mount-info")
       output={{"mounted",persistentMountPresent(input["mountinfo"].toString().toUtf8(),

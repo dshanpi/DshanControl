@@ -13,6 +13,7 @@ void require(bool ok, const QString &message,
              const QString &stage = "verification",
              const QString &code = "rejected");
 QByteArray readBytes(const QString &path, qint64 limit);
+QByteArray readSysfsAttribute(const QString &path, qint64 limit);
 QJsonValue strictJson(const QByteArray &bytes);
 QJsonObject readJson(const QString &path);
 void durableJson(const QString &path, const QJsonObject &value);

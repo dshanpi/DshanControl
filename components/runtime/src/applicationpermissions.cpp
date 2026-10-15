@@ -112,7 +112,7 @@ struct Profile {
       for (const auto &entry :
            QDir("/sys/class/input").entryList({"event*"}, QDir::Dirs)) {
         const auto sys = "/sys/class/input/" + entry;
-        if (QString::fromUtf8(readBytes(sys + "/device/name", 256)).trimmed() !=
+        if (QString::fromUtf8(readSysfsAttribute(sys + "/device/name", 256)).trimmed() !=
             "gt9xxnew_ts")
           continue;
         check(touch.isEmpty(), "Ambiguous named touchscreen",
@@ -131,7 +131,7 @@ struct Profile {
               "Expected character device missing", "permissions-device");
         const auto actual = QString::number(major(info.st_rdev)) + ':' +
                             QString::number(minor(info.st_rdev));
-        check(QString::fromUtf8(readBytes(pair.second, 128)).trimmed() ==
+        check(QString::fromUtf8(readSysfsAttribute(pair.second, 128)).trimmed() ==
                   actual,
               "Device and sysfs identity disagree", "permissions-device");
       }

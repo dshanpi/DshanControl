@@ -1,5 +1,22 @@
 # DshanControl engineering gates
 
+## Actual sysfs permission preflight correction (2026-10-15)
+
+Full image91193/source75cd7ed flashed, verified and rebooted successfully, but
+native startup failed before role launch: readBytes rejected sysfs nominal
+PAGE_SIZE against short attribute limits. Preserve that failed image/evidence;
+never report its native-role startup as passed. A dedicated bounded sysfs reader
+now verifies SYSFS_MAGIC and actual content length; ordinary-file bounds remain.
+Host244 (9 skips), actual ARM NativeBootTests9 and a separate read-only production
+permissions-plan pass. Raw runner's copied broader scope label is historical;
+only the nine test IDs ran. See docs/S4-SYSFS-PERMISSION-READ-20261015.md and receipt.
+Original user backup0942205b… (44 files/2DBs) remains verified on SDK; private
+restore bundle is transferred to the board but has NOT replaced live data yet.
+WiFi/DHCP/UTC work. No failed launch replay, actual role/device metadata changes
+or production qualification. Continue a corrected full image, preserve current
+board state before the next flash, then actual nonroot GUI and data restoration.
+Whole goal remains active. Operational notes omit the private site network name.
+
 ## Pinned development Draft transport source (2026-10-15)
 
 Explicit development mode with automatic installation disabled permits one fixed
@@ -394,7 +411,7 @@ https://github.com/DongshanPI/100ASK_T113s4-SdNand_TinaSDK5
 
 ### Private lab WiFi (user supplied 2026-10-13)
 
-- Network SSID: `Programmers7`. Credentials are stored only in the local private
+- Network SSID: `[site network name kept in local private configuration]`. Credentials are stored only in the local private
   file `/home/ubuntu/.config/dshancontrol/hardware-wifi.json` (0600, directory 0700).
 - When the AIC8800D80 interface is ready, use that private configuration for the
   authorized board connection. Never print/cat the secret file into tool output,

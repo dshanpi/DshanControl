@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-15",
+  "failure": {
+    "image_sha256": "91193e4a8fd844f424fedda2e5fd3b760a04a2e450ca21efc8ae81e483db86cb",
+    "source_commit": "75cd7edfb73489044fdec0e3b86abf2e819be113",
+    "flash_task": "flash-1792100064745870700",
+    "flash_and_post_reboot_verified": true,
+    "native_startup_passed": false,
+    "code": "file-too-large",
+    "stage": "storage",
+    "root_cause": "sysfs nominal PAGE_SIZE exceeds small attribute bounds; actual name/dev content is short",
+    "failed_start_not_replayed": true
+  },
+  "host": {
+    "run": 244,
+    "skipped": 9,
+    "passed": 235
+  },
+  "actual_arm": {
+    "sha256": "4b3e64cffc669fc7c72199c49cbcaea83da873ab60db45eac3a61fba817d6350",
+    "bytes": 1133,
+    "result": {
+      "run": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native owned-stop/boot/health/update fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_and_pin_verified": true,
+    "production_permission_plan_passed": true,
+    "production_metadata_modified_by_probe": false
+  },
+  "actual_arm_modules": [
+    "test_native_boot"
+  ],
+  "actual_arm_scope_note": "Raw runner inherited a broader old scope label; actual nine test IDs in tests.log are NativeBootTests only. Production permissions-plan is a separate read-only invocation.",
+  "runtime_sha256": "9da75f1561f7a19c564b06ee190b683ebecd1028aead7b48013d2a363478f8c4",
+  "production_permission_plan": {
+    "passed": true,
+    "applied": false,
+    "entry_count": 11
+  },
+  "original_user_data": {
+    "backup_sha256": "0942205b815dd8ace6af900225eeac4eda7af97c53918844ac8c98ba3bc0b706",
+    "files_verified": 44,
+    "sqlite_databases_verified": 2,
+    "restore_bundle_network_transferred": true,
+    "restored_to_live_data": false
+  },
+  "production_qualified": false,
+  "next": "Commit fix, build a new full image, preserve current failed-board state before another flash, then actual nonroot Qt and user data restore"
+}

@@ -13,6 +13,8 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
+#include <sys/vfs.h>
+#include <linux/magic.h>
 #include <unistd.h>
 #include <zlib.h>
 
@@ -31,6 +33,25 @@ QByteArray readBytes(const QString &path, qint64 limit) {
   const auto data = file.read(limit + 1);
   require(data.size() <= limit && file.error() == QFile::NoError,
           "Incomplete file read", "storage");
+  return data;
+}
+QByteArray readSysfsAttribute(const QString &path, qint64 limit) {
+  require(path.startsWith("/sys/") && QDir::cleanPath(path) == path &&
+              !path.contains(QChar(0)) && limit > 0 && limit <= 4096,
+          "Invalid sysfs attribute request", "permissions", "permissions-device");
+  QFile file(path);
+  require(file.open(QIODevice::ReadOnly), "Cannot read sysfs attribute",
+          "permissions", "permissions-device");
+  struct statfs filesystem;
+  require(::fstatfs(file.handle(), &filesystem) == 0 &&
+              filesystem.f_type == SYSFS_MAGIC,
+          "Attribute is not on sysfs", "permissions", "permissions-device");
+  // sysfs advertises PAGE_SIZE, even when show() emits only a short value.
+  const auto data = file.read(limit + 1);
+  require(!data.isEmpty() && data.size() <= limit &&
+              file.error() == QFile::NoError,
+          "Invalid or oversized sysfs attribute", "permissions",
+          "permissions-device");
   return data;
 }
 namespace {

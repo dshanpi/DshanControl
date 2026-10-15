@@ -67,6 +67,17 @@ class NativeBootTests(unittest.TestCase):
             with self.subTest(cmdline=cmdline):
                 self.assertEqual('storage-boot-map',self.parse(expected=1,operation='boot-map',cmdline=cmdline)['code'])
 
+    @unittest.skipUnless(Path('/sys/class/net/lo/type').exists(), 'requires real sysfs loopback attribute')
+    def test_sysfs_nominal_page_size_does_not_replace_bounded_content_validation(self):
+        path=Path('/sys/class/net/lo/type');body=path.read_text()
+        self.assertGreater(path.stat().st_size,len(body.encode()))
+        self.assertEqual(body,self.parse(operation='sysfs-attribute',path=str(path),limit=32)['value'])
+        for candidate,limit in [(str(path),1),(str(path),0),(str(path),4097),
+                                (str(self.contract),4096),('/sys/../etc/passwd',4096)]:
+            with self.subTest(path=candidate,limit=limit):
+                self.assertEqual('permissions-device',self.parse(expected=1,
+                    operation='sysfs-attribute',path=candidate,limit=limit)['code'])
+
     def test_mount_requires_unique_expected_device_ext4_root_and_rw_in_both_fields(self):
         valid='35 21 179:9 / /mnt/UDISK rw,nosuid,nodev - ext4 /dev/mmcblk0p9 rw\n'
         args=dict(operation='mount-info',mount='/mnt/UDISK',identity='179:9')
