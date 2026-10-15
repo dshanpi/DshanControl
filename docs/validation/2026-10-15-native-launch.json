@@ -1,0 +1,84 @@
+{
+  "sha256": "e577c81fb5105d322238218b5fbfc6cb4fc201d549ed9099596fa2f2d996f1a6",
+  "bytes": 4435,
+  "result": {
+    "run": 58,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": true,
+    "physical_power_loss_qualified": false,
+    "scope": "isolated native launch/owned-stop/boot/health/update fixtures; live application unchanged"
+  },
+  "mutual_tls": true,
+  "hostname_certificate_verified": true,
+  "scope": "Opt-in native fork/exec launcher and private primary process records with lifecycle/update/control lease handoff; isolated ARM fixtures",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 222,
+    "passed": 220,
+    "skipped": 2,
+    "full_gate_passed": true,
+    "launch_focused_passed": 13
+  },
+  "target_build": {
+    "runtime_sha256": "cb021d10b952ed3f4f3b71852af8d9fc1e9adc7873d1ba13b31e440b47b1f886",
+    "launch_fixture_sha256": "60fa8301fa5ea4943ad4deaa8e674edf514e5457938948680fd50394be911674",
+    "source_inputs_match_git_index": true,
+    "source_inputs": {
+      "components/runtime/runtime.pro": "1075bdc7e99aa412c07ddbec1eda07545e914a0b193e3fb038396e965dd9c046",
+      "components/runtime/README.md": "d71bbe6d21f868fac9cb199e6fa3a1259eab3cb0ec05c4e2c0627e174f750a17",
+      "components/runtime/src/applicationcredentials.h": "dbc0fae0d65b47e96a0d088cdc7927ae909b0470be2f2e4318443f8c1d611eed",
+      "components/runtime/src/display.cpp": "0e9522a5f2413c6a2143355a598eccced8d29a124f5c4f9bd81d9e5b59ce1adc",
+      "components/runtime/src/systemstorage.h": "0b6d9fb1b4bf380a99a9ae315499817010049b2020428db1f3cb807834573c22",
+      "components/runtime/src/applicationhealth.h": "7a8e00d705145a23735f8633ab13797ed029a9e3b6cc92d3e70337f889221be9",
+      "components/runtime/src/service.cpp": "4abf142a96166b9cbde7f932c668f626aa55fec479711a8728e7120393db0fe8",
+      "components/runtime/src/storage.h": "5a2a76fdd2df3d93c0a77530e58cd74d2f7aa53e9553c63326459ccb8d0b76d3",
+      "components/runtime/src/protocol.h": "82d5cee1c2eb8c7a42c44285bc574bc664569eb0b89a5abda0f5c0916e7e5cb2",
+      "components/runtime/src/applicationrecord.h": "04d05cc67f20f9b770373a04b4e0b5c123954313b3ee066de49d16f41a2ee9b9",
+      "components/runtime/src/main.cpp": "54fa90a59fc3356ae13ee7c1a566fbe0b2103e8dbc85fd053ed7f4977ba1b44f",
+      "components/runtime/src/storage.cpp": "da4d140d10d25659cb5db05314b3f967d57a6a4c1827407378ad11c117d94e9a",
+      "components/runtime/src/display.h": "1e34e88f9971fbaccb6278b276782be1ee2435477c5b9913f455b3d7cb112165",
+      "components/runtime/src/applicationprocess.cpp": "21fb96d74aa767b93cf37b36ac801f7a6e10e3e872058a8a257103ea7d5473b7",
+      "components/runtime/src/applicationrecord.cpp": "95ce25f985552e6ef54d1bf043b6d07d280d8e433eb5db62061b992a16d98c63",
+      "components/runtime/src/systemstorage.cpp": "db7e103d4fccddfe167055f0ee0fb72e2e7753006df3cf7e9f58d4d365bbbcdb",
+      "components/runtime/src/applicationhealth.cpp": "6d1507269e922400a535cecf134208972306033058e8ac4e8e3507e4ba72ffaa",
+      "components/runtime/src/service.h": "649beb7d2a8f1fc375b804231b68793ce01ecb28ec0b55a28ca838788fb8cb33",
+      "components/runtime/src/applicationcredentials.cpp": "705fa9cc9365e2a6ee75a0705aa7aa50b1dad401c4dd9a7887ee4279d27b8197",
+      "components/runtime/src/applicationlaunch.h": "a27b0d7b425a249b6f57958f7374413b4eeb20a9bf57d9120fce95d22e84e696",
+      "components/runtime/src/applicationlaunch.cpp": "1d0dfac4a4b36d662e355518d44dc06b2cbf59efa975299fe7a686b102b0c6a4",
+      "components/runtime/src/updater.cpp": "c4a8869686fb8d83cdf2527758a8b1c4ded8a409bf1d4486403283cca4669e91",
+      "components/runtime/src/protocol.cpp": "e0427b91ef0e643150e4dc00ed0af9c77c08dfe2dbb935e5d7dde9de60f2ef73",
+      "components/runtime/src/applicationprocess.h": "39a7510d2c6b116d9e5c6ae74666a7cccfea04e27bb05d35025f60e1b22d5d12",
+      "components/runtime/src/updater.h": "681f6cb2490bdb2ff0ac0ed61f77847f5265d67ce696ac08b710402fb2dd9344",
+      "tests/native/launch_process_fixture.c": "e9e12cfe85c0cccd3e6056d65376a32fa1c1b06dac23f4320445cac43a83cc22"
+    },
+    "isa": "ELF32 ARM softfp",
+    "network_disabled": true,
+    "private_configuration_hidden": true
+  },
+  "native_cli_observations": 46,
+  "live_storage_probe_passed": true,
+  "live_application_probe_passed": true,
+  "production_changes": {
+    "accounts": false,
+    "device_permissions": false,
+    "startup_configuration": false,
+    "live_application_stopped": false,
+    "system_image_rebuilt": false
+  },
+  "test_preparation_error": {
+    "stage": "before extraction",
+    "reason": "host-generated helper asserted kit absent after creating it",
+    "corrected_after_verifying_empty_directory": true,
+    "retransferred": false,
+    "hardware_action_replayed": false
+  },
+  "remaining": [
+    "production account/data/device policy and startup wiring",
+    "native supervision and public HMI identity discovery",
+    "real Qt signed Draft check/download/install/reboot/rollback",
+    "actual PCB revision and measured complete power removal"
+  ]
+}

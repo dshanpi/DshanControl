@@ -227,7 +227,8 @@ QJsonObject applicationIdentity(const QJsonObject &config) {
 }
 QJsonObject applicationHealth(const QJsonObject &config) {
   Scope scope(config);
-  auto pids = ApplicationProcesses(config, "health").health();
+  auto pids = ApplicationProcesses(config, "health")
+                  .health(scope.installed["commit"].toString());
   auto web = webHealth(
       QUrl(scope.policy["http_url"].toString("http://127.0.0.1/api/health")));
   auto commit = scope.installed["commit"].toString();

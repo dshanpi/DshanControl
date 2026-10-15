@@ -28,10 +28,14 @@ class FileLock {
   int fd = -1;
 
 public:
-  explicit FileLock(const QString &path, bool exclusive = true);
+  explicit FileLock(const QString &path, bool exclusive = true,
+                    int inheritedDescriptor = -1);
   ~FileLock();
   FileLock(const FileLock &) = delete;
   FileLock &operator=(const FileLock &) = delete;
+  int descriptor() const { return fd; }
 };
+
+int inheritedApplicationLease(const char *name);
 
 void verifyPersistentStorage(const QString &root, const QJsonObject &contract);

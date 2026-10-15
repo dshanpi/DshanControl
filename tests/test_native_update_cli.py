@@ -3,10 +3,20 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shlex
 import test_application_update_cli as reference
 
 
 class NativeUpdateCliTests(reference.UpdateCliTests):
+    def test_native_lifecycle_hooks_adopt_real_leases_through_shell(self):
+        self.f.config['application_health']={'pid_root':str(self.f.root/'absent-native-run'),
+                                             'launch_receipts_required':True}
+        reference.fixtures.atomic_json(self.config,self.f.config)
+        self.hook.write_text('#!/bin/sh\nset -eu\nprintf "%s\\n" "$1" >> '+
+            shlex.quote(str(self.f.root/'operations'))+'\nexec '+shlex.quote(str(self.binary))+
+            ' --config '+shlex.quote(str(self.config))+' application-stop\n')
+        self.cli()
+        self.assertEqual(['maintenance','stop','start','health'],self.operations())
     @classmethod
     def setUpClass(cls):
         cls.binary = Path(os.environ.get('DSHANCONTROL_NATIVE_UPDATER',

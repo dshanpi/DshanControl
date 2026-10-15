@@ -246,9 +246,22 @@ bool positiveInteger(const QJsonValue &v, bool zero) {
   return v.isDouble() && std::isfinite(n) && n >= (zero ? 0 : 1) &&
          n <= 9007199254740991.0 && std::floor(n) == n;
 }
-FileLock::FileLock(const QString &path, bool exclusive) {
-  fd = ::open(QFile::encodeName(path).constData(),
-              O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0600);
+FileLock::FileLock(const QString &path, bool exclusive, int inherited) {
+  if (inherited >= 0) {
+    struct stat source, expected;
+    require(exclusive && ::fstat(inherited, &source) == 0 &&
+                ::lstat(QFile::encodeName(path).constData(), &expected) == 0 &&
+                S_ISREG(source.st_mode) && S_ISREG(expected.st_mode) &&
+                source.st_nlink == 1 && source.st_uid == ::geteuid() &&
+                !(source.st_mode & 0077) && source.st_dev == expected.st_dev &&
+                source.st_ino == expected.st_ino &&
+                (::fcntl(inherited, F_GETFL) & O_ACCMODE) == O_RDWR,
+            "Invalid inherited application lease", "resource-lock",
+            "lease-denied");
+    fd = ::fcntl(inherited, F_DUPFD_CLOEXEC, 10);
+  } else
+    fd = ::open(QFile::encodeName(path).constData(),
+                O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0600);
   require(fd >= 0, "Cannot open resource lock", "resource-lock");
   if (::flock(fd, (exclusive ? LOCK_EX : LOCK_SH) | LOCK_NB) != 0) {
     ::close(fd);
@@ -256,6 +269,20 @@ FileLock::FileLock(const QString &path, bool exclusive) {
     throw Failure("resource-busy", "resource-lock",
                   "Another task or hardware operation owns the resource");
   }
+}
+int inheritedApplicationLease(const char *name) {
+  const auto raw = qgetenv(name);
+  if (raw.isNull())
+    return -1;
+  bool valid = false;
+  const auto value = raw.toInt(&valid);
+  require(valid && value >= 3 && value <= 1048575 &&
+              QRegularExpression("^[0-9]+$")
+                  .match(QString::fromLatin1(raw))
+                  .hasMatch(),
+          "Invalid inherited application lease descriptor", "resource-lock",
+          "lease-denied");
+  return value;
 }
 FileLock::~FileLock() {
   if (fd >= 0)

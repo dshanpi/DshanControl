@@ -1,4 +1,5 @@
 #include "applicationhealth.h"
+#include "applicationlaunch.h"
 #include "applicationprocess.h"
 #include "service.h"
 #include "systemstorage.h"
@@ -38,6 +39,12 @@ int main(int argc, char **argv) {
     }
     auto configuration = readJson(config);
     auto command = args.value(0);
+    if (command == "application-start" && args.size() == 1) {
+      QTextStream(stdout) << QJsonDocument(startApplication(configuration))
+                                 .toJson(QJsonDocument::Compact)
+                          << '\n';
+      return 0;
+    }
     if (command == "application-stop" && args.size() <= 2) {
       auto result =
           ApplicationProcesses(configuration, "stop").stop(args.value(1));

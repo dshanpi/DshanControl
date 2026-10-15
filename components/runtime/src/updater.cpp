@@ -9,6 +9,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QSet>
 #include <QStorageInfo>
 #include <QTemporaryDir>
@@ -27,6 +28,7 @@ const QString AssetPrefix =
     "https://github.com/" + Repo + "/releases/download/";
 class OwnedHookProcess : public QProcess {
   const pid_t owner = ::getpid();
+  int updateLease = -1, controlLease = -1;
 
 protected:
   void setupChildProcess() override {
@@ -34,7 +36,55 @@ protected:
     if (::setsid() < 0 || ::prctl(PR_SET_PDEATHSIG, SIGKILL) < 0 ||
         ::getppid() != owner)
       ::_exit(127);
+    for (const auto descriptor : {updateLease, controlLease})
+      if (descriptor >= 0 && ::fcntl(descriptor, F_SETFD, 0) < 0)
+        ::_exit(127);
   }
+
+public:
+  OwnedHookProcess(int update, int control) {
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.remove("DSHANCONTROL_UPDATE_LEASE_FD");
+    environment.remove("DSHANCONTROL_CONTROL_LEASE_FD");
+    if (update < 0 && control < 0) {
+      setProcessEnvironment(environment);
+      return;
+    }
+    require(update >= 0 && control >= 0, "Incomplete application lease handoff",
+            "resource-lock");
+    updateLease = ::fcntl(update, F_DUPFD_CLOEXEC, 200);
+    controlLease = ::fcntl(control, F_DUPFD_CLOEXEC, 200);
+    if (updateLease < 0 || controlLease < 0) {
+      if (updateLease >= 0)
+        ::close(updateLease);
+      if (controlLease >= 0)
+        ::close(controlLease);
+      throw Failure("lease-duplicate", "resource-lock",
+                    "Cannot reserve application lease descriptors");
+    }
+    environment.insert("DSHANCONTROL_UPDATE_LEASE_FD",
+                       QString::number(updateLease));
+    environment.insert("DSHANCONTROL_CONTROL_LEASE_FD",
+                       QString::number(controlLease));
+    setProcessEnvironment(environment);
+  }
+  ~OwnedHookProcess() {
+    if (updateLease >= 0)
+      ::close(updateLease);
+    if (controlLease >= 0)
+      ::close(controlLease);
+  }
+};
+class ActiveLeases {
+  int &update, &control;
+
+public:
+  ActiveLeases(int &u, int &c, const FileLock &a, const FileLock &b)
+      : update(u), control(c) {
+    update = a.descriptor();
+    control = b.descriptor();
+  }
+  ~ActiveLeases() { update = control = -1; }
 };
 
 void removeFile(const QString &path) {
@@ -184,7 +234,10 @@ QJsonObject NativeUpdater::state() const {
   return value;
 }
 bool NativeUpdater::hook(const QString &operation, bool checked) {
-  OwnedHookProcess process;
+  const auto processPolicy = config["application_health"].toObject();
+  const bool managed = processPolicy["launch_receipts_required"].toBool(false);
+  OwnedHookProcess process(managed ? activeUpdateLease : -1,
+                           managed ? activeControlLease : -1);
   process.setProcessChannelMode(QProcess::MergedChannels);
   process.start(config["service_hook"].toString(), {operation});
   bool started = process.waitForStarted(3000);
@@ -209,12 +262,13 @@ bool NativeUpdater::hook(const QString &operation, bool checked) {
   bool ok = started && !timeout &&
             process.exitStatus() == QProcess::NormalExit &&
             process.exitCode() == 0;
-  hookFailureCode = ok ? QString()
-                      : !started ? QString("hook-start-failed")
-                      : timeout ? QString("hook-timeout")
-                      : process.exitStatus() != QProcess::NormalExit
-                          ? QString("hook-crashed")
-                          : QString::number(process.exitCode());
+  hookFailureCode =
+      ok ? QString()
+         : !started ? QString("hook-start-failed")
+                    : timeout ? QString("hook-timeout")
+                              : process.exitStatus() != QProcess::NormalExit
+                                    ? QString("hook-crashed")
+                                    : QString::number(process.exitCode());
   // Do not echo hook stdout/stderr; it can contain site credentials. Keep the
   // raw exit code.
   if (checked && !ok)
@@ -293,12 +347,14 @@ void NativeUpdater::recoverInternal() {
 }
 void NativeUpdater::recover() {
   FileLock lock(root + "/.update.lock"), guard(controlLock());
+  ActiveLeases active(activeUpdateLease, activeControlLease, lock, guard);
   recoverInternal();
 }
 QString NativeUpdater::install(const QString &manifestPath,
                                const QString &signaturePath,
                                const QString &packagePath) {
   FileLock lock(root + "/.update.lock"), guard(controlLock());
+  ActiveLeases active(activeUpdateLease, activeControlLease, lock, guard);
   progress("recovery");
   recoverInternal();
   QTemporaryDir snapshot(root + "/.download-XXXXXX");

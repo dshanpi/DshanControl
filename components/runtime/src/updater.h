@@ -6,6 +6,7 @@ class NativeUpdater {
   QJsonObject config, contract;
   QString root, releases;
   QString hookFailureCode;
+  int activeUpdateLease = -1, activeControlLease = -1;
   void recoverInternal();
   void rollback(const QJsonObject &transaction);
   void switchTo(const QString &name);

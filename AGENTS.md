@@ -1,5 +1,22 @@
 # DshanControl engineering gates
 
+## Native launch and primary records source (2026-10-15)
+
+Opt-in C++ application-start now forks fixed native roles, records private
+birth/boot/inode/argv/credential identity before releasing the child, reduces
+credentials and closes application-inherited descriptors at exec. Managed stop
+uses the primary receipt even if current/installed is broken; missing/tampered
+records refuse fallback. Update/control/lifecycle leases serialize transitions;
+typed native hooks adopt verified inherited descriptors without leaking to apps.
+Native system supervisor is health-only, never an application stop target.
+Host222 (2 root-only skips) and actual isolated ARM58 all pass. See
+docs/S4-NATIVE-LAUNCH-20261015.md and its receipt. Existing factory9594/imagef71,
+accounts, device modes and startup policy remain unchanged. Production role
+accounts/data/device policy, startup wiring, native supervision and public HMI
+identity discovery remain necessary before deployment. Real Qt signed update,
+reboot/rollback and measured power-loss acceptance remain unfinished. Whole goal
+stays active; do not call an isolated launch suite production qualification.
+
 ## Native owned-stop source (2026-10-15)
 
 The next native source step adds pidfd-bound TERM/exit waiting and shared process

@@ -1,4 +1,5 @@
 #include "applicationprocess.h"
+#include "applicationrecord.h"
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -36,12 +37,14 @@ class Owned {
   int directory = -1, file = -1, handle = -1;
   struct stat original;
   QByteArray content;
+  std::unique_ptr<PrivateProcessFile> launchRecord, pidRecord;
 
 public:
   qint64 pid = 0;
   bool absent = false, exited = false;
   Owned(const QString &root, const QString &role, const QStringList &expected,
-        const QString &phase, bool missing)
+        const QString &phase, bool missing, bool recorded = false,
+        const QString &commit = QString())
       : stage(phase), name(role + ".pid") {
     try {
       directory = ::open(QFile::encodeName(root).constData(),
@@ -51,29 +54,55 @@ public:
                          parent.st_uid == ::geteuid() &&
                          !(parent.st_mode & 0022),
                      stage, "Untrusted application PID directory");
-      file = ::openat(directory, QFile::encodeName(name).constData(),
-                      O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
-      if (file < 0 && errno == ENOENT && missing) {
-        absent = true;
-        return;
+      QJsonObject record;
+      if (recorded) {
+        launchRecord.reset(new PrivateProcessFile(root, role + ".launch.json",
+                                                  stage, missing));
+        pidRecord.reset(new PrivateProcessFile(root, name, stage, true, false));
+        if (!launchRecord->exists()) {
+          processRequire(!pidRecord->exists(), stage,
+                         "PID has no required private launch record",
+                         "process-record");
+          absent = true;
+          return;
+        }
+        record = launchRecord->json();
+        validateApplicationRecord(record, role, stage);
+        pid = qint64(record["pid"].toDouble());
+        if (pidRecord->exists()) {
+          bool valid = false;
+          const auto number = QString::fromLatin1(pidRecord->data())
+                                  .trimmed()
+                                  .toLongLong(&valid);
+          processRequire(valid && number == pid, stage,
+                         "PID and private launch record disagree",
+                         "process-record");
+        }
+      } else {
+        file = ::openat(directory, QFile::encodeName(name).constData(),
+                        O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        if (file < 0 && errno == ENOENT && missing) {
+          absent = true;
+          return;
+        }
+        processRequire(
+            file >= 0 && ::fstat(file, &original) == 0 &&
+                S_ISREG(original.st_mode) && original.st_nlink == 1 &&
+                original.st_uid == ::geteuid() && !(original.st_mode & 0022),
+            stage, "Required application PID file is missing or unsafe");
+        char raw[65];
+        auto count = ::read(file, raw, sizeof(raw));
+        processRequire(count > 0 && count < ssize_t(sizeof(raw)), stage,
+                       "Invalid application PID file size");
+        content = QByteArray(raw, int(count));
+        auto text = QString::fromLatin1(content).trimmed();
+        bool valid = false;
+        pid = text.toLongLong(&valid);
+        processRequire(
+            valid && QRegularExpression("^[0-9]+$").match(text).hasMatch() &&
+                pid > 1 && pid <= 2147483647,
+            stage, "Invalid application PID");
       }
-      processRequire(
-          file >= 0 && ::fstat(file, &original) == 0 &&
-              S_ISREG(original.st_mode) && original.st_nlink == 1 &&
-              original.st_uid == ::geteuid() && !(original.st_mode & 0022),
-          stage, "Required application PID file is missing or unsafe");
-      char raw[65];
-      auto count = ::read(file, raw, sizeof(raw));
-      processRequire(count > 0 && count < ssize_t(sizeof(raw)), stage,
-                     "Invalid application PID file size");
-      content = QByteArray(raw, int(count));
-      auto text = QString::fromLatin1(content).trimmed();
-      bool valid = false;
-      pid = text.toLongLong(&valid);
-      processRequire(
-          valid && QRegularExpression("^[0-9]+$").match(text).hasMatch() &&
-              pid > 1 && pid <= 2147483647,
-          stage, "Invalid application PID");
       // pid_t must stay32-bit in the variadic syscall ABI on the ARM target.
       handle = int(::syscall(PidfdOpen, static_cast<pid_t>(pid), 0));
       const auto openError = errno;
@@ -89,6 +118,11 @@ public:
       if (exited && missing)
         return;
       processRequire(!exited, stage, "Required application process has exited");
+      if (recorded) {
+        verifyApplicationRecord(record, static_cast<pid_t>(pid), role, stage,
+                                commit);
+        return;
+      }
       const auto base = "/proc/" + QString::number(pid);
       struct stat process;
       processRequire(::stat(QFile::encodeName(base).constData(), &process) ==
@@ -113,6 +147,9 @@ public:
     }
   }
   ~Owned() { close(); }
+  bool hasPidRecord() const {
+    return file >= 0 || (pidRecord && pidRecord->exists());
+  }
   void close() {
     if (handle >= 0)
       ::close(handle);
@@ -136,7 +173,8 @@ public:
       return;
     if (!exited && !isExited()) {
       const auto result = ::syscall(PidfdSignal, handle, SIGTERM, nullptr, 0);
-      processRequire(result == 0 || errno == ESRCH, stage,
+      const auto signalError = errno;
+      processRequire(result == 0 || signalError == ESRCH, stage,
                      "Cannot signal owned application process",
                      "process-signal");
       QElapsedTimer deadline;
@@ -155,6 +193,14 @@ public:
                      "Owned application process did not exit; PID file "
                      "retained; no force kill",
                      "process-timeout");
+    }
+    if (launchRecord) {
+      // Receipt is primary authority. Clear the compatibility PID first so an
+      // interrupted cleanup still leaves a complete trusted receipt.
+      if (pidRecord)
+        pidRecord->removeUnchanged();
+      launchRecord->removeUnchanged();
+      return;
     }
     struct stat current;
     char raw[65];
@@ -176,7 +222,7 @@ public:
 } // namespace
 ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
                                            const QString &phase)
-    : stage(phase) {
+    : stage(phase), configuration(config) {
   processRequire(!config.contains("development_mode") ||
                      config["development_mode"].isBool(),
                  stage, "Invalid development mode", "contract");
@@ -191,6 +237,17 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
                      config["application_health"].isObject(),
                  stage, "Invalid application health policy", "contract");
   const auto policy = config["application_health"].toObject();
+  for (const auto &name :
+       {QString("launch_receipts_required"), QString("native_supervisor")})
+    processRequire(!policy.contains(name) || policy[name].isBool(), stage,
+                   "Invalid native process policy", "contract");
+  receiptsRequired = policy["launch_receipts_required"].toBool(false);
+  nativeSupervisor = policy["native_supervisor"].toBool(false);
+  processRequire(!nativeSupervisor || receiptsRequired, stage,
+                 "Native supervision requires managed launch records",
+                 "contract");
+  processRequire(!receiptsRequired || dev || nativeSupervisor, stage,
+                 "Production launch requires native supervision", "contract");
   pidRoot = policy["pid_root"].toString("/var/run/dshancontrol");
   processRequire(QDir::isAbsolutePath(pidRoot) && pidRoot != "/" &&
                      QDir::cleanPath(pidRoot) == pidRoot &&
@@ -201,7 +258,12 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
       {"hmi", {root + "/current/bin/omnigate-hmi"}},
       {"supervisor",
        {"/usr/bin/python3", root + "/current/lib/supervisor/supervisor.py"}}};
+  if (nativeSupervisor)
+    commands["supervisor"] =
+        QStringList{"/usr/bin/dshancontrol-runtime", "serve",
+                    "/etc/dshancontrol/platform-service.json"};
   if (policy.contains("fixture_processes")) {
+    fixture = true;
     const auto fixture = policy["fixture_processes"].toObject();
     processRequire(
         dev && policy["fixture_processes"].isObject() && fixture.size() == 3,
@@ -224,17 +286,41 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
     }
   }
 }
-QJsonObject ApplicationProcesses::health() const {
+QJsonObject ApplicationProcesses::health(const QString &commit) const {
   QJsonObject pids;
   for (auto it = commands.cbegin(); it != commands.cend(); ++it) {
-    Owned process(pidRoot, it.key(), it.value(), stage, false);
+    const bool system = nativeSupervisor && it.key() == "supervisor";
+    Owned process(system && !fixture ? "/var/run" : pidRoot,
+                  system && !fixture ? "dshancontrol-runtime" : it.key(),
+                  it.value(), stage, false, receiptsRequired && !system,
+                  commit);
     pids[it.key()] = double(process.pid);
   }
   return pids;
 }
 QJsonObject ApplicationProcesses::stop(const QString &role) const {
-  processRequire(role.isEmpty() || commands.contains(role), stage,
-                 "Invalid application role", "contract");
+  processRequire(role.isEmpty() ||
+                     (commands.contains(role) &&
+                      !(nativeSupervisor && role == "supervisor")),
+                 stage, "Invalid application role", "contract");
+  std::unique_ptr<FileLock> updateLease, controlLease;
+  if (receiptsRequired) {
+    const auto root = configuration["application_root"].toString();
+    if (!configuration["development_mode"].toBool(false))
+      verifyPersistentStorage(
+          root, readJson(configuration["system_contract"].toString()));
+    const auto updateDescriptor =
+        inheritedApplicationLease("DSHANCONTROL_UPDATE_LEASE_FD");
+    const auto controlDescriptor =
+        inheritedApplicationLease("DSHANCONTROL_CONTROL_LEASE_FD");
+    processRequire((updateDescriptor < 0) == (controlDescriptor < 0), stage,
+                   "Incomplete application lease handoff", "lease-denied");
+    updateLease.reset(
+        new FileLock(root + "/.update.lock", true, updateDescriptor));
+    controlLease.reset(new FileLock(
+        configuration["control_lock"].toString(root + "/.control.lock"), true,
+        controlDescriptor));
+  }
   if (!QFileInfo(pidRoot).exists())
     return {{"ok", true}, {"cleared_pid_files", 0}};
   struct stat parent;
@@ -248,14 +334,29 @@ QJsonObject ApplicationProcesses::stop(const QString &role) const {
   for (const auto &name :
        {QString("supervisor"), QString("hmi"), QString("web")})
     if (role.isEmpty() || role == name)
-      processes.emplace_back(
-          new Owned(pidRoot, name, commands[name], stage, true));
+      if (!(nativeSupervisor && name == "supervisor"))
+        processes.emplace_back(new Owned(pidRoot, name, commands[name], stage,
+                                         true, receiptsRequired));
   // Verify every live identity before signalling the first process.
-  int count = 0;
+  int count = 0, pids = 0;
   for (const auto &process : processes) {
     process->stop(10);
-    if (!process->absent)
+    if (!process->absent) {
       ++count;
+      if (process->hasPidRecord())
+        ++pids;
+    }
   }
-  return {{"ok", true}, {"cleared_pid_files", count}};
+  return {{"ok", true},
+          {"cleared_pid_files", pids},
+          {"cleared_process_records", count}};
+}
+QMap<QString, QStringList> ApplicationProcesses::launchCommands() const {
+  processRequire(receiptsRequired, stage,
+                 "Native start requires explicit managed launch policy",
+                 "contract");
+  auto result = commands;
+  if (nativeSupervisor)
+    result.remove("supervisor");
+  return result;
 }
