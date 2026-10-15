@@ -9,3 +9,5 @@ HEADERS += src/applicationcredentials.h src/applicationrecord.h src/applicationl
 LIBS += -lcrypto -lz -lsqlite3
 SOURCES += src/applicationsupervision.cpp
 HEADERS += src/applicationsupervision.h
+SOURCES += src/applicationpermissions.cpp
+HEADERS += src/applicationpermissions.h

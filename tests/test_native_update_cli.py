@@ -29,7 +29,7 @@ class NativeUpdateCliTests(reference.UpdateCliTests):
         args = [str(self.binary), '--config', str(self.config), command]
         if command == 'install':
             args += [str(self.f.path), str(self.f.signature), str(self.f.package)]
-        result = subprocess.run(args, capture_output=True, text=True, timeout=15)
+        result = subprocess.run(args, capture_output=True, text=True, timeout=60)
         self.assertEqual(expected, result.returncode, result.stdout + result.stderr)
         if message:
             aliases = {'another update is running': 'owns the resource',

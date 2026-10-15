@@ -37,6 +37,7 @@ class S4IntegrationTests(unittest.TestCase):
             self.assertIn('exec /usr/bin/dshancontrol-runtime "$@"',
                           (target / 'usr/bin/dshancontrol-update').read_text())
             config = json.loads((target / 'etc/dshancontrol/updater.json').read_text())
+            self.assertEqual(0o600, (target / 'etc/dshancontrol/updater.json').stat().st_mode & 0o777)
             self.assertIs(True, config['task_service'])
             self.assertIs(False, config['development_mode'])
             self.assertIs(False, config['automatic_install'])

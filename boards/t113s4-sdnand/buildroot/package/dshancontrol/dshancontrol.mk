@@ -5,6 +5,12 @@ DSHANCONTROL_LICENSE = GPL-3.0-only OFL-1.1
 DSHANCONTROL_LICENSE_FILES = LICENSE components/hmi/src/fonts/OFL.txt
 DSHANCONTROL_DEPENDENCIES = busybox-init-base-files qt5base qt5charts python3 dshancontrol-python openssl zlib sqlite ca-certificates host-python3 wqy-zenhei
 
+# Fixed nonlogin identities. No home directory is created; no root groups.
+define DSHANCONTROL_USERS
+	dshan-web 400 dshan-app 400 * - - - DshanControl_web
+	dshan-hmi 401 dshan-app 400 * - - - DshanControl_HMI
+endef
+
 # Buildroot 201902 has no qmake-package infrastructure. Keep T153's recipe intact.
 define DSHANCONTROL_CONFIGURE_CMDS
 	cd $(@D)/components/hmi/src && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake omnigate-hmi.pro

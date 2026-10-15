@@ -1,5 +1,27 @@
 # DshanControl engineering gates
 
+## Native permission policy source (2026-10-15)
+
+C++ permissions-plan/apply preflight immutable application versions, known data,
+fixed role accounts and named S4 device/sysfs identities before metadata changes.
+Apply refuses busy leases, PID/launch records and any surviving role UID process;
+root-private journals retain initial metadata and original syscall stage/errno.
+No broad recursive chown, unknown file deletion, app signals or content writes.
+Preserve known database WAL/SHM after quiescence for SQLite's own crash recovery;
+mere presence is not proof of an active process, orphan auxiliaries still refuse.
+Web owns private data; HMI owns framebuffer/named touch/heartbeat; private records
+stay root-only. /dev/disp and terminal nodes receive no app access. Actual Goodix
+sysfs parent is virtual/input, not guessed I2C ancestry; event number is dynamic.
+Buildroot fixed locked nonlogin accounts400/401:G400 pass the selected real
+mkusers staging/collision/idempotence checks. Private updater config is600.
+Host233 (5 root-only skips), additional root5 and final isolated ARM39 pass.
+Initial ARM38/39 passed with one15s synthetic CLI timeout, retained separately;
+software test deadline60s and WAL-preservation refinement are in the final build.
+See docs/S4-NATIVE-PERMISSIONS-20261015.md and receipt. Actual board accounts,
+data metadata, devices and startup remain unchanged. Role RPC and startup wiring,
+real nonroot Qt/device operation, signed update and physical acceptance remain.
+Whole goal stays active; these isolated fixtures do not qualify live deployment.
+
 ## Native read-only supervision source (2026-10-15)
 
 Opt-in native supervision uses bounded asynchronous application-health helpers

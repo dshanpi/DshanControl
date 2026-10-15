@@ -1,5 +1,6 @@
 #include "applicationhealth.h"
 #include "applicationlaunch.h"
+#include "applicationpermissions.h"
 #include "applicationprocess.h"
 #include "service.h"
 #include "systemstorage.h"
@@ -39,6 +40,15 @@ int main(int argc, char **argv) {
     }
     auto configuration = readJson(config);
     auto command = args.value(0);
+    if ((command == "permissions-plan" || command == "permissions-apply") &&
+        args.size() == 1) {
+      QTextStream(stdout) << QJsonDocument(applicationPermissions(
+                                               configuration,
+                                               command == "permissions-apply"))
+                                 .toJson(QJsonDocument::Compact)
+                          << '\n';
+      return 0;
+    }
     if (command == "application-start" && args.size() == 1) {
       QTextStream(stdout) << QJsonDocument(startApplication(configuration))
                                  .toJson(QJsonDocument::Compact)

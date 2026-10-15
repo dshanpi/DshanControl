@@ -98,6 +98,7 @@ def main():
         (target / 'etc/dshancontrol/platform-service.json').write_text(json.dumps(service, indent=2) + '\n')
         (target / 'etc/dshancontrol/platform-service.json').chmod(0o600)
     (target / 'etc/dshancontrol/updater.json').write_text(json.dumps(config, indent=2) + '\n')
+    (target / 'etc/dshancontrol/updater.json').chmod(0o600)
     executable = target / 'usr/bin/dshancontrol-update'
     executable.parent.mkdir(parents=True, exist_ok=True)
     command = ('/usr/bin/dshancontrol-runtime' if args.runtime else

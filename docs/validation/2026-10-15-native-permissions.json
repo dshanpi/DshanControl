@@ -1,0 +1,232 @@
+{
+  "scope": "Native permission planning/metadata application, fixed Buildroot accounts and private config installation; isolated device/file fixtures only",
+  "production_qualified": false,
+  "automatic_updates_qualified": false,
+  "host_tests": {
+    "run": 233,
+    "passed": 228,
+    "skipped_root_only": 5,
+    "full_gate_passed": true,
+    "additional_root_permissions_passed": 5,
+    "initial_focused_run": 5,
+    "initial_focused_failures": 2,
+    "initial_focused_skipped": 2,
+    "initial_failure_cause": "fixture version directories inherited host group-write umask; immutable-version rejection was correct; normalized test directories and passed"
+  },
+  "target_build": {
+    "passed": true,
+    "runtime_sha256": "4a6400d06a2253cb34520fc3aae576348949c5673f15abdc18f9f3a75cbe3dc9",
+    "compiled_source_files_bound": 29,
+    "source_inputs_sha256": "d06c2e78dbb4584e7a4c630e02a88c27d4fac41762a39ace55c8407c123a1f02",
+    "compiled_sources_match_git_index": true,
+    "network_disabled": true,
+    "private_configuration_hidden": true
+  },
+  "arm_initial": {
+    "sha256": "73f45d8362b5c84aeaa1ad57a7884ca8a17d34ca56b29471ee066143198b0ff3",
+    "bytes": 5067,
+    "result": {
+      "run": 39,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0,
+      "passed": false,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native permissions/launch/update/public-peer/supervision fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "arm_final": {
+    "sha256": "f776013cdd67af2e105584f9f5104c22ab7bf887e4a96d403fd08246d2a51b4c",
+    "bytes": 4662,
+    "result": {
+      "run": 39,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native permissions/launch/update/public-peer/supervision fixtures; live application unchanged"
+    },
+    "mutual_tls": true,
+    "hostname_certificate_verified": true
+  },
+  "refinements": [
+    "Native CLI software-test deadline15s to60s after a preserved synthetic rollback timeout; no failed hardware action replayed",
+    "Known database WAL/SHM metadata migrated without content writes when roles are quiescent and main database exists; orphan auxiliary files refuse"
+  ],
+  "account_staging": {
+    "selected_mkusers_sha256": "57f3ec29d049912323bcfe8de6b834522c9b83111b78d33268d5ddf72105441a",
+    "accounts": {
+      "dshan-web": {
+        "uid": 400,
+        "gid": 400
+      },
+      "dshan-hmi": {
+        "uid": 401,
+        "gid": 400
+      }
+    },
+    "locked_passwords": true,
+    "shell": "/bin/false",
+    "home_directories_created": false,
+    "existing_accounts_preserved": true,
+    "reapplication_passed": true,
+    "uid_collision_refused": true,
+    "gid_collision_refused": true,
+    "live_accounts_modified": false,
+    "validation_scope": "selected Buildroot201902 mkusers, isolated staging files only"
+  },
+  "permissions_observations": {
+    "data_hashes_preserved": true,
+    "idempotent": true,
+    "observations": [
+      {
+        "uid": 60000,
+        "target": "session.key",
+        "readable": true
+      },
+      {
+        "uid": 60000,
+        "target": "fb",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "touch",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "updater.json",
+        "readable": false
+      },
+      {
+        "uid": 60000,
+        "target": "payload",
+        "readable": true
+      },
+      {
+        "uid": 60000,
+        "target": "processes",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "session.key",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "fb",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "touch",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "updater.json",
+        "readable": false
+      },
+      {
+        "uid": 60001,
+        "target": "payload",
+        "readable": true
+      },
+      {
+        "uid": 60001,
+        "target": "processes",
+        "readable": false
+      }
+    ],
+    "real_device_modes_modified": false
+  },
+  "native_cli_observations": 46,
+  "live_storage_readonly_probe_passed": true,
+  "live_application_readonly_probe_passed": true,
+  "device_readonly_observations": {
+    "nodes": [
+      {
+        "path": "/dev/fb0",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o660",
+        "character": true,
+        "major": 29,
+        "minor": 0
+      },
+      {
+        "path": "/dev/disp",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o660",
+        "character": true,
+        "major": 247,
+        "minor": 0
+      },
+      {
+        "path": "/dev/tty0",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o660",
+        "character": true,
+        "major": 4,
+        "minor": 0
+      },
+      {
+        "path": "/dev/tty",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o660",
+        "character": true,
+        "major": 5,
+        "minor": 0
+      },
+      {
+        "path": "/dev/console",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o660",
+        "character": true,
+        "major": 5,
+        "minor": 1
+      }
+    ],
+    "touch": [
+      {
+        "name": "gt9xxnew_ts",
+        "device": "/sys/devices/virtual/input/input4",
+        "node": {
+          "path": "/dev/input/event4",
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o660",
+          "character": true,
+          "major": 13,
+          "minor": 68
+        },
+        "dev": "13:68"
+      }
+    ],
+    "fb_dev": "29:0"
+  },
+  "production_changes": {
+    "accounts": false,
+    "data_metadata": false,
+    "device_modes": false,
+    "startup_policy": false,
+    "application_stopped": false,
+    "trust_root": false
+  },
+  "remaining": [
+    "role-specific native IPC authorization",
+    "production startup/heartbeat configuration integration",
+    "actual nonroot application/device validation",
+    "real Qt signed Draft update/reboot/rollback",
+    "actual PCB revision and measured complete power removal"
+  ]
+}
