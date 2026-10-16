@@ -13,6 +13,32 @@ spec = importlib.util.spec_from_file_location('s4_lab_maintenance_fixture', HELP
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 sys.path.remove(str(HELPERS))
+bootstrap_spec = importlib.util.spec_from_file_location('s4_lab_bootstrap_fixture', HELPERS / 's4_ota_lab_bootstrap.py')
+bootstrap = importlib.util.module_from_spec(bootstrap_spec)
+bootstrap_spec.loader.exec_module(bootstrap)
+
+
+class LabStorageRoutingTests(unittest.TestCase):
+    def setUp(self):
+        self.config = dict(development_mode=True, automatic_install=False,
+                           application_root=str(bootstrap.RUNTIME / 'apps'),
+                           system_contract=str(bootstrap.PERSISTENT / 'system/contract.json'))
+        self.formal = dict(board_id='100ask-t113s4-sdnand',
+                           storage=dict(mount_point='/mnt/UDISK', device='/dev/by-name/UDISK',
+                                        filesystem='ext4'))
+
+    def test_lab_can_use_original_storage_contract_before_persistent_contract_is_readable(self):
+        bootstrap.storage_routing(self.config, self.formal)
+
+    def test_production_routing_refuses_before_mounting(self):
+        self.config.update(development_mode=False, application_root='/mnt/UDISK/dshancontrol/apps')
+        with self.assertRaisesRegex(RuntimeError, 'Fixed development lab routing'):
+            bootstrap.storage_routing(self.config, self.formal)
+
+    def test_different_partition_contract_refuses_before_mounting(self):
+        self.formal['storage']['device'] = '/dev/mmcblk0p8'
+        with self.assertRaisesRegex(RuntimeError, 'Original S4 storage contract'):
+            bootstrap.storage_routing(self.config, self.formal)
 
 
 class LabMaintenanceDefaultsTests(unittest.TestCase):

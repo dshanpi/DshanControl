@@ -1,5 +1,27 @@
 # DshanControl engineering gates
 
+## Actual Qt .4 installation and reboot (2026-10-15)
+
+Private application Draft414397836, source5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e,
+version0.1.0-dev.20261015.4/sequence2: all9 assets redownload/signature/Git blobs
+verified. Real production Qt UI check/download/install pass; download13.791s,
+install56.065s. System runtime overlayf0f0da1b… replaces image's stripped739217f5…
+after verified quiescent private backup84d96179…112files/4DBchecks. This is b20
+plus explicit system overlay, not an unmodified image and not an application
+payload system update. .3 failed sequence1 remains quarantined/high_water2.
+Initial normal reboot16ed4f25… failed due lab contract on unmounted UDISK;
+preserve failure and explicit manual storage/WiFi/UTC recovery, not an auto pass.
+Lab-only S59 now mounts via native original rootfs contract before S60/S68.
+Corrected normal reboot58f89141-9838-4103-bf9f-6d4ae7b3785f automatically runs
+Web400/HMI401/native daemon, GUI heartbeat/fb/named touch, UDISK/WiFi/UTC/default
+HTTPS200 without manual repair. Volatile token is gone; original user data7file
+hashes preserved, formal identity and factoryea53 unchanged. Host251(9skips),
+focused lab6 pass. No production/physical sensor/electrical power qualification.
+See docs/validation/2026-10-15-real-qt-application-update.json. Complete system
+imageca98f9da… from clean5e268ac passes static104files/43ELFs/Boot0/container/
+privacy gates but has NOT yet been flashed. Preserve fresh lab/original evidence
+and prepare current658-row restore before any flash. Whole long goal stays active.
+
 ## Real GUI installation failure and publication correction (2026-10-15)
 
 Supersedes older "install not attempted" and "no actual token" entries. Actual

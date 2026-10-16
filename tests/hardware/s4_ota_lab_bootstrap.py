@@ -74,6 +74,46 @@ def no_roles():
     require(not Path('/run/dshancontrol-runtime.pid').exists(), 'Stop system daemon before lab mounts')
 
 
+def storage_routing(config, formal):
+    require(config.get('development_mode') is True and config.get('automatic_install') is False and
+            config.get('application_root') == str(RUNTIME / 'apps') and
+            config.get('system_contract') == str(PERSISTENT / 'system/contract.json'),
+            'Fixed development lab routing required before storage')
+    require(formal.get('board_id') == '100ask-t113s4-sdnand' and
+            formal.get('storage') == dict(mount_point='/mnt/UDISK', device='/dev/by-name/UDISK',
+                                         filesystem='ext4'),
+            'Original S4 storage contract required')
+
+
+def prepare_storage():
+    # The default lab contract is on UDISK. Mount it with the original rootfs
+    # contract before S60 tries to read the lab contract; no formatting fallback.
+    require(os.geteuid() == 0, 'Root lab operator required')
+    require(Path('/sys/block/mmcblk0/device/cid').read_text().strip() == CID,
+            'Bound board mismatch')
+    formal_path = Path('/etc/dshancontrol/system-release.json')
+    info = formal_path.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and
+            info.st_nlink == 1 and not info.st_mode & 0o022,
+            'Root-owned original storage contract required')
+    storage_routing(private_object(Path('/etc/dshancontrol/updater.json')),
+                    json.loads(formal_path.read_text()))
+    no_roles()
+    temporary = Path('/run/dshancontrol-qt-ota-storage.json')
+    with temporary.open('x') as stream:
+        os.fchmod(stream.fileno(), 0o600)
+        json.dump(dict(development_mode=False, system_contract=str(formal_path)), stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    if not Path('/dev/by-name/UDISK').exists():
+        subprocess.run(['/bin/sh', '-c', '. /etc/partition_op.sh; do_device_node_switch'], check=True)
+    subprocess.run(['/usr/bin/dshancontrol-runtime', '--config', str(temporary), 'storage-mount'],
+                   check=True)
+    roots()  # Check pinned original configuration/formal identity after the mount.
+    return dict(storage_mounted_by_native_policy=True, original_contract_used=True,
+                development_only=True)
+
+
 def mounts():
     expected = os.stat('/dev/mmcblk0p9').st_rdev
     for name in ['apps', 'data']:
@@ -128,11 +168,11 @@ def stop():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['start', 'stop'])
+    parser.add_argument('action', choices=['start', 'stop', 'storage'])
     args = parser.parse_args()
     os.umask(0o077)
     try:
-        value = start() if args.action == 'start' else stop()
+        value = prepare_storage() if args.action == 'storage' else start() if args.action == 'start' else stop()
         print(json.dumps(dict(ok=True, **value)), flush=True)
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.CalledProcessError) as error:
         print(json.dumps(dict(ok=False, error=str(error), state_retained=True, no_replay=True)), flush=True)

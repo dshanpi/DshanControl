@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-15",
+  "scope": "Isolated real Qt GUI development environment, fixture hardware revision",
+  "production_qualified": false,
+  "physical_touch_sensor_qualified": false,
+  "electrical_power_loss_qualified": false,
+  "application_draft": {
+    "release_id": 414397836,
+    "release_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-632bedb45b58278dddd4",
+    "tag": "app-v0.1.0-dev.20261015.4",
+    "source_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+    "draft": true,
+    "prerelease": true,
+    "verified_asset_count": 9,
+    "assets": [
+      {
+        "id": 645601099,
+        "name": "DELIVERY-NOTES.txt",
+        "size": 442,
+        "sha256": "23894b23055c89d61ba504ed3d95062460f3856440332ef6d1046c32516be32a",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601136,
+        "name": "DshanControl-app-0.1.0-dev.20261015.4-100ask-t113s4-sdnand.tar.gz",
+        "size": 6359605,
+        "sha256": "dcfc564710e37b4e6eb6126cbf8c165776aa93b7912561f75a08f0e8b4c47a6c",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601213,
+        "name": "DshanControl-source-0.1.0-dev.20261015.4.tar.gz",
+        "size": 14107708,
+        "sha256": "e48207e7b4d61de0023877b950749793016c5a71f6510aca0af708593d3d14dd",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601336,
+        "name": "SHA256SUMS",
+        "size": 807,
+        "sha256": "c825b5fd0a7bc68bf77d3b688cfd7546fc4cf47cfb392f9a1a23a7669ebfb555",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601378,
+        "name": "application-build-info.json",
+        "size": 829,
+        "sha256": "097853a682a170cf73e05011f6634a91af697efc687799e61eb8d8261d9e6853",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601399,
+        "name": "application-native-build-evidence.json",
+        "size": 3583,
+        "sha256": "43680d51924aec5e20d13c28e0d2e95265dc51f3ecb1d95a0187c5da520187f6",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601433,
+        "name": "application-release.json",
+        "size": 1391,
+        "sha256": "d3710084f59b9271dbeab6463f489fdbb2d4cef2860a8d9d42a54514803e36c6",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601470,
+        "name": "application-release.json.sig",
+        "size": 384,
+        "sha256": "8124ac76a3ddcf48dec57c3d70e8e60587df20db70350b2c19cedacde68eda77",
+        "redownload_verified": true
+      },
+      {
+        "id": 645601497,
+        "name": "development-context.json",
+        "size": 363,
+        "sha256": "5f0765593e913c96dbb0647df8d12de8e8da0c0f11155872e85ea7660809013f",
+        "redownload_verified": true
+      }
+    ],
+    "signature_verified": true,
+    "source_git_blobs_verified": 406,
+    "payload_files_verified": 11,
+    "hmi_sha256_verified": "1d60fa62b95734960f534c2071b4b6d40f1f9793dc2f53db8182a93c8dd3c11d",
+    "github_token_forwarded_to_cdn": false,
+    "production_qualified": false
+  },
+  "check_task": "ea0489cf3318489b82b7427be5551d53",
+  "download_task": "ded34b24692043e3ad81c9f4c5b4af0d",
+  "download_elapsed_ms": 13791,
+  "install_task": "d844d328e2df42e69ad60d72efb0e82f",
+  "install_elapsed_ms": 56065,
+  "install_passed": true,
+  "system_runtime_overlay": {
+    "base_image_sha256": "b20c948f7e81e730e7f1bd76be89b7af9c8b4351a98554c012a966b55e1bd57f",
+    "system_runtime_overlay": true,
+    "source_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+    "old_runtime_sha256": "739217f505128ae5f05246e606414063d2c4e9075277e6ac00eba9131d2dd5a9",
+    "new_runtime_sha256": "f0f0da1b444f715ace8ed56b255a18cfa1ca864959dd9d8423721e6209cbb1fc",
+    "board_backup_sha256": "84d96179addae4d46f0cd4c43911b4cc959a9a10fcf41fef0cbe74c35621e0f4",
+    "release_id": 414397836,
+    "formal_contract_unchanged": true,
+    "original_data_unchanged": true,
+    "production_qualified": false,
+    "application_health": {
+      "application_commit": "ea53f86a14283bd3a3b73b59b5224244eaec0a09",
+      "databases": 2,
+      "hmi_functional_heartbeat": true,
+      "ok": true,
+      "processes": {
+        "hmi": 15207,
+        "supervisor": 15155,
+        "web": 15206
+      }
+    },
+    "health_observation_count": 3,
+    "system_runtime_hash_verified": true
+  },
+  "pre_overlay_backup": {
+    "bytes": 32750212,
+    "sha256": "84d96179addae4d46f0cd4c43911b4cc959a9a10fcf41fef0cbe74c35621e0f4",
+    "mutual_tls": true,
+    "hostname_certificate_verified": true,
+    "all_manifest_files_verified": 112,
+    "sqlite_quick_checks": 4,
+    "original_data_matches_pre_lab": true
+  },
+  "initial_reboot_failure": {
+    "boot_id": "16ed4f25-feea-4815-a55c-66f797530a89",
+    "udisk_mounted": false,
+    "lab_persistent_exists": false,
+    "lab_runtime_exists": false,
+    "daemon_pid_exists": false,
+    "token_present": false,
+    "partition9_exists": true,
+    "alias_exists": true,
+    "runtime_sha256": "f0f0da1b444f715ace8ed56b255a18cfa1ca864959dd9d8423721e6209cbb1fc"
+  },
+  "lab_storage_order_patch": {
+    "old_bootstrap_sha256": "80455c707c42458648e4859bb09d6224470ceeb971f994ff4b67334acb8a02d1",
+    "new_bootstrap_sha256": "60ac9f0c7c8a9de1e3793ecb3084cbd83cd411a239082199038a274cb83a49f9",
+    "storage_startup_sha256": "9e42d91f4b726ab3dfd29d87afb2f2606d83fce747582f349da8682f596febc4",
+    "original_system_startup_scripts_changed": false,
+    "application_artifact_changed": false
+  },
+  "corrected_normal_reboot": {
+    "phase": "rebooted",
+    "boot_id": "58f89141-9838-4103-bf9f-6d4ae7b3785f",
+    "active": {
+      "commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "data_schema": 1,
+      "package_sha256": "dcfc564710e37b4e6eb6126cbf8c165776aa93b7912561f75a08f0e8b4c47a6c",
+      "sequence": 2,
+      "version": "0.1.0-dev.20261015.4"
+    },
+    "health": {
+      "application_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "databases": 2,
+      "hmi_functional_heartbeat": true,
+      "ok": true,
+      "processes": {
+        "hmi": 1442,
+        "supervisor": 1376,
+        "web": 1441
+      }
+    },
+    "roles": [
+      {
+        "role": "web",
+        "pid": 1441,
+        "uid": 400,
+        "gid": 400,
+        "nnp": 1,
+        "cap_eff": "0000000000000400"
+      },
+      {
+        "role": "hmi",
+        "pid": 1442,
+        "uid": 401,
+        "gid": 400,
+        "nnp": 1,
+        "cap_eff": "0000000000000000"
+      }
+    ],
+    "gui_heartbeat_advances": true,
+    "framebuffer_mapped": true,
+    "named_touch_open": true,
+    "version_permissions_verified": true,
+    "original_data_hashes_verified": true,
+    "original_data_files": 7,
+    "formal_contract_and_factory_preserved": true,
+    "failed_sequence1_preserved": true,
+    "high_water": 2,
+    "transaction_cleared": true,
+    "volatile_token_present": false,
+    "production_qualified": false
+  },
+  "automatic_network_and_clock": {
+    "passed": true,
+    "boot_id": "58f89141-9838-4103-bf9f-6d4ae7b3785f",
+    "unix": 1792111326.9714375,
+    "host_reference": 1792111325.6775928,
+    "lab_mounts_verified": true,
+    "actual_devices_prepared_by_production_policy": true,
+    "udisk_rw_ext4": true,
+    "default_https_verification": true,
+    "http_status": 200,
+    "no_manual_storage_network_time_or_application_repair_after_this_reboot": true,
+    "volatile_github_token_absent": true,
+    "production_qualified": false
+  },
+  "host": {
+    "run": 251,
+    "skipped": 9,
+    "passed": 242,
+    "focused_lab_tests": 6
+  },
+  "signing_private_key_on_board": false,
+  "actual_github_credential_root_tmpfs_only": true,
+  "raw_screenshots_kept_private": true,
+  "old_failed_app_draft_unchanged": true
+}
