@@ -1,0 +1,418 @@
+{
+  "date": "2026-10-16",
+  "status": "development delivery verified; production qualification pending",
+  "source_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+  "physical_development_acceptance": {
+    "passed": true,
+    "normal_reboot_passed": true,
+    "scope": "Publication-permission corrected full system image, original data restore and automatic normal reboot",
+    "image_sha256": "ca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a",
+    "factory_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+    "factory_version": "0.1.0-dev.20261015.4",
+    "factory_sequence": 0,
+    "flash": {
+      "taskId": "flash-1792111615839406300",
+      "state": "success",
+      "verifyState": "success",
+      "postFlashState": "success",
+      "postFlashError": null,
+      "writtenBytes": 1362353584,
+      "exitCode": 0
+    },
+    "normal_reboot": {
+      "passed": true,
+      "boot_id": "c6d352a1-b8b4-4535-9491-79155fb8adcf",
+      "previous_boot_id": "31cbfbc5-df9e-4d0f-a189-f4b645623e9b",
+      "factory_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "factory_sequence": 0,
+      "unix": 1792112222.778479,
+      "host_time_reference": 1792112218.2430837,
+      "static_user_files_verified": 4,
+      "databases_restored_hash_verified_before_start": true,
+      "site_wifi_private": true,
+      "firmware_alias_in_image": true,
+      "no_temporary_busybox_overlay": true,
+      "default_https_verification": true,
+      "http_status": 200,
+      "no_manual_network_or_time_after_reboot": true
+    },
+    "qt_role_proof": {
+      "passed": true,
+      "roles": {
+        "passed": true,
+        "boot_id": "c6d352a1-b8b4-4535-9491-79155fb8adcf",
+        "factory_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+        "roles": [
+          {
+            "role": "web",
+            "pid": 1430,
+            "uid": 400,
+            "gid": 400,
+            "nnp": 1,
+            "cap_eff": "0000000000000400",
+            "cap_bnd": "0000000000000400"
+          },
+          {
+            "role": "hmi",
+            "pid": 1431,
+            "uid": 401,
+            "gid": 400,
+            "nnp": 1,
+            "cap_eff": "0000000000000000",
+            "cap_bnd": "0000000000000000"
+          }
+        ],
+        "framebuffer_uid": 401,
+        "python_supervisor": false,
+        "heartbeat": {
+          "backend_identity_verified": true,
+          "boot_id": "c6d352a1-b8b4-4535-9491-79155fb8adcf",
+          "commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+          "gui_event_loop": true,
+          "monotonic_seconds": 72.020429241,
+          "pid": 1431,
+          "schema_version": 1
+        }
+      },
+      "qt": {
+        "passed": true,
+        "gui_heartbeat_advances": true,
+        "framebuffer_mapped_by_qt": true,
+        "named_touch_open_by_qt": true,
+        "touch_node": "/dev/input/event4",
+        "hmi_device_fds": [
+          "/dev/null",
+          "/dev/fb0",
+          "/dev/input/event4"
+        ],
+        "web_http_identity_verified": true,
+        "credential_and_lease_environment_absent": true,
+        "system_daemon_running": true,
+        "physical_touch_event_qualified": false
+      }
+    },
+    "logical_database_preservation": {
+      "edge.db": {
+        "metadata": {
+          "snapshot_rows": 1,
+          "live_rows": 1,
+          "all_snapshot_rows_preserved": true
+        },
+        "devices": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "points": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "audit": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        }
+      },
+      "hmi.db": {
+        "alarms": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "audit": {
+          "snapshot_rows": 0,
+          "live_rows": 0,
+          "all_snapshot_rows_preserved": true
+        },
+        "telemetry": {
+          "snapshot_rows": 658,
+          "live_rows": 660,
+          "all_snapshot_rows_preserved": true
+        }
+      }
+    },
+    "original_telemetry_rows_preserved": 658,
+    "live_telemetry_rows": 660,
+    "preflash_backup_sha256": "7bc8b9690296f669a08ba7a18cfa5676285cd3107e62e6d484cdb4690420d9b4",
+    "preflash_backup_files": 156,
+    "preflash_sqlite_checks": 4,
+    "original_pre_lab_backup_sha256": "a8a5777ed504ad9134434824975338444d26bf34506a0bc56a0b9e598bfb764c",
+    "temporary_lab_absent_after_full_flash": true,
+    "system_runtime_overlay_after_full_flash": false,
+    "formal_hardware_and_production_trust_pending": true,
+    "real_qt_ota_proof_scope": "Previous b20 plus explicit5e268ac runtime overlay; full system flash creates factory sequence0 and preserves former lab state in private backup",
+    "production_qualified": false,
+    "automatic_updates_qualified": false,
+    "physical_power_loss_qualified": false
+  },
+  "final_board_state": {
+    "boot_id": "c6d352a1-b8b4-4535-9491-79155fb8adcf",
+    "active": {
+      "version": "0.1.0-dev.20261015.4",
+      "commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "sequence": 0,
+      "data_schema": 1
+    },
+    "health": {
+      "application_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "databases": 2,
+      "hmi_functional_heartbeat": true,
+      "ok": true,
+      "processes": {
+        "hmi": 1431,
+        "supervisor": 1365,
+        "web": 1430
+      }
+    },
+    "temporary_lab_absent": true,
+    "volatile_token_absent": true,
+    "system_overlay": false,
+    "production_qualified": false
+  },
+  "remote_delivery": {
+    "verified_at_utc": "2026-10-16T01:06:31.547520+00:00",
+    "release_id": 414421357,
+    "release_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-99c6eee825a6b01d975b",
+    "tag": "system-v0.1.0-dev.20261015.4--t113s4-sdnand-r2",
+    "source_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+    "draft": true,
+    "automatic_updates_qualified": false,
+    "verified_asset_count": 20,
+    "assets": [
+      {
+        "id": 645692087,
+        "name": "DELIVERY-NOTES.txt",
+        "size": 1079,
+        "sha256": "a05b95d35c94e1404f29158262d2e243f8718c11b60041921aa763bc785f58c4",
+        "redownload_verified": true
+      },
+      {
+        "id": 645692172,
+        "name": "DshanControl-system-t113s4-sdnand-rgb50-native-publication-sanitized-20261016.img.gz",
+        "size": 175145119,
+        "sha256": "dfa701dfbedac89dcc8315212fd6ac5a168f9213b442df020e6494ad8be3b57a",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693214,
+        "name": "DshanControl-t113s4-native-publication-factory-source-20261016.tar.gz",
+        "size": 14105774,
+        "sha256": "6a7355d4c467e3c027364557cd78104bec44b4829ed6b65de1a4845100464669",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693285,
+        "name": "DshanControl-t113s4-native-publication-sdk-delta-r2-20261016.tar.gz",
+        "size": 1266911,
+        "sha256": "9304e2ca4b863411545faeb8d631679f70089d583c8ff0c4f91c5445c95bbb2f",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693371,
+        "name": "SHA256SUMS",
+        "size": 1875,
+        "sha256": "f11017a57356e74607ed77510185c80cd5f8e06d64daa123990689abf6a8a138",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693401,
+        "name": "actual-qt-role-proof.json",
+        "size": 1402,
+        "sha256": "a9e85ce94bd25191f9da796b7038c4044f5d52b97c1de95b91b197eab304dd61",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693443,
+        "name": "board-development-acceptance.json",
+        "size": 4542,
+        "sha256": "9d506f951654a6a8449a1d123850f29b459268e1dccff5b02288edf5512c269a",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693491,
+        "name": "boot0-gate.json",
+        "size": 291,
+        "sha256": "56b8f5ad7b32923cd630b91ee99b6a07b161fee010fbb25ddec1d5d6ebd83d53",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693525,
+        "name": "build-summary.json",
+        "size": 4282,
+        "sha256": "4818bc6bbc277ab5a99d6c5e08636a2e26f7484bc5d5e1996b1d457d554ba640",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693656,
+        "name": "factory-build-info.json",
+        "size": 27143,
+        "sha256": "171b641f595b018770c0fa2795062fd9ce3bdcfc3d7f4851ab2a6140f0335f56",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693692,
+        "name": "factory-system-contract.json",
+        "size": 671,
+        "sha256": "b857c76b4451fc3b7a8618fa71867e0c6e8bd1fad6017fb77e98e811c02e0adc",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693749,
+        "name": "image-privacy-check.json",
+        "size": 1004,
+        "sha256": "bb9726900ad30bb005e76e1c474fa484ebdde4c83851e684a852d5608f470db1",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693789,
+        "name": "native-role-image-policy.json",
+        "size": 236,
+        "sha256": "c5e7231b75dd31fc01de63653c4e293aa9574e3c179276d23b5536ecf39ff785",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693823,
+        "name": "package-inspection.json",
+        "size": 15568,
+        "sha256": "9d8f336607f4204614f5edd6954eb76ab3291fec6be977d78d347f1aeb4180a5",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693858,
+        "name": "publication-permissions.json",
+        "size": 1895,
+        "sha256": "78314c8a524ff46ace00412c11b67aa173d81495bd283e5f1d676c3c68a9a8cc",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693883,
+        "name": "real-qt-application-update.json",
+        "size": 7625,
+        "sha256": "53dd10b27d65be74c19b121aec041c03b460f3cfc4989cf7c01f2a55daac0db0",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693917,
+        "name": "release-lock.json",
+        "size": 4282,
+        "sha256": "5fc84868e2b3883b4d5815a7882c8ea5b5186da01a10577b0d031d6df87a6089",
+        "redownload_verified": true
+      },
+      {
+        "id": 645693958,
+        "name": "rootfs-validation.json",
+        "size": 34025,
+        "sha256": "97d116d603cf330502d1f27b9db5341dfdbafb97970c6c1f5fd4f3cfa71c8ae0",
+        "redownload_verified": true
+      },
+      {
+        "id": 645694018,
+        "name": "sanitization-report.json",
+        "size": 675,
+        "sha256": "f16ed3d74bd94419b69dafa0cb0f87e9858fcc4b91b0681ed083e452de122b4b",
+        "redownload_verified": true
+      },
+      {
+        "id": 645694065,
+        "name": "sdk-components.lock.json",
+        "size": 21710,
+        "sha256": "dd2aeec9dff0a09764deac651c0fb4ebf2aa7427180c079c71b685d492e1ea23",
+        "redownload_verified": true
+      }
+    ],
+    "sha256sums_verified": true,
+    "archive_file_checks": [
+      {
+        "name": "DshanControl-t113s4-native-publication-factory-source-20261016.tar.gz",
+        "files_verified": 405,
+        "git_blobs_verified": true,
+        "safe_relative_symlinks": 1,
+        "unsafe_members": false
+      },
+      {
+        "name": "DshanControl-t113s4-native-publication-sdk-delta-r2-20261016.tar.gz",
+        "files_verified": 356,
+        "git_blobs_verified": false,
+        "safe_relative_symlinks": 0,
+        "unsafe_members": false
+      }
+    ],
+    "raw_image_sha256": "ca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a",
+    "raw_image_bytes": 1426203648,
+    "github_token_forwarded_to_cdn": false,
+    "sdk_metadata_reference_closure_verified": true,
+    "remote_draft_and_tag_refreshed": true
+  },
+  "compressed_image": {
+    "bytes": 175145119,
+    "sha256": "dfa701dfbedac89dcc8315212fd6ac5a168f9213b442df020e6494ad8be3b57a",
+    "gzip_name_timestamp_omitted": true
+  },
+  "sdk_input_stability": {
+    "passed": true,
+    "component_count": 122,
+    "input_capture_before_after_identical": true,
+    "not_a_full_sdk_reproduction_bundle": true
+  },
+  "source_ci": [
+    {
+      "id": 38828856356,
+      "name": "DshanControl host gates",
+      "head_sha": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/dshanpi/DshanControl/actions/runs/38828856356"
+    },
+    {
+      "id": 38828751115,
+      "name": "DshanControl host gates",
+      "head_sha": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/dshanpi/DshanControl/actions/runs/38828751115"
+    }
+  ],
+  "superseded_draft": {
+    "old_draft_id": 414420299,
+    "new_draft_id": 414421357,
+    "new_draft_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-99c6eee825a6b01d975b",
+    "old_assets_unchanged": true,
+    "metadata_only_updated": true
+  },
+  "sdk_metadata_initial_failure": {
+    "draft_id": 414420299,
+    "raw_image_unchanged": true,
+    "physical_acceptance_passed": true,
+    "metadata_reference_closure_passed": false,
+    "reason": "SDK manifest inherited missing sanitization-report.json and obsolete recipe reference",
+    "assets_preserved": true,
+    "correction": "Independent r2 Draft with corrected references and remote closure validation"
+  },
+  "power_observation": {
+    "configured": true,
+    "device_id": 7,
+    "channel": "6",
+    "role_mode": "singleRelay",
+    "state_read": "last_known (the controller channel is write-only)",
+    "voltage_measurement_available": false,
+    "complete_power_removal_or_usb_backfeed_measured": false,
+    "power_action_performed": false,
+    "qualification": false
+  },
+  "software_reboot_observer_transport_error": {
+    "reboot_sent_once": true,
+    "serial_read_transport_error": "ConnectionResetError104",
+    "gateway_reconnected_with_matching_device": true,
+    "no_reboot_replay": true
+  },
+  "production_qualified": false,
+  "goal_complete": false,
+  "remaining": [
+    "Actual PCB revision",
+    "Production signing/trust provisioning and site-approved industrial maintenance",
+    "Measured complete electrical power removal and recovery matrix"
+  ]
+}

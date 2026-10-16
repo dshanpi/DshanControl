@@ -1,5 +1,34 @@
 # DshanControl engineering gates
 
+## Publication-corrected full image and verified r2 delivery (2026-10-16 UTC)
+
+Current board is complete imageca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a,
+factory5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e/version.20261015.4/sequence0.
+No runtime overlay or lab helpers/mounts/credentials remain on board. Original
+user restore9files/hash checks and normal rebootc6d352a1-b8b4-4535-9491-79155fb8adcf
+pass automatic WiFi/DHCP/UTC/defaultHTTPS200/native health and actual Qt401/Web400
+role/device/heartbeat proof. All658 old telemetry rows preserved,660atcheck.
+Immediate private backup7bc8b969…156files/4DBchecks retains all old lab state;
+lab high_water2/quarantined sequence1 are archived, not new factory update state.
+Original pre-lab backupA8 and every historical image/draft/evidence remain.
+Flash1792111615839406300 write/verify/reboot success. Host248/9skip, actualARM17,
+sourceCI38828856356/38828751115, rootfs104files/43ELFs/container41/Boot0/privacy
+and1669 runtime equality pass. SDK122unchanged; no full clean reproduction claim.
+Primary system Draft414421357/tag system-v0.1.0-dev.20261015.4--t113s4-sdnand-r2
+has20assets all redownload/hash/Git/archive/SDK reference closure verified, fresh
+Draft/tag metadata checked. Original Draft414420299 retained and superseded:
+inherited SDK metadata referenced a missing report; r2 corrects paths, same image.
+Do not mutate assets or reflash for an archive metadata fix. Draft metadata PATCH
+must explicitly include tag_name/target_commitish: omission regenerated its
+untagged association; initial verifier refused it, old association was restored
+without changing Git tag object/assets. Primary r2 remains separately verified.
+See docs/S4-PUBLICATION-SYSTEM-20261016.md and structured receipt. Formal PCB/
+libc/runtime contract values stay pending and no production key is provisioned;
+derived libc/runtime evidence exists separately. Relay6 is singleRelay/write-only
+last-known state, no measured voltage/backfeed evidence and no power command used.
+Whole long goal remains active pending actual PCB, production trust/industrial
+maintenance and measured electrical power matrix; do not claim production.
+
 ## Actual Qt .4 installation and reboot (2026-10-15)
 
 Private application Draft414397836, source5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e,
