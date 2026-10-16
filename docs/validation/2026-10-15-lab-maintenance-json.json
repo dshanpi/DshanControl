@@ -1,0 +1,57 @@
+{
+  "initial": {
+    "missing_leases_refused": true,
+    "held_inherited_leases_exit": 1,
+    "held_inherited_leases_result": {
+      "ok": false,
+      "error": "Lab default configuration changed",
+      "state_retained": true
+    },
+    "parent": "explicit isolated Python lease fixture, not the native installer",
+    "industrial_interlock_qualified": false
+  },
+  "config_difference": {
+    "web.json": {
+      "different_paths": [],
+      "same_semantic_object": true,
+      "actual_keys": [
+        "auth",
+        "can",
+        "canopen",
+        "ec20"
+      ],
+      "actual_file_sha256": "f43cd11b412f534d3c1fd06b8a0a0d9491dc99d2597506901e481ea3a9f79b7f",
+      "transport_fields": {
+        "can": {},
+        "canopen": {
+          "nodes": {}
+        },
+        "ec20": {
+          "profiles": {}
+        }
+      }
+    },
+    "hmi.json": {
+      "different_paths": [],
+      "same_semantic_object": true,
+      "actual_keys": [
+        "brightness",
+        "demo_mode",
+        "page_cycle_seconds",
+        "refresh_ms"
+      ],
+      "actual_file_sha256": "e2a42537ddab1b7d3848adf2e3b67acbe37e36e25fd69903c5e691c390bfde74",
+      "display_only_fields": {
+        "brightness": 220,
+        "demo_mode": false,
+        "page_cycle_seconds": 0,
+        "refresh_ms": 1000
+      }
+    }
+  },
+  "correction": "Pin trusted default bytes, then compare parsed JSON; transport/device/lease/I-O gates unchanged",
+  "regression_tests_passed": 3,
+  "actual_install_attempted": false,
+  "production_runtime_changed": false,
+  "signed_app_draft_changed": false
+}

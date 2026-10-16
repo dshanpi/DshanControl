@@ -1,5 +1,25 @@
 # DshanControl engineering gates
 
+## Lab maintenance JSON representation correction (2026-10-15)
+
+Lab is now active in separate persistent apps/data bound under /run; original
+production data/config backups remain preserved (pre-lab86files/2DBs/658telemetry).
+Real Qt GUI check/download of private Draft414377142 (.3/source4b5533f, sequence1)
+passed actual API TLS/signature/target/size/SHA; download elapsed13.153s. Actual
+credential reached only root-private tmpfs via mTLS; signing private key stays SDK.
+Do not repeat claims from older entries that lab/token provisioning never occurred.
+Before installation, Python inherited-lease fixture was refused because native
+initialize reformatted default JSON. Actual parsed configurations are identical;
+no different paths/transport settings. Preserve initial refusal evidence. Lab
+maintenance now pins trusted default file SHA and compares semantic JSON; three
+regressions prove formatting accepted, changed transport refused, changed trusted
+defaults refused. Other lock/empty-device/role-I/O checks remain. This is a TEST
+helper correction, not a production updater or signed .3 artifact change. Published
+.3 stays pinned4b5533f and byte-identical. Install has NOT yet been attempted.
+Continue patching only this root-private lab verifier with tracked hashes, rerun
+preflight once conditions change, then actual GUI install/normal reboot/rollback.
+Formal system-release.json stays pending; do not claim industrial or power safety.
+
 ## Qt OTA lab preparation source (2026-10-15)
 
 Candidate application VERSION is0.1.0-dev.20261015.3; this is not yet installed.

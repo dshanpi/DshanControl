@@ -12,6 +12,15 @@ from s4_ota_lab_bootstrap import PERSISTENT, RUNTIME, roots, mounts, require
 from s4_gui_probe import lab_scope, device
 
 
+def verify_default_configuration(context, defaults, data):
+    for name in ['web.json', 'hmi.json']:
+        reference = (defaults / name).read_bytes()
+        require(hashlib.sha256(reference).hexdigest() == context['default_file_sha256'][name],
+                'Trusted lab defaults changed')
+        require(json.loads((data / name).read_text()) == json.loads(reference),
+                'Lab default configuration changed')
+
+
 def maintenance():
     context, original = roots()
     mounts()
@@ -41,10 +50,9 @@ def maintenance():
         # Re-locking the inherited open file description proves it belongs to
         # that observed lock. A separately opened descriptor would refuse.
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    for name in ['web.json', 'hmi.json']:
-        body = (RUNTIME / 'data' / name).read_bytes()
-        require(hashlib.sha256(body).hexdigest() == context['default_file_sha256'][name],
-                'Lab default configuration changed')
+    # Native initialize writes durable JSON, which may change whitespace/order.
+    # Pin the trusted default bytes, then compare the parsed configuration.
+    verify_default_configuration(context, Path('/usr/share/dshancontrol/defaults'), RUNTIME / 'data')
     web_config = json.loads((RUNTIME / 'data/web.json').read_text())
     require(web_config.get('can') == {} and web_config.get('canopen') == {'nodes': {}} and
             web_config.get('ec20') == {'profiles': {}}, 'Nonempty lab transport configuration')
