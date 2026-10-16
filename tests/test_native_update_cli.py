@@ -4,10 +4,58 @@ import os
 from pathlib import Path
 import subprocess
 import shlex
+import stat
 import test_application_update_cli as reference
 
 
 class NativeUpdateCliTests(reference.UpdateCliTests):
+    def test_private_daemon_umask_publishes_readable_immutable_application_only(self):
+        args=[str(self.binary),'--config',str(self.config),'install',str(self.f.path),
+              str(self.f.signature),str(self.f.package)]
+        result=subprocess.run(args,capture_output=True,text=True,timeout=60,
+                              preexec_fn=lambda:os.umask(0o077))
+        self.assertEqual(0,result.returncode,result.stdout+result.stderr)
+        current=self.f.updater.current_path()
+        self.assertEqual(0o755,stat.S_IMODE(current.stat().st_mode))
+        for path in current.rglob('*'):
+            with self.subTest(path=str(path.relative_to(current))):
+                expected=0o755 if path.is_dir() or path.name=='omnigate-hmi' else 0o644
+                self.assertEqual(expected,stat.S_IMODE(path.stat().st_mode))
+        for name in ['.update.lock','.control.lock','update-state.json']:
+            self.assertEqual(0o600,stat.S_IMODE((self.f.app/name).stat().st_mode))
+        self.assertEqual(b'USER DATA MUST SURVIVE',self.f.data.read_bytes())
+        reduced_uid=False
+        if os.geteuid()==0 and self.f.root.parent==Path('/tmp'):
+            # Only this synthetic fixture is made traversable; never relax a
+            # shared private validation/user-data ancestor for a test process.
+            for path in [self.f.root,self.f.app,self.f.app/'releases']:
+                path.chmod(0o755)
+            def drop():
+                os.setgroups([])
+                os.setresgid(60000,60000,60000)
+                os.setresuid(60001,60001,60001)
+            probe='''import os,sys,json
+from pathlib import Path
+root=Path(sys.argv[1]);value=json.loads((root/'current/installed.json').read_text())
+assert value['sequence']==1
+assert os.access(str(root/'current/bin/omnigate-hmi'),os.X_OK)
+assert (root/'current/lib/web/app.py').read_bytes()
+for name in ['.update.lock','.control.lock','update-state.json']:
+ try:fd=os.open(str(root/name),os.O_RDONLY)
+ except PermissionError:continue
+ else:os.close(fd);raise AssertionError('Private updater file readable')
+'''
+            result=subprocess.run(['/usr/bin/python3','-c',probe,str(self.f.app)],
+                capture_output=True,text=True,timeout=5,preexec_fn=drop)
+            self.assertEqual(0,result.returncode,result.stdout+result.stderr)
+            reduced_uid=True
+        if os.environ.get('NATIVE_PUBLICATION_EVIDENCE'):
+            Path(os.environ['NATIVE_PUBLICATION_EVIDENCE']).write_text(json.dumps({
+                'private_daemon_umask':'077','version_directories':'0755',
+                'executable_files':'0755','regular_files_and_installed_metadata':'0644',
+                'update_locks_and_state':'0600','reduced_uid_kernel_access_verified':reduced_uid,
+                'application_data_bytes_preserved':True},indent=2)+'\n')
+
     def test_native_lifecycle_hooks_adopt_real_leases_through_shell(self):
         self.f.config['application_health']={'pid_root':str(self.f.root/'absent-native-run'),
                                              'launch_receipts_required':True}

@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <unistd.h>
 
@@ -27,6 +28,46 @@ namespace {
 const QString Repo = "dshanpi/DshanControl";
 const QString AssetPrefix =
     "https://github.com/" + Repo + "/releases/download/";
+void preparePublicVersion(const QString &directory) {
+  // The daemon keeps umask077. Only a fully verified application tree becomes
+  // readable/executable by the reduced roles; inputs, locks and state stay private.
+  QStringList folders{directory}, files;
+  for (int i = 0; i < folders.size(); ++i) {
+    struct stat info;
+    require(::lstat(QFile::encodeName(folders[i]).constData(), &info) == 0 &&
+                S_ISDIR(info.st_mode) && info.st_uid == ::geteuid(),
+            "Untrusted version directory", "staging", "publication-permissions");
+    for (const auto &entry : QDir(folders[i]).entryInfoList(
+             QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System)) {
+      require(!entry.isSymLink(), "Linked version entry refused", "staging",
+              "publication-permissions");
+      if (entry.isDir())
+        folders << entry.absoluteFilePath();
+      else
+        files << entry.absoluteFilePath();
+    }
+  }
+  auto publish = [](const QString &path, bool folder) {
+    const int fd = ::open(QFile::encodeName(path).constData(),
+                          O_RDONLY | O_NOFOLLOW | O_CLOEXEC |
+                              (folder ? O_DIRECTORY : 0));
+    require(fd >= 0, "Cannot open version permissions", "staging",
+            "publication-permissions");
+    struct stat info;
+    const bool trusted = ::fstat(fd, &info) == 0 && info.st_uid == ::geteuid() &&
+        (folder ? S_ISDIR(info.st_mode) : S_ISREG(info.st_mode) && info.st_nlink == 1);
+    const mode_t mode = folder || (trusted && (info.st_mode & 0111)) ? 0755 : 0644;
+    const bool complete = trusted && ::fchmod(fd, mode) == 0 && ::fsync(fd) == 0;
+    ::close(fd);
+    require(complete, "Cannot publish version permissions", "staging",
+            "publication-permissions");
+  };
+  for (const auto &file : files)
+    publish(file, false);
+  // Keep the private staging root inaccessible until all descendants are ready.
+  for (int i = folders.size() - 1; i >= 0; --i)
+    publish(folders[i], true);
+}
 class OwnedHookProcess : public QProcess {
   const pid_t owner = ::getpid();
   int updateLease = -1, controlLease = -1;
@@ -442,6 +483,7 @@ QString NativeUpdater::install(const QString &manifestPath,
                {"sequence", m["sequence"]},
                {"data_schema", m["data_schema"]},
                {"package_sha256", item["sha256"]}});
+  preparePublicVersion(stage.path());
   auto destination = releases + '/' + name;
   require(destination != old && !QFileInfo(destination).isSymLink(),
           "Invalid staging destination");

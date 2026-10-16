@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-15",
+  "failed_application": {
+    "version": "0.1.0-dev.20261015.3",
+    "source_commit": "4b5533fea689db5da660080ccfb3774ec3cb138a",
+    "draft_id": 414377142,
+    "sequence": 1,
+    "check_passed": true,
+    "download_passed": true,
+    "download_elapsed_ms": 13153,
+    "install_passed": false,
+    "failure_stage": "start",
+    "reason": "umask077 published version/HMI0700; reduced HMI UID401 cannot execute",
+    "automatic_rollback_passed": true,
+    "rolled_back_factory_commit": "ea53f86a14283bd3a3b73b59b5224244eaec0a09",
+    "failed_version_quarantined": true,
+    "high_water": 1,
+    "transaction_cleared": true
+  },
+  "host": {
+    "run": 248,
+    "skipped": 9,
+    "passed": 239,
+    "extra_root_reduced_uid_case_passed": true
+  },
+  "actual_arm": {
+    "bytes": 2388,
+    "sha256": "e04a9fe1d459914934dea365c2566d17705207ec82b2613b60bf6a43f2a52c98",
+    "mutual_tls": true,
+    "hostname_certificate_verified": true,
+    "result": {
+      "run": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true,
+      "physical_power_loss_qualified": false,
+      "scope": "isolated native signed-update fixtures; live lab application unchanged"
+    },
+    "permissions": {
+      "private_daemon_umask": "077",
+      "version_directories": "0755",
+      "executable_files": "0755",
+      "regular_files_and_installed_metadata": "0644",
+      "update_locks_and_state": "0600",
+      "reduced_uid_kernel_access_verified": true,
+      "application_data_bytes_preserved": true
+    },
+    "runtime_sha256": "f0f0da1b444f715ace8ed56b255a18cfa1ca864959dd9d8423721e6209cbb1fc"
+  },
+  "runtime_overlay_deployed": false,
+  "original_user_data_preserved": true,
+  "production_qualified": false,
+  "next": "Preserve current state, deploy system-runtime correction, build unique .4 sequence2 and validate real GUI install/reboot; retain failed .3"
+}

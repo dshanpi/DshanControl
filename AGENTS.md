@@ -1,5 +1,24 @@
 # DshanControl engineering gates
 
+## Real GUI installation failure and publication correction (2026-10-15)
+
+Supersedes older "install not attempted" and "no actual token" entries. Actual
+Qt check/download of Draft414377142/source4b5533f passed, download13.153s. Actual
+install passed native maintenance then failed start: daemon umask077 published
+new version/HMI0700, preventing UID401 execution. Automatic rollback completed:
+factoryea53 functional health/GUI heartbeat pass, transaction cleared, failed
+sequence1 quarantined and high_water1 retained. Never reinstall .3 or clear state.
+Original user data remains separate; private pre-lab backupa8a5777e has86files,
+2DBs/658telemetry. GitHub token is root-private tmpfs only; signing key SDK only.
+New system-runtime source explicitly publishes fully verified version trees
+0755 directories/executables and0644 ordinary files/installed metadata; private
+inputs/locks/state keep077/0600. Host248(9skips) and extra root reduced-UID kernel
+access case pass. Actual isolated ARM17 all pass, including reduced-UID kernel
+access; evidencee04a9fe1d459914934dea365c2566d17705207ec82b2613b60bf6a43f2a52c98. Stage next application .4/sequence2 from a clean commit. System
+runtime fixes stay outside application payloads; any board overlay needs explicit
+source/binary identity and preserved old binary. See
+docs/S4-UPDATE-PUBLICATION-PERMISSIONS-20261015.md. Whole goal stays active.
+
 ## Lab maintenance JSON representation correction (2026-10-15)
 
 Lab is now active in separate persistent apps/data bound under /run; original
