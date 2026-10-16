@@ -1,5 +1,11 @@
 # DshanControl engineering gates
 
+The current machine-readable S4 release status now references the replacement
+board'sca98 image, actual Qt development OTA and verified r2 delivery; old-board
+sequence6/power evidence is retained under historical_development_evidence.
+See docs/S4-COMPLETION-AUDIT-20261016.md for G01–G12 scopes and remaining gates.
+Metadata/layout6tests pass; no runtime/image/tag/asset changes for this correction.
+
 ## Publication-corrected full image and verified r2 delivery (2026-10-16 UTC)
 
 Current board is complete imageca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a,
