@@ -24,14 +24,29 @@ class QTabWidget;
 class QTabBar;
 QT_END_NAMESPACE
 
+namespace DesktopV1 { class DesktopCanvas; class DesktopTrendPanel; }
 class OverviewDashboard;
 class StatusStrip;
+class DesktopClient;
+class CloudPanel;
+class FamilyPanel;
+class MediaPanel;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
   public:
     explicit MainWindow(QWidget *parent = nullptr);
+    bool openApplication(const QString &id, const QJsonObject &context = {});
+    void setDesktopEmbedded(bool embedded);
+    void setDesktopPointSource(DesktopV1::DesktopCanvas *source);
+    bool requestDesktopBrightness(int percent);
+
+  signals:
+    void hmiSnapshotChanged(const QJsonObject &snapshot);
+    void desktopSnapshotChanged(const QJsonObject &snapshot);
+    void mediaFullscreenChanged(bool enabled);
+    void desktopBrightnessFinished(bool success, int rawValue, QString message);
 
   protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -43,6 +58,14 @@ class MainWindow : public QMainWindow
 
   private:
     friend class HmiUiTest;
+    bool desktopEmbedded = false;
+    QWidget *applicationUpdatePage = nullptr;
+    DesktopClient *desktopClient = nullptr;
+    CloudPanel *cloudPanel = nullptr;
+    FamilyPanel *familyPanel = nullptr;
+    MediaPanel *mediaPanel = nullptr;
+    DesktopV1::DesktopTrendPanel *boundTrendPanel = nullptr;
+    QStackedWidget *devicePageStack = nullptr;
     QCheckBox *canFdCheck = nullptr;
     QWidget *scrollPage(QWidget *page);
     void markOffline();
@@ -86,6 +109,7 @@ class MainWindow : public QMainWindow
     bool settingsDirty = false;
     bool loadingSettings = false;
     bool settingsPending = false;
+    bool desktopBrightnessRequest = false;
     quint64 settingsRevision = 0;
     quint64 savedSettingsRevision = 0;
     QJsonObject submittedSettings;
@@ -134,6 +158,7 @@ class MainWindow : public QMainWindow
     QSlider *brightnessSlider = nullptr;
     QCheckBox *demoCheck = nullptr;
     QComboBox *refreshCombo = nullptr;
+    quint64 snapshotGeneration = 0;
     bool requestActive = false;
 };
 

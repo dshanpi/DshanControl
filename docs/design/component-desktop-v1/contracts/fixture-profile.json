@@ -1,0 +1,65 @@
+{
+  "mode": "visual_fixture",
+  "network_io": "disabled",
+  "writes": "forbidden",
+  "clock_text": "14:28",
+  "date_text": "10月16日  星期五",
+  "full_date_text": "2026年10月16日  星期五",
+  "temperature": 24.3,
+  "humidity": 52.6,
+  "brightness_percent": 72,
+  "points_count": 12,
+  "alarms_count_text": "02",
+  "media_position": "01:36",
+  "media_duration": "05:12",
+  "chart": "desktop-preview.cpp::trend deterministic 80-segment sin formula",
+  "image_crop": [
+    225,
+    215,
+    695,
+    300
+  ],
+  "source_of_truth": "reference/source/desktop-preview.cpp --render",
+  "screens": [
+    {
+      "filename": "UI新桌面_00设计总览.png",
+      "sha256": "b119611b3fdb33d96a68771b9b2a5e89888cb3907eca50e80a0798fac4f78685"
+    },
+    {
+      "filename": "UI新桌面_01组件桌面.png",
+      "sha256": "16f5856f71999c7dce742178face0308b778eb1bd501505461cf646b478c173c"
+    },
+    {
+      "filename": "UI新桌面_02顶部下拉.png",
+      "sha256": "4e998961707c74ee5b3534ac595ef702fe67a4b4d6bfc3b7151902d883c20af5"
+    },
+    {
+      "filename": "UI新桌面_03全部应用.png",
+      "sha256": "5b85ba1e7471175a5f07f5c445e3679be437bb06fe37140c96e59a15d2db41fd"
+    },
+    {
+      "filename": "UI新桌面_04编辑组件.png",
+      "sha256": "67648b8da0f9a4b770142b92e35a41a3605f48f6dadcba427fb8698603419423"
+    },
+    {
+      "filename": "UI新桌面_05添加组件.png",
+      "sha256": "dfcdf75c9d66097b185738abae78dd270f69f06ae9b41cf484e2a5142f761f3f"
+    },
+    {
+      "filename": "UI新桌面_06组件展开.png",
+      "sha256": "ffa184d1b3fe8b9cf74a9a793d2b743d914af0ea49f912263cc438b6d8cdf846"
+    },
+    {
+      "filename": "UI新桌面_07宽屏1280x720.png",
+      "sha256": "7c07828c8af7b7963491942b1cbbc6a1b820a86574c3d2e36c64274ed9406360"
+    },
+    {
+      "filename": "UI新桌面_08应用搜索.png",
+      "sha256": "4aba8bbb1d732f5e59efb1461ec895e90d85d31165b407e70c404407548cf506"
+    },
+    {
+      "filename": "UI新桌面_09图片组件.png",
+      "sha256": "bf1c24feeaa7fbd76bf8c7a33e2cb221523ba6c1bbd9c347731957479b88a45b"
+    }
+  ]
+}

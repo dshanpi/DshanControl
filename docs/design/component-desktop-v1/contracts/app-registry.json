@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "status_note": "implementation_status仅为末次读取时源码事实，不代表已安装/已通过板测；section路由需新增适配；fixture文字保持批准图",
+  "apps": [
+    {
+      "id": "overview",
+      "title": "运行总览",
+      "subtitle": "系统与现场",
+      "icon": "chart",
+      "color": "#1468FA",
+      "category": "industrial",
+      "source_entry": "buildOverview",
+      "implementation_status": "existing",
+      "fixture_caption": "系统与现场",
+      "order": 0
+    },
+    {
+      "id": "fieldbus",
+      "title": "现场总线",
+      "subtitle": "CAN / RS485 / ECAT",
+      "icon": "bus",
+      "color": "#6472D8",
+      "category": "industrial",
+      "source_entry": "buildFieldbus",
+      "implementation_status": "existing",
+      "fixture_caption": "CAN / RS485 / ECAT",
+      "order": 1
+    },
+    {
+      "id": "network",
+      "title": "网络通信",
+      "subtitle": "连接管理",
+      "icon": "wifi",
+      "color": "#309ABA",
+      "category": "network_cloud",
+      "source_entry": "buildNetwork",
+      "implementation_status": "existing",
+      "fixture_caption": "连接管理",
+      "order": 2
+    },
+    {
+      "id": "devices",
+      "title": "设备监控",
+      "subtitle": "点位与趋势",
+      "icon": "device",
+      "color": "#20A88D",
+      "category": "industrial",
+      "source_entry": "buildDevices",
+      "implementation_status": "existing",
+      "fixture_caption": "点位与趋势",
+      "order": 3
+    },
+    {
+      "id": "alarms",
+      "title": "告警记录",
+      "subtitle": "事件与确认",
+      "icon": "bell",
+      "color": "#D89B3B",
+      "category": "industrial",
+      "source_entry": "buildAlarms",
+      "implementation_status": "existing",
+      "fixture_caption": "事件与确认",
+      "order": 4
+    },
+    {
+      "id": "settings",
+      "title": "系统设置",
+      "subtitle": "显示与服务",
+      "icon": "settings",
+      "color": "#698098",
+      "category": "system_media",
+      "source_entry": "buildSettings",
+      "implementation_status": "existing",
+      "fixture_caption": "显示与服务",
+      "order": 5
+    },
+    {
+      "id": "cloud_bind",
+      "title": "官网绑定",
+      "subtitle": "设备与账号",
+      "icon": "cloud",
+      "color": "#4386D8",
+      "category": "network_cloud",
+      "source_entry": "CloudPanel:binding",
+      "implementation_status": "source_integrated_unverified",
+      "fixture_caption": "设计入口",
+      "order": 6
+    },
+    {
+      "id": "reporting",
+      "title": "数据上报",
+      "subtitle": "点位与 MQTT",
+      "icon": "upload",
+      "color": "#24A4B2",
+      "category": "network_cloud",
+      "source_entry": "CloudPanel:reporting",
+      "implementation_status": "source_integrated_unverified",
+      "fixture_caption": "设计入口",
+      "order": 7
+    },
+    {
+      "id": "voice",
+      "title": "语音对话",
+      "subtitle": "涂鸦语音",
+      "icon": "mic",
+      "color": "#9981D4",
+      "category": "network_cloud",
+      "source_entry": "FamilyPanel:voice",
+      "implementation_status": "source_integrated_unverified",
+      "fixture_caption": "设计入口",
+      "order": 8
+    },
+    {
+      "id": "home",
+      "title": "智能家庭",
+      "subtitle": "家庭设备",
+      "icon": "home",
+      "color": "#DF9970",
+      "category": "network_cloud",
+      "source_entry": "FamilyPanel:home",
+      "implementation_status": "source_integrated_unverified",
+      "fixture_caption": "设计入口",
+      "order": 9
+    },
+    {
+      "id": "video",
+      "title": "视频播放",
+      "subtitle": "本地媒体",
+      "icon": "video",
+      "color": "#6E8BCB",
+      "category": "system_media",
+      "source_entry": "MediaPanel+MediaSession",
+      "implementation_status": "source_integrated_unverified",
+      "fixture_caption": "设计入口",
+      "order": 10
+    },
+    {
+      "id": "update",
+      "title": "应用更新",
+      "subtitle": "签名应用更新",
+      "icon": "update",
+      "color": "#7484A9",
+      "category": "system_media",
+      "source_entry": "UpdatePanel",
+      "implementation_status": "existing",
+      "fixture_caption": "签名应用更新",
+      "order": 11
+    }
+  ]
+}

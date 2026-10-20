@@ -1,0 +1,22 @@
+{
+  "family": "Dshan Sans",
+  "coverage": "GB2312, Latin and UI symbols",
+  "license_sha256": "e9553faa88c1412e0eaf84cc67ef3f5051ddbf9daa2a733ff3db0ff2b1aadcdf",
+  "origin": "Noto Sans CJK SC",
+  "fonttools_version": "4.5.0",
+  "license": "SIL Open Font License 1.1",
+  "fonts": [
+    {
+      "source": "NotoSansCJK-Regular.ttc",
+      "source_sha256": "5dcd1c336cc9344cb77c03a0cd8982ca8a7dc97d620fd6c9c434e02dcb1ceeb3",
+      "output": "DshanSans-Regular.otf",
+      "sha256": "f84e71f4c74e2e3a3468f22a95af7a5143434f95dec6d50a515971f54568f5bc"
+    },
+    {
+      "source": "NotoSansCJK-Bold.ttc",
+      "source_sha256": "0c066cc1f22541fd9e138190de26dc480a4b8221bef5321e27e7b7802b26ee5e",
+      "output": "DshanSans-Bold.otf",
+      "sha256": "0f466ad22488712ae736976ed26e0c948aa14176b386620567b178e8e7d66847"
+    }
+  ]
+}

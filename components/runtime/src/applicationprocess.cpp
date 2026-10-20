@@ -238,9 +238,14 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
                  stage, "Invalid application health policy", "contract");
   const auto policy = config["application_health"].toObject();
   for (const auto &name :
-       {QString("launch_receipts_required"), QString("native_supervisor")})
+       {QString("launch_receipts_required"), QString("native_supervisor"),
+        QString("desktop_provider")})
     processRequire(!policy.contains(name) || policy[name].isBool(), stage,
                    "Invalid native process policy", "contract");
+  processRequire(!policy.contains("fixture_desktop_socket") ||
+                     (dev && policy["fixture_desktop_socket"].isString()),
+                 stage, "Desktop socket override requires development mode",
+                 "contract");
   receiptsRequired = policy["launch_receipts_required"].toBool(false);
   nativeSupervisor = policy["native_supervisor"].toBool(false);
   processRequire(!nativeSupervisor || receiptsRequired, stage,
@@ -262,14 +267,22 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
     commands["supervisor"] =
         QStringList{"/usr/bin/dshancontrol-runtime", "serve",
                     "/etc/dshancontrol/platform-service.json"};
+  if (policy["desktop_provider"].toBool(false)) {
+    processRequire(receiptsRequired && (dev || nativeSupervisor), stage,
+                   "Desktop provider requires managed application roles",
+                   "contract");
+    commands["desktop"] =
+        QStringList{root + "/current/bin/dshancontrol-desktop-service"};
+  }
   if (policy.contains("fixture_processes")) {
     fixture = true;
     const auto fixture = policy["fixture_processes"].toObject();
-    processRequire(
-        dev && policy["fixture_processes"].isObject() && fixture.size() == 3,
-        stage,
-        "Fixture process overrides require development mode and three roles",
-        "contract");
+    processRequire(dev && policy["fixture_processes"].isObject() &&
+                       fixture.size() == commands.size(),
+                   stage,
+                   "Fixture process overrides must match every configured role "
+                   "in development mode",
+                   "contract");
     for (auto it = commands.begin(); it != commands.end(); ++it) {
       const auto array = fixture[it.key()].toArray();
       QStringList args;
@@ -331,9 +344,9 @@ QJsonObject ApplicationProcesses::stop(const QString &role) const {
                  stage, "Untrusted application PID directory");
   FileLock lock(pidRoot + "/.lifecycle.lock");
   std::vector<std::unique_ptr<Owned>> processes;
-  for (const auto &name :
-       {QString("supervisor"), QString("hmi"), QString("web")})
-    if (role.isEmpty() || role == name)
+  for (const auto &name : {QString("supervisor"), QString("hmi"),
+                           QString("web"), QString("desktop")})
+    if (commands.contains(name) && (role.isEmpty() || role == name))
       if (!(nativeSupervisor && name == "supervisor"))
         processes.emplace_back(new Owned(pidRoot, name, commands[name], stage,
                                          true, receiptsRequired));

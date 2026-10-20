@@ -1,0 +1,7 @@
+{
+  "qt": "5.12.8",
+  "platform": "offscreen",
+  "scale": 1,
+  "source": "approved reference; only asset paths relocated",
+  "production_hmi_tested": false
+}

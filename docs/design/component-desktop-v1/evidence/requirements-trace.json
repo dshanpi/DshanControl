@@ -1,0 +1,90 @@
+{
+  "documents": [
+    {
+      "path": "README.md",
+      "requirement_ids": []
+    },
+    {
+      "path": "docs/01-范围与一比一约束.md",
+      "requirement_ids": [
+        "REQ-SCOPE-001",
+        "REQ-SCOPE-002",
+        "REQ-VIS-001",
+        "REQ-VIS-002",
+        "REQ-VIS-003"
+      ]
+    },
+    {
+      "path": "docs/02-视觉尺寸与控件规范.md",
+      "requirement_ids": [
+        "REQ-VIS-010",
+        "REQ-VIS-011",
+        "REQ-VIS-012",
+        "REQ-VIS-013",
+        "REQ-VIS-014",
+        "REQ-VIS-015",
+        "REQ-VIS-016"
+      ]
+    },
+    {
+      "path": "docs/03-页面状态与操作流程.md",
+      "requirement_ids": [
+        "REQ-FLOW-001",
+        "REQ-FLOW-002",
+        "REQ-FLOW-010",
+        "REQ-FLOW-020",
+        "REQ-FLOW-030",
+        "REQ-FLOW-040"
+      ]
+    },
+    {
+      "path": "docs/04-数据与业务规则.md",
+      "requirement_ids": [
+        "REQ-DATA-001",
+        "REQ-DATA-002",
+        "REQ-DATA-003",
+        "REQ-DATA-004",
+        "REQ-DATA-005",
+        "REQ-DATA-006",
+        "REQ-DATA-007"
+      ]
+    },
+    {
+      "path": "docs/05-真实接口和调用链.md",
+      "requirement_ids": [
+        "REQ-API-001",
+        "REQ-API-010",
+        "REQ-API-020",
+        "REQ-API-030",
+        "REQ-API-040",
+        "REQ-API-050"
+      ]
+    },
+    {
+      "path": "docs/06-Qt5架构与开发任务.md",
+      "requirement_ids": [
+        "REQ-ARCH-001",
+        "REQ-ARCH-002",
+        "REQ-ARCH-003",
+        "REQ-ARCH-004",
+        "REQ-ARCH-005"
+      ]
+    },
+    {
+      "path": "docs/07-验收与交付.md",
+      "requirement_ids": [
+        "REQ-QA-001",
+        "REQ-QA-002",
+        "REQ-QA-003",
+        "REQ-QA-004"
+      ]
+    },
+    {
+      "path": "docs/08-需求追溯与风险关闭.md",
+      "requirement_ids": []
+    }
+  ],
+  "acceptance_cases": 73,
+  "approved_png_count": 10,
+  "status": "requirements-delivered; production-not-implemented-by-this-package"
+}

@@ -170,6 +170,27 @@ void icon(QPainter &p, const QRectF &r, const QString &name, const QColor &color
         p.drawEllipse(QRectF(2, 2, 20, 20));
         p.drawEllipse(QRectF(8, 2, 8, 20));
         p.drawLine(2, 12, 22, 12);
+    } else if (name == "video") {
+        p.drawRoundedRect(QRectF(2, 3, 20, 18), 2, 2);
+        QPolygonF triangle; triangle << QPointF(10, 7) << QPointF(17, 12) << QPointF(10, 17);
+        p.drawPolygon(triangle);
+    } else if (name == "play") {
+        QPolygonF triangle; triangle << QPointF(7, 3) << QPointF(21, 12) << QPointF(7, 21);
+        p.setBrush(color); p.drawPolygon(triangle);
+    } else if (name == "pause") {
+        p.fillRect(QRectF(6, 4, 4, 16), color); p.fillRect(QRectF(15, 4, 4, 16), color);
+    } else if (name == "previous" || name == "next") {
+        if (name == "previous") { p.translate(24, 0); p.scale(-1, 1); }
+        p.drawLine(19, 4, 19, 20);
+        QPolygonF triangle; triangle << QPointF(4, 4) << QPointF(16, 12) << QPointF(4, 20);
+        p.setBrush(color); p.drawPolygon(triangle);
+    } else if (name == "fullscreen") {
+        for (int i = 0; i < 4; ++i) { p.drawLine(3, 8, 3, 3); p.drawLine(3, 3, 8, 3); p.translate(24, 0); p.rotate(90); }
+    } else if (name == "volume") {
+        QPolygonF speaker; speaker << QPointF(3, 9) << QPointF(7, 9) << QPointF(12, 5)
+            << QPointF(12, 19) << QPointF(7, 15) << QPointF(3, 15);
+        p.drawPolygon(speaker); p.drawArc(QRectF(10, 6, 9, 12), -65 * 16, 130 * 16);
+        p.drawArc(QRectF(10, 2, 14, 20), -65 * 16, 130 * 16);
     } else if (name == "monitor") {
         p.drawRect(QRectF(2, 3, 20, 14));
         p.drawLine(12, 17, 12, 22);
@@ -701,6 +722,17 @@ void OverviewDashboard::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && alarmAction.contains(event->pos()))
         emit alarmsRequested();
     QWidget::mouseReleaseEvent(event);
+}
+
+void LayoutPage::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    // Hidden tab pages can retain nested wrapped-label geometry from their
+    // previous width. Recalculate for the actual viewport before exposing them.
+    if (layout()) {
+        layout()->invalidate();
+        layout()->activate();
+    }
 }
 
 void SectionTabs::resizeEvent(QResizeEvent *event)

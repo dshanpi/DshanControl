@@ -1,0 +1,43 @@
+{
+  "project": "Qt Base",
+  "version": "5.11.3",
+  "origin": "matching Tina SDK Buildroot qt5base-5.11.3 source",
+  "source_changes": false,
+  "files": [
+    {
+      "path": "qpnghandler.cpp",
+      "upstream_path": "src/gui/image/qpnghandler.cpp",
+      "sha256": "de38a510ffd32dcaa59696a53da315574fe95d5c0e7689bce584afd154811951"
+    },
+    {
+      "path": "private/qpnghandler_p.h",
+      "upstream_path": "src/gui/image/qpnghandler_p.h",
+      "sha256": "e3bbbf26c514e29c79dc5e5af0d9895b3e4134067ba6e5b69c53dda018c7dd99"
+    },
+    {
+      "path": "qjpeghandler.cpp",
+      "upstream_path": "src/plugins/imageformats/jpeg/qjpeghandler.cpp",
+      "sha256": "e5653ed9d76f7c51843b56009f466e5640caafa5b8c8cb27c5c203d918031722"
+    },
+    {
+      "path": "qjpeghandler_p.h",
+      "upstream_path": "src/plugins/imageformats/jpeg/qjpeghandler_p.h",
+      "sha256": "db05426eb4c284df83ad4cc210fcd9501cb52085c84aded6853fe2c50c337e9d"
+    },
+    {
+      "path": "LICENSE.GPL2",
+      "upstream_path": "LICENSE.GPL2",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "LICENSE.GPL3",
+      "upstream_path": "LICENSE.GPL3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "path": "LICENSE.LGPL3",
+      "upstream_path": "LICENSE.LGPL3",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    }
+  ]
+}

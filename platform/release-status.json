@@ -28,8 +28,8 @@
       "full_rootfs_build": "passed-development-image",
       "signed_fixture_draft": "passed",
       "system_image": "vendor-development-image-flashed-and-verified",
-      "board_test": "replacement-board-native-health-restore-normal-reboot-passed-not-qualified",
-      "power_loss": "replacement-board-measured-complete-power-removal-not-run",
+      "board_test": "replacement-board-native-health-restore-normal-reboot-and-relay-baseline-recovery-passed-not-qualified",
+      "power_loss": "replacement-board-commanded-relay-baseline-recovery-passed-measured-update-stage-matrix-not-run",
       "automatic_updates_qualified": false,
       "historical_build_evidence": {
         "application_build_commit": "378c5c3b1bda855a37daddc0d28d2b254499d1d2",
@@ -67,7 +67,28 @@
         "draft_release_tag": "system-v0.1.0-dev.20261015.4--t113s4-sdnand-r2",
         "remote_assets_verified": 20,
         "sdk_metadata_reference_closure_verified": true,
-        "industrial_peripherals": "not-qualified"
+        "industrial_peripherals": "not-qualified",
+        "relay_power_recovery": "single-10s-commanded-relay-cycle-boot-id-change-automatic-health-network-and-data-preservation-passed",
+        "relay_power_recovery_record": "docs/validation/2026-10-16-mcp-relay-recovery.json",
+        "relay_power_recovery_boot_id": "dd3870c5-c7e0-45c9-a19f-b01d75654c17",
+        "electrical_voltage_measured": false,
+        "system_configuration_overlay": {
+          "record": "docs/validation/2026-10-16-wifi-status.json",
+          "scope": "Current imageca98 plus observed-WiFi manifest and mdev-null permission configuration; no application payload/system binary change",
+          "files": [
+            {
+              "path": "/etc/omnigate/platform.json",
+              "sha256": "91e1ace6e05ed7a7cd825af4c66b7d0a0e4ab0b1143db73d8248d076dfed4b83"
+            },
+            {
+              "path": "/etc/mdev.conf",
+              "sha256": "3b195484f88a947e25497eaf7dcfb445774e7b20dd70a10c0df107b3242bae19"
+            }
+          ],
+          "board_verification": "API-wlan0-up-192.168.1.68-and-health-data-checks-passed",
+          "extra_reboot_test": false,
+          "in_existing_system_draft": false
+        }
       },
       "historical_development_evidence": [
         {
@@ -99,7 +120,8 @@
         "site_approved_industrial_maintenance": "not-qualified",
         "measured_power_recovery_matrix": "not-run",
         "power_controller_feedback": "write-only-last-known-no-voltage-measurement",
-        "production_qualified": false
+        "production_qualified": false,
+        "application_update_stage_relay_matrix": "not-run-on-current-full-image"
       }
     }
   }

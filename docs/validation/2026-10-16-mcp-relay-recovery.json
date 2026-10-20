@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-16",
+  "status": "development-relay-baseline-recovery-passed-not-production-qualified",
+  "scope": "Single commanded relay cycle while the publication-corrected complete system was running; no application update transaction in progress",
+  "system_image_sha256": "ca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a",
+  "factory": {
+    "version": "0.1.0-dev.20261015.4",
+    "commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+    "sequence": 0,
+    "data_schema": 1
+  },
+  "runtime_sha256": "51c3e642be8df25feff1508c253ef543b7f673ce1466616ea9390eab7eb7344d",
+  "hardware": {
+    "device_id": 7,
+    "project_id": 7,
+    "serial_port": "COM45",
+    "usb_binding": "location:pciroot(0)#pci(1400)#usbroot(0)#usb(10)#usb(2)",
+    "media_cid": "1212340050ffffb0001280096a0196ef",
+    "power_channel": "6",
+    "role_mode": "singleRelay",
+    "state_read": "write-only-last-known"
+  },
+  "power_command": {
+    "action": "cycle",
+    "off_time_ms": 10000,
+    "requested_at_utc": "2026-10-16T03:07:59.637840Z",
+    "result": {
+      "action": "cycle",
+      "deviceId": 7,
+      "response": "state=on;source=commanded;adapter=lynx_power;controllerIndex=0;channels=6;activeHigh=true",
+      "state": "on"
+    },
+    "commands_sent": 1,
+    "automatic_retry": false
+  },
+  "boot": {
+    "previous_boot_id": "c6d352a1-b8b4-4535-9491-79155fb8adcf",
+    "boot_id": "dd3870c5-c7e0-45c9-a19f-b01d75654c17",
+    "changed": true,
+    "automatic_application_recovery": true,
+    "manual_post_boot_repair": false,
+    "console_newline_for_diagnostics_only": true
+  },
+  "application": {
+    "health": {
+      "application_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "databases": 2,
+      "hmi_functional_heartbeat": true,
+      "ok": true,
+      "processes": {
+        "hmi": 1434,
+        "supervisor": 1368,
+        "web": 1433
+      }
+    },
+    "roles": {
+      "hmi": {
+        "Uid": "401\t401\t401\t401",
+        "Gid": "400\t400\t400\t400",
+        "CapEff": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "supervisor": {
+        "Uid": "0\t0\t0\t0",
+        "Gid": "0\t0\t0\t0",
+        "CapEff": "0000003fffffffff",
+        "CapBnd": "0000003fffffffff",
+        "NoNewPrivs": "0"
+      },
+      "web": {
+        "Uid": "400\t400\t400\t400",
+        "Gid": "400\t400\t400\t400",
+        "CapEff": "0000000000000400",
+        "CapBnd": "0000000000000400",
+        "NoNewPrivs": "1"
+      }
+    },
+    "hmi_fb0_mapped": true,
+    "named_touch_open": "/dev/input/event4",
+    "heartbeat_advances": true,
+    "physical_touch_sensor_test": false
+  },
+  "network": {
+    "automatic_wifi_association_seen": true,
+    "automatic_network_clock_initialization_seen": true,
+    "default_verified_https_status": 200,
+    "utc_epoch": 1792120199
+  },
+  "data": {
+    "private_quiescent_backup_sha256": "ff03830f49a8959e9fd6583fd1a5628f47ecd0badc10cffd857d907d091a50ea",
+    "private_backup_bytes": 6349985,
+    "backup_files_verified": 27,
+    "post_cycle_sqlite_backup_sha256": "d27a11001003264f9d313cea2be1195d3782f22ea9244f2988ffe1c603a29025",
+    "sqlite_quick_checks": "passed",
+    "pre_cycle_telemetry_rows": 770,
+    "post_cycle_telemetry_rows": 777,
+    "all_pre_cycle_rows_preserved": true,
+    "original_658_telemetry_rows_preserved": true,
+    "static_files_unchanged": [
+      "session.key",
+      "web.json",
+      "hmi.json"
+    ],
+    "comparison": "SQLite row multisets checked for every original and pre-cycle table; all pre-cycle static data file bytes equal"
+  },
+  "pre_test_observations": {
+    "mcp_transport_interruption_preserved": true,
+    "expired_serial_handle_reopened": true,
+    "backup_preflight_wrong_config_path_refused_then_corrected": true,
+    "application_stopped_for_backup_then_explicitly_restarted_before_power_test": true,
+    "first_immediate_start_health_probe_failed_before_web_ready": true,
+    "healthy_before_relay_cycle": true,
+    "event_stream_observer_timeout_preserved": true,
+    "existing_expected_transfer_listener_identified_and_used": true,
+    "duplicate_transfer_listener_refused_address_in_use": true
+  },
+  "qualification": {
+    "electrical_voltage_measured": false,
+    "board_0v_verified": false,
+    "usb_backfeed_excluded": false,
+    "industrial_maintenance_qualified": false,
+    "power_cut_during_update_tested": false,
+    "measured_complete_power_recovery_matrix": "not-run",
+    "production_qualified": false
+  },
+  "privacy": {
+    "file_transfers": "mutual-TLS-network-only",
+    "private_backups_logs_and_certificates": "ignored-dist-only",
+    "secrets_in_public_receipt": false
+  }
+}

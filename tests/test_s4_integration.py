@@ -69,6 +69,43 @@ class S4IntegrationTests(unittest.TestCase):
             self.assertIn('native target requires --runtime', result.stderr)
             self.assertIs(True, json.loads((target / 'etc/dshancontrol/updater.json').read_text())['task_service'])
 
+    def test_component_install_enables_managed_provider_and_copies_local_codecs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp); source, hmi = self.install_source(base)
+            artifacts = []
+            for name in ['desktop', 'media', 'imageformats.so']:
+                p = base / name; p.write_bytes(b'build fixture ' + name.encode()); p.chmod(0o755)
+                artifacts.append(p)
+            target = base / 'target'
+            args = [sys.executable, str(ROOT / 'scripts/install_s4_runtime.py'),
+                    '--source', str(source), '--target', str(target), '--hmi', str(hmi),
+                    '--runtime', str(ROOT / 'dist/native-runtime/dshancontrol-runtime'),
+                    '--desktop-service', str(artifacts[0]), '--media-worker', str(artifacts[1]),
+                    '--imageformats', str(artifacts[2])]
+            subprocess.run(args, check=True)
+            config = json.loads((target / 'etc/dshancontrol/updater.json').read_text())
+            self.assertTrue(config['application_health']['desktop_provider'])
+            factory = target / 'usr/share/dshancontrol/factory'
+            self.assertEqual(artifacts[2].read_bytes(), (factory / 'bin/imageformats/libdshanimageformats.so').read_bytes())
+            previous = (factory / 'installed.json').read_bytes()
+            license_path = source / 'components/imageformats/NOTICE'
+            license_bytes = license_path.read_bytes()
+            license_path.unlink()
+            refused = subprocess.run(args, capture_output=True, text=True)
+            self.assertNotEqual(0, refused.returncode)
+            self.assertIn('license input', refused.stderr)
+            self.assertEqual(previous, (factory / 'installed.json').read_bytes())
+            self.assertEqual(artifacts[2].read_bytes(), (factory / 'bin/imageformats/libdshanimageformats.so').read_bytes())
+            license_path.write_bytes(license_bytes)
+
+            self.assertFalse((factory / 'etc').exists())
+            before = (factory / 'installed.json').read_bytes()
+            artifacts[1].unlink()
+            failure = subprocess.run(args, capture_output=True, text=True)
+            self.assertNotEqual(0, failure.returncode)
+            self.assertEqual(before, (factory / 'installed.json').read_bytes())
+            self.assertTrue((factory / 'bin/dshancontrol-media-worker').is_file())
+
     def test_native_install_rejects_links_before_replacing_existing_factory(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
@@ -296,7 +333,7 @@ class S4IntegrationTests(unittest.TestCase):
         manifest = json.loads((ROOT / 'boards/t113s4-sdnand/platform.json').read_text())
         self.assertEqual('100ask-t113s4-sdnand', manifest['board_id'])
         self.assertEqual([], manifest['capabilities'])
-        self.assertEqual(['display0'], list(manifest['channels']))
+        self.assertEqual({'display0', 'wifi0'}, set(manifest['channels']))
         self.assertEqual('not-run', manifest['validation'])
 
     def test_actual_s4_manifest_serves_hmi_without_t153_channels(self):
@@ -321,11 +358,27 @@ class S4IntegrationTests(unittest.TestCase):
 from unittest.mock import patch
 from types import SimpleNamespace
 import app
+import hmi_api
 with patch('subprocess.run', return_value=SimpleNamespace(returncode=1, stdout='')):
     client = app.app.test_client()
     response = client.get('/api/hmi/v1/snapshot')
     assert response.status_code == 200, response.data
     assert client.get('/api/health').get_json()['application_commit'] == 'fixture-commit'
+    # The board's real WiFi mapping must reach the API consumed by the Qt table.
+    # Presence and link state still come from observation, not the mapping alone.
+    for present in (True, False):
+        def observe(name):
+            assert name == 'wlan0', name
+            return dict(name=name, online=present,
+                        state='up' if present else '未发现',
+                        address='192.0.2.10/24' if present else '')
+        with patch.object(hmi_api, '_interface', side_effect=observe):
+            value = client.get('/api/hmi/v1/snapshot').get_json()
+        assert value['platform']['channels']['wifi0'] == dict(
+            kind='wifi', device='wlan0', role='wan'), value
+        assert value['networks'] == [dict(
+            name='wlan0', online=present, state='up' if present else '未发现',
+            address='192.0.2.10/24' if present else '', source='real', kind='wifi')], value
 """
             subprocess.run([sys.executable, '-c', code], env=env, check=True)
 

@@ -43,11 +43,47 @@ class NativePermissionsTests(unittest.TestCase):
         return {str(p.relative_to(self.root)):(p.lstat().st_uid,p.lstat().st_gid,p.lstat().st_mode,hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() and not p.is_symlink() else None)
             for p in self.root.rglob('*')}
 
+    def test_desktop_provider_has_private_config_and_distinct_runtime_directory(self):
+        self.settings['application_health']['desktop_provider']=True
+        self.settings['permission_fixtures']['desktop_uid']=60002;self.save()
+        private=self.root/'desktop-private.json';private.write_bytes(b'{"test":"preserve"}')
+        before=self.snapshot();value=self.command();self.assertEqual(before,self.snapshot())
+        entries={item['path']:item for item in value['entries']}
+        self.assertEqual(60002,entries[str(self.run/'desktop')]['uid'])
+        self.assertEqual('750',entries[str(self.run/'desktop')]['mode'])
+        self.assertEqual(60002,entries[str(private)]['uid'])
+        self.assertEqual('600',entries[str(private)]['mode'])
+        self.assertEqual(60001,entries[str(self.root/'desktop')]['uid'])
+        self.assertEqual(60000,entries[str(self.data)]['uid'])
+        self.settings['permission_fixtures']['desktop_uid']=60001;self.save()
+        self.command(expected=1)
+        self.settings['permission_fixtures']['desktop_uid']=60002;self.save()
+        private.unlink();private.symlink_to(self.config)
+        before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot())
+
+    def test_media_plan_is_exact_and_has_no_audio_capture_or_wide_device_access(self):
+        self.settings['application_health'].update(desktop_provider=True,media_devices=True)
+        fixtures=self.settings['permission_fixtures'];fixtures['desktop_uid']=60002
+        nodes={name:str(self.root/name) for name in ['cedar','display','ion','audio_control','audio_playback']}
+        for path in nodes.values():Path(path).write_bytes(b'OWNED DEVICE FIXTURE')
+        fixtures['media_nodes']=nodes;self.save();before=self.snapshot()
+        plan=self.command();self.assertEqual(before,self.snapshot())
+        entries={item['path']:item for item in plan['entries']}
+        for path in nodes.values():
+            self.assertEqual(60001,entries[path]['uid']);self.assertEqual('600',entries[path]['mode'])
+        fixtures['media_nodes']['capture']=str(self.root/'capture');self.save()
+        self.command(expected=1)
+        del fixtures['media_nodes']['capture']
+        fixtures['media_nodes']['cedar']='/dev/cedar_dev';self.save();self.command(expected=1)
+
     def test_plan_does_not_create_directories_locks_or_change_data(self):
         before=self.snapshot();value=self.command()
         self.assertFalse(value['applied']);self.assertEqual(before,self.snapshot())
         modes={e['path']:e for e in value['entries']}
         self.assertEqual('700',modes[str(self.data)]['mode'])
+        self.assertEqual('700',modes[str(self.root/'desktop')]['mode'])
+        self.assertEqual(60001,modes[str(self.root/'desktop')]['uid'])
+        self.assertFalse((self.root/'desktop').exists())
         self.assertEqual(60001,modes[str(self.fb)]['uid'])
         self.assertFalse(self.run.exists())
 
@@ -62,6 +98,18 @@ class NativePermissionsTests(unittest.TestCase):
         before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot());linked.unlink();linked.write_bytes(body)
         payload=self.apps/'releases/factory/payload';payload.chmod(0o666)
         before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot())
+
+    def test_desktop_links_unknown_files_and_multiply_linked_layout_refuse(self):
+        desktop=self.root/'desktop';desktop.mkdir()
+        layout=desktop/'layout-v1.json';layout.symlink_to(self.config)
+        before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot())
+        layout.unlink();layout.write_bytes(b'PRIVATE LAYOUT')
+        linked=self.root/'second-layout';os.link(layout,linked)
+        before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot())
+        linked.unlink();unknown=desktop/'unrecognized';unknown.write_bytes(b'KEEP')
+        before=self.snapshot();self.command(expected=1);self.assertEqual(before,self.snapshot())
+        unknown.unlink();value=self.command()
+        self.assertIn(str(layout),[entry['path'] for entry in value['entries']])
 
     def test_fixture_paths_cannot_escape_and_production_refuses_fixture_policy(self):
         self.settings['permission_fixtures']['framebuffer']='/dev/fb0';self.save()
@@ -85,6 +133,14 @@ class NativePermissionsTests(unittest.TestCase):
             def drop():os.setgroups([60000]);os.setresgid(60000,60000,60000);os.setresuid(uid,uid,uid)
             result=subprocess.run(['/usr/bin/python3','-c','import os,sys;fd=os.open(sys.argv[1],os.O_WRONLY if sys.argv[2]=="write" else os.O_RDONLY);os.close(fd)',str(path),'write' if write else 'read'],capture_output=True,text=True,timeout=5,preexec_fn=drop)
             return result.returncode==0
+        desktop=self.root/'desktop'
+        layout=desktop/'layout-v1.json'
+        layout.write_bytes(b'PRESERVE DESKTOP USER LAYOUT')
+        self.command(apply=True)
+        self.assertEqual(b'PRESERVE DESKTOP USER LAYOUT',layout.read_bytes())
+        self.assertTrue(access(60001,layout,write=True))
+        self.assertFalse(access(60000,layout))
+        self.assertFalse(access(60001,self.data))
         observations=[]
         for uid in [60000,60001]:
             for path,allowed in [(self.data/'session.key',uid==60000),(self.fb,uid==60001),(self.touch,uid==60001),

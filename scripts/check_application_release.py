@@ -31,6 +31,17 @@ def check(directory, key, public=False):
             extract_payload(path, Path(temp), item['unpacked_size'])
             require(digest(Path(temp) / 'bin/omnigate-hmi') == build.get('hmi_sha256'),
                     'packaged native executable differs from build record')
+            from application_payload import COMPONENT_PATHS
+            hashes = build.get('component_sha256', {})
+            require(isinstance(hashes, dict) and
+                    (not hashes or set(hashes) == set(COMPONENT_PATHS.values())),
+                    'incomplete or unknown component build record')
+            for relative in COMPONENT_PATHS.values():
+                artifact = Path(temp) / relative
+                require(artifact.exists() == (relative in hashes),
+                        'component presence differs from build record')
+                if relative in hashes:
+                    require(digest(artifact) == hashes[relative], 'component hash mismatch')
         if public:
             evidence = item['validation']
             for filename, checksum in [('log_file', 'log_sha256'), ('system_contract_file','system_contract_sha256')]:

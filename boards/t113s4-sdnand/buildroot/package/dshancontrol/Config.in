@@ -19,3 +19,14 @@ config BR2_PACKAGE_DSHANCONTROL
 	help
 	  Existing DshanControl application with a separate S4 adapter.
 	  Does not imply hardware or application updater qualification.
+
+config BR2_PACKAGE_DSHANCONTROL_COMPONENT_DESKTOP
+	bool "DshanControl component desktop services and image codecs"
+	depends on BR2_PACKAGE_DSHANCONTROL
+	depends on BR2_PACKAGE_TPLAYER
+	select BR2_PACKAGE_LIBPNG
+	select BR2_PACKAGE_JPEG
+	help
+	  Build the managed desktop provider, Cedar media worker and application-local
+	  PNG/JPEG codecs for the pinned Qt 5.11.3 S4 runtime. Requires the audited
+	  native permission/lifecycle policy; does not qualify an existing image.

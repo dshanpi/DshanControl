@@ -226,6 +226,24 @@ class WebApplicationTests(unittest.TestCase):
             self.assertEqual({row["target"] for row in rows}, {"22", "2147483655"})
             self.assertTrue(all(row["action"] == "alarm_ack" and row["result"] == "success" for row in rows))
 
+    def test_alarm_ack_consumes_bounded_json_before_mutation(self):
+        import hmi_api as hmi
+        with tempfile.TemporaryDirectory() as folder, patch.object(hmi, "DB_PATH", Path(folder) / "hmi.db"), \
+             patch.object(hmi, "_settings", return_value={"demo_mode": False}):
+            hmi._init_db()
+            client = self.app.test_client()
+            with hmi._db() as conn:
+                conn.execute("INSERT INTO alarms(id,ts,severity,source,code,message,state) VALUES(22,1,'warning','real','x','message','active')")
+            for body, status in [(b'{bad', 400), (b'[]', 400), (b'null', 400),
+                                 (b'{"id":23}', 400), (b' ' * 4097, 413)]:
+                response = client.post('/api/hmi/v1/alarms/22/ack', data=body, content_type='application/json')
+                self.assertEqual(response.status_code, status)
+                with hmi._db() as conn:
+                    self.assertEqual(conn.execute('SELECT state FROM alarms WHERE id=22').fetchone()[0], 'active')
+                    self.assertEqual(conn.execute('SELECT COUNT(*) FROM audit').fetchone()[0], 0)
+            response = client.post('/api/hmi/v1/alarms/22/ack', json={})
+            self.assertEqual(response.get_json(), {'ok': True, 'id': 22})
+
     def test_alarm_history_limits_and_demo_visibility(self):
         import hmi_api as hmi
         settings = {"demo_mode": False}
@@ -631,11 +649,12 @@ class WebApplicationTests(unittest.TestCase):
                     value = response.get_json()
                     self.assertEqual(value["alarms"]["active"], 0)
                     self.assertEqual(value["summary"]["status"], "未验证")
+                    self.assertIsNone(value["summary"]["online_devices"])
                     self.assertEqual(value["sensors"], [])
             # An empty board configuration is not evidence of healthy devices.
             with patch.dict(hmi.PLATFORM, {"channels": {}}):
                 value = client.get("/api/hmi/v1/snapshot").get_json()
-                self.assertEqual(value["summary"]["online_devices"], 0)
+                self.assertIsNone(value["summary"]["online_devices"])
                 self.assertEqual(value["summary"]["status"], "未验证")
 
     def test_hmi_summary_alarm_ack_and_demo_transitions(self):
@@ -799,6 +818,32 @@ class WebApplicationTests(unittest.TestCase):
             # A bad zone must not hide another valid zone.
             with patch.object(hmi.Path, "glob", return_value=[sensor, invalid]):
                 self.assertEqual(hmi._temperature(), 0.5)
+
+    def test_hmi_database_transactions_are_isolated_across_request_threads(self):
+        import concurrent.futures
+        import sqlite3
+        import hmi_api as hmi
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch.object(hmi, "DB_PATH", Path(temporary) / "hmi.db"):
+            try:
+                with hmi._db() as conn:
+                    conn.execute("CREATE TABLE request_counter(value INTEGER)")
+                    conn.execute("INSERT INTO request_counter VALUES(0)")
+                def update(fail):
+                    try:
+                        with hmi._db() as conn:
+                            conn.execute("UPDATE request_counter SET value=value+1")
+                            if fail:
+                                raise ValueError("request rejected")
+                    except ValueError:
+                        pass
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                    list(pool.map(update, [False, True] * 40))
+                with sqlite3.connect("file:" + str(hmi.DB_PATH) + "?mode=ro", uri=True) as reader:
+                    self.assertEqual(reader.execute("SELECT value FROM request_counter").fetchone(), (40,))
+                    self.assertEqual(reader.execute("PRAGMA quick_check").fetchall(), [("ok",)])
+            finally:
+                getattr(hmi, "_close_db", lambda: None)()
 
     def test_hmi_temperature_snapshot_and_history_use_converted_readings(self):
         import hmi_api as hmi

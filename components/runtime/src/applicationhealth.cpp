@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QLocalSocket>
 #include <QMap>
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
@@ -18,6 +19,7 @@
 #include <fcntl.h>
 #include <memory>
 #include <sqlite3.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -67,6 +69,62 @@ struct Scope {
     data = contract["data_root"].toString();
   }
 };
+void desktopHealth(const Scope &scope, qint64 expectedPid) {
+  const auto override = scope.policy.value("fixture_desktop_socket");
+  healthRequire(
+      override.isUndefined() || (scope.development && override.isString()),
+      "health-contract", "Desktop socket override requires development mode");
+  const auto path = override.toString("/run/dshancontrol/desktop/desktop.sock");
+  healthRequire(QDir::isAbsolutePath(path) && QDir::cleanPath(path) == path &&
+                    !QFileInfo(path).isSymLink(),
+                "health-contract", "Invalid desktop socket");
+  QLocalSocket socket;
+  socket.setReadBufferSize(524289);
+  QElapsedTimer elapsed;
+  elapsed.start();
+  socket.connectToServer(path);
+  healthRequire(socket.waitForConnected(500), "health-desktop",
+                "Desktop IPC unavailable");
+  struct ucred peer;
+  socklen_t size = sizeof(peer);
+  healthRequire(::getsockopt(int(socket.socketDescriptor()), SOL_SOCKET,
+                             SO_PEERCRED, &peer, &size) == 0 &&
+                    size == sizeof(peer) && peer.pid == expectedPid,
+                "health-desktop-identity",
+                "Desktop IPC differs from managed process");
+  const QByteArray request =
+      "{\"protocol\":1,\"method\":\"desktop.snapshot\",\"params\":{}}\n";
+  healthRequire(socket.write(request) == request.size(), "health-desktop",
+                "Desktop health write failed");
+  while (socket.bytesToWrite() && elapsed.elapsed() < 1500)
+    if (!socket.waitForBytesWritten(
+            int(qMax<qint64>(1, 1500 - elapsed.elapsed()))))
+      break;
+  healthRequire(!socket.bytesToWrite(), "health-desktop",
+                "Desktop health write timed out");
+  QByteArray bytes;
+  while (!bytes.contains('\n') && elapsed.elapsed() < 1500) {
+    bytes += socket.readAll();
+    healthRequire(bytes.size() <= 524288, "health-desktop",
+                  "Desktop response exceeds bound");
+    if (bytes.contains('\n'))
+      break;
+    if (!socket.waitForReadyRead(
+            int(qMax<qint64>(1, 1500 - elapsed.elapsed()))))
+      break;
+  }
+  bytes += socket.readAll();
+  healthRequire(
+      bytes.size() <= 524288 && bytes.endsWith('\n') && bytes.count('\n') == 1,
+      "health-desktop", "Desktop health response missing or malformed");
+  const auto value = strictJson(bytes.trimmed());
+  const auto result = value.toObject();
+  healthRequire(value.isObject() && result["protocol"] == 1 &&
+                    result["ok"] == true &&
+                    result["result"].toObject()["version"] == 1,
+                "health-desktop",
+                "Desktop provider rejected health or protocol mismatched");
+}
 QJsonObject webHealth(const QUrl &url) {
   healthRequire(
       url.isValid() && url.scheme() == "http" && url.host() == "127.0.0.1" &&
@@ -229,6 +287,8 @@ QJsonObject applicationHealth(const QJsonObject &config) {
   Scope scope(config);
   auto pids = ApplicationProcesses(config, "health")
                   .health(scope.installed["commit"].toString());
+  if (scope.policy["desktop_provider"].toBool(false))
+    desktopHealth(scope, qint64(pids["desktop"].toDouble()));
   auto web = webHealth(
       QUrl(scope.policy["http_url"].toString("http://127.0.0.1/api/health")));
   auto commit = scope.installed["commit"].toString();
@@ -261,5 +321,7 @@ QJsonObject applicationHealth(const QJsonObject &config) {
           {"application_commit", commit},
           {"processes", pids},
           {"databases", 2},
+          {"desktop_functional_rpc",
+           scope.policy["desktop_provider"].toBool(false)},
           {"hmi_functional_heartbeat", required.toBool(false)}};
 }

@@ -1,0 +1,87 @@
+{
+  "pass": true,
+  "count": 10,
+  "comparison": "exact RGBA; no masks or thresholds",
+  "images": [
+    {
+      "file": "UI新桌面_00设计总览.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 4331808,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_01组件桌面.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_02顶部下拉.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_03全部应用.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_04编辑组件.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_05添加组件.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_06组件展开.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_07宽屏1280x720.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 921600,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_08应用搜索.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    },
+    {
+      "file": "UI新桌面_09图片组件.png",
+      "pass": true,
+      "changed_pixels": 0,
+      "total_pixels": 614400,
+      "max_channel_delta": 0,
+      "bbox": null
+    }
+  ]
+}

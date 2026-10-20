@@ -1,0 +1,1227 @@
+{
+  "repository": "/home/ubuntu/DshanControl",
+  "branch": "feat/t113s4-sdnand-application-updates",
+  "head_at_read": "0ee33ca863562e0f4e3c2c955964411339510770",
+  "dirty_tree": true,
+  "read_date": "2026-10-16",
+  "files": [
+    {
+      "path": "boards/t113s4-sdnand/platform.json",
+      "sha256": "91e1ace6e05ed7a7cd825af4c66b7d0a0e4ab0b1143db73d8248d076dfed4b83",
+      "bytes": 667,
+      "symbols": []
+    },
+    {
+      "path": "components/core/src/omnigate_core/api.py",
+      "sha256": "e9cf2fe06a232fa28892b8e65a2659467d265dfcdfe3b5fcf33813255e2f43da",
+      "bytes": 6403,
+      "symbols": [
+        {
+          "line": 83,
+          "declaration": "def create_blueprint(manifest_path=None, database_path=None):"
+        },
+        {
+          "line": 89,
+          "declaration": "@bp.get(\"/api/v1/platform\")"
+        },
+        {
+          "line": 95,
+          "declaration": "@bp.get(\"/api/v1/system\")"
+        },
+        {
+          "line": 99,
+          "declaration": "@bp.get(\"/api/v1/channels\")"
+        },
+        {
+          "line": 104,
+          "declaration": "@bp.get(\"/api/v1/devices\")"
+        },
+        {
+          "line": 108,
+          "declaration": "@bp.get(\"/api/v1/devices/<device_id>\")"
+        },
+        {
+          "line": 133,
+          "declaration": "@bp.get(\"/api/v1/points\")"
+        },
+        {
+          "line": 137,
+          "declaration": "@bp.get(\"/api/v1/points/<point_id>\")"
+        },
+        {
+          "line": 162,
+          "declaration": "@bp.get(\"/api/v1/audit\")"
+        }
+      ]
+    },
+    {
+      "path": "components/core/src/omnigate_core/platform.py",
+      "sha256": "cd8dbaf95d923ad79d1c6fe87be08e58754154c70aa69dfdffa5d145a382dec5",
+      "bytes": 3366,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/desktop.pro",
+      "sha256": "103e2aced95f2e880a34e4a90ef073272c7c4a6697fde516c0dcf6c9adb1ab50",
+      "bytes": 322,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/main.cpp",
+      "sha256": "7a876e0e0299b6a02086e407b4e3f5e1ce13ae349ef9ed35ff0c8ed4b0deda70",
+      "bytes": 1589,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/model.cpp",
+      "sha256": "4e3e65440ba94e264ea32098c75e0c408e1755dd52d44b5e4fcea3f17c01d29c",
+      "bytes": 12808,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/model.h",
+      "sha256": "fdc5e7bdc9391e15fac9b5fe53cde60cd678d27c2f1e4be6115ccac1bf0f6742",
+      "bytes": 1409,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/mqtt.cpp",
+      "sha256": "52c1ad0600b40c753295c8553249da97f87e05f7e05192705407d6479d6d0dd0",
+      "bytes": 10019,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/mqtt.h",
+      "sha256": "183dd9db506aacd6e7c613432ceb4a8199f3e655f84850b74fc947500d252b9a",
+      "bytes": 1314,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/providers.cpp",
+      "sha256": "1ef544c4ab2591e89be81debe8938b8866806f0e4ffb4c000d4bf02e14ee681c",
+      "bytes": 32004,
+      "symbols": [
+        {
+          "line": 66,
+          "declaration": "DesktopProviders::DesktopProviders(const QJsonObject &configuration, QObject *parent)"
+        },
+        {
+          "line": 235,
+          "declaration": "void DesktopProviders::request(const QString &job, const QUrl &url, const QByteArray &method,"
+        },
+        {
+          "line": 339,
+          "declaration": "void DesktopProviders::refreshPairing()"
+        },
+        {
+          "line": 358,
+          "declaration": "void DesktopProviders::refreshHome()"
+        },
+        {
+          "line": 396,
+          "declaration": "void DesktopProviders::fetchFunctions(const QString &id)"
+        },
+        {
+          "line": 422,
+          "declaration": "void DesktopProviders::command(const QJsonObject &params)"
+        },
+        {
+          "line": 484,
+          "declaration": "void DesktopProviders::report()"
+        },
+        {
+          "line": 496,
+          "declaration": "void DesktopProviders::pollLocal()"
+        },
+        {
+          "line": 538,
+          "declaration": "void DesktopProviders::voiceUnavailable()"
+        },
+        {
+          "line": 546,
+          "declaration": "void DesktopProviders::handleVoice()"
+        },
+        {
+          "line": 592,
+          "declaration": "void DesktopProviders::voiceCommand(const QString &command)"
+        },
+        {
+          "line": 606,
+          "declaration": "void DesktopProviders::update()"
+        },
+        {
+          "line": 669,
+          "declaration": "QJsonObject DesktopProviders::snapshot(bool privileged) const"
+        },
+        {
+          "line": 700,
+          "declaration": "QJsonObject DesktopProviders::dispatch(const QString &method, const QJsonObject &params)"
+        },
+        {
+          "line": 702,
+          "declaration": "if (method == \"cloud.refresh\")"
+        },
+        {
+          "line": 707,
+          "declaration": "else if (method == \"reporting.send\")"
+        },
+        {
+          "line": 712,
+          "declaration": "else if (method == \"reporting.configure\")"
+        },
+        {
+          "line": 723,
+          "declaration": "else if (method == \"home.refresh\")"
+        },
+        {
+          "line": 728,
+          "declaration": "else if (method == \"home.functions\")"
+        },
+        {
+          "line": 733,
+          "declaration": "else if (method == \"home.command\")"
+        },
+        {
+          "line": 735,
+          "declaration": "else if (method == \"voice.command\")"
+        },
+        {
+          "line": 740,
+          "declaration": "else if (method == \"voice.clear\")"
+        }
+      ]
+    },
+    {
+      "path": "components/desktop/src/providers.h",
+      "sha256": "1a818e2661c7eb101296510fac623967a7c3e0e1a49dba2984199d163f6cb732",
+      "bytes": 1836,
+      "symbols": []
+    },
+    {
+      "path": "components/desktop/src/server.cpp",
+      "sha256": "2abd0709262339b9d5772b532d1993ea6ff37cc09a3ae83bad93f4fb514a0b5b",
+      "bytes": 6696,
+      "symbols": [
+        {
+          "line": 107,
+          "declaration": "require(privileged || method == \"desktop.snapshot\","
+        },
+        {
+          "line": 110,
+          "declaration": "if (method == \"desktop.snapshot\")"
+        }
+      ]
+    },
+    {
+      "path": "components/desktop/src/server.h",
+      "sha256": "6e3f27ad4eb7841dc9921a250ca05d12274ca62389e176c8e8473bd85d45417f",
+      "bytes": 371,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/applicationheartbeat.cpp",
+      "sha256": "2ac72e714eaae587162dc8a454a07e8691f672a4762cefc00fbc43c1c63be6e5",
+      "bytes": 3412,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/applicationheartbeat.h",
+      "sha256": "b2dd1ec82bc215490939650639b1327942653b790e3f923060499c9628e6437b",
+      "bytes": 535,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/cloudpanel.cpp",
+      "sha256": "3af02c413c2b87d5322bd0c752f984b666ba6c270671eed3ba6295e340c3246f",
+      "bytes": 11173,
+      "symbols": [
+        {
+          "line": 41,
+          "declaration": "CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent), client(service)"
+        },
+        {
+          "line": 152,
+          "declaration": "void CloudPanel::showRemaining()"
+        },
+        {
+          "line": 167,
+          "declaration": "void CloudPanel::apply(const QJsonObject &state)"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/cloudpanel.h",
+      "sha256": "4ec451b395d4f0280b47e2a136b14202cb1f24beb349d289f5d3a0c9f96f9bd6",
+      "bytes": 717,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/desktopclient.cpp",
+      "sha256": "bcc85519e02643a168fd34dc478ddd3f895ea598d59e8cbafee05e33e1540ae3",
+      "bytes": 5894,
+      "symbols": [
+        {
+          "line": 8,
+          "declaration": "DesktopClient::DesktopClient(QObject *parent) : QObject(parent)"
+        },
+        {
+          "line": 22,
+          "declaration": "void DesktopClient::request(const QString &method, const QJsonObject &params)"
+        },
+        {
+          "line": 24,
+          "declaration": "if (method == \"desktop.snapshot\")"
+        },
+        {
+          "line": 40,
+          "declaration": "void DesktopClient::next()"
+        },
+        {
+          "line": 57,
+          "declaration": "if (request.method == \"desktop.snapshot\")"
+        },
+        {
+          "line": 65,
+          "declaration": "else if (request.method == \"desktop.snapshot\")"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/desktopclient.h",
+      "sha256": "1c778c976508a52cd38627d3173205e4c3dbcf2de70e7e76be1cebe7fc591b8c",
+      "bytes": 724,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/familypanel.cpp",
+      "sha256": "320d91fae16120931d915ff178e853af397d5294be12ab93d33e251fbe7d7fac",
+      "bytes": 19566,
+      "symbols": [
+        {
+          "line": 62,
+          "declaration": "FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(parent), client(service)"
+        },
+        {
+          "line": 188,
+          "declaration": "void FamilyPanel::selectDevice()"
+        },
+        {
+          "line": 199,
+          "declaration": "bool FamilyPanel::canControl(const QString &id, const QString &code) const"
+        },
+        {
+          "line": 211,
+          "declaration": "void FamilyPanel::control(const QString &id, const QString &code, const QJsonValue &value)"
+        },
+        {
+          "line": 230,
+          "declaration": "void FamilyPanel::buildControls()"
+        },
+        {
+          "line": 318,
+          "declaration": "void FamilyPanel::apply(const QJsonObject &state)"
+        },
+        {
+          "line": 431,
+          "declaration": "void FamilyPanel::hideEvent(QHideEvent *event)"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/familypanel.h",
+      "sha256": "ffcd4187c2853dc0063c50363e636f1b894507f1a4bdef6976360cc13348e344",
+      "bytes": 1182,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/main.cpp",
+      "sha256": "f83f006f584fef9ea1f05a21f6d74043f55ff021edea838e71bb084a0d509fe7",
+      "bytes": 876,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/mainwindow.cpp",
+      "sha256": "6257b088fdd197c63d331d7ec9bcdb68240454450f83576ce25002ebd60a421d",
+      "bytes": 97195,
+      "symbols": [
+        {
+          "line": 142,
+          "declaration": "MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)"
+        },
+        {
+          "line": 280,
+          "declaration": "void MainWindow::applyTheme()"
+        },
+        {
+          "line": 352,
+          "declaration": "QWidget *MainWindow::scrollPage(QWidget *page)"
+        },
+        {
+          "line": 364,
+          "declaration": "void MainWindow::resizeEvent(QResizeEvent *event)"
+        },
+        {
+          "line": 366,
+          "declaration": "QMainWindow::resizeEvent(event);"
+        },
+        {
+          "line": 385,
+          "declaration": "QTableWidget *MainWindow::makeTable(const QStringList &headers)"
+        },
+        {
+          "line": 403,
+          "declaration": "QPushButton *MainWindow::actionButton(const QString &text, const QString &kind)"
+        },
+        {
+          "line": 410,
+          "declaration": "QWidget *MainWindow::buildOverview()"
+        },
+        {
+          "line": 417,
+          "declaration": "QWidget *MainWindow::buildFieldbus()"
+        },
+        {
+          "line": 755,
+          "declaration": "QWidget *MainWindow::buildNetwork()"
+        },
+        {
+          "line": 894,
+          "declaration": "void MainWindow::updateNetworkDetails()"
+        },
+        {
+          "line": 911,
+          "declaration": "void MainWindow::updateNetworkTables(const QJsonObject &root)"
+        },
+        {
+          "line": 970,
+          "declaration": "QWidget *MainWindow::buildDevices()"
+        },
+        {
+          "line": 1026,
+          "declaration": "void MainWindow::updatePageMetrics(const QJsonObject &root)"
+        },
+        {
+          "line": 1103,
+          "declaration": "QWidget *MainWindow::buildAlarms()"
+        },
+        {
+          "line": 1213,
+          "declaration": "QByteArray MainWindow::visibleAlarmCsv() const"
+        },
+        {
+          "line": 1236,
+          "declaration": "void MainWindow::updateAlarmSelection()"
+        },
+        {
+          "line": 1253,
+          "declaration": "void MainWindow::applyAlarmFilter()"
+        },
+        {
+          "line": 1293,
+          "declaration": "QWidget *MainWindow::buildSettings()"
+        },
+        {
+          "line": 1528,
+          "declaration": "void MainWindow::showPage(int index)"
+        },
+        {
+          "line": 1545,
+          "declaration": "void MainWindow::requestSnapshot()"
+        },
+        {
+          "line": 1559,
+          "declaration": "void MainWindow::sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,"
+        },
+        {
+          "line": 1573,
+          "declaration": "void MainWindow::postAction(const QString &action, const QJsonObject &params, const QString &description)"
+        },
+        {
+          "line": 1630,
+          "declaration": "void MainWindow::handleReply(QNetworkReply *reply)"
+        },
+        {
+          "line": 1803,
+          "declaration": "void MainWindow::updateSettingsControls()"
+        },
+        {
+          "line": 1816,
+          "declaration": "void MainWindow::markOffline()"
+        },
+        {
+          "line": 1844,
+          "declaration": "QString MainWindow::sourceText(const QJsonObject &item, const QString &text) const"
+        },
+        {
+          "line": 1854,
+          "declaration": "QString MainWindow::uptimeText(qint64 seconds)"
+        },
+        {
+          "line": 1864,
+          "declaration": "void MainWindow::updateSnapshot(const QJsonObject &root)"
+        },
+        {
+          "line": 2014,
+          "declaration": "void MainWindow::updateAuditFilter()"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/mainwindow.h",
+      "sha256": "ab72bb087298b2085cc01ba230eb71bb61b2c76e8a581c64edd8fbaa17f3e883",
+      "bytes": 4696,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/mediapanel.cpp",
+      "sha256": "df68643876a4f6b508c81540da41d187d57cb49f9c921c527dc12b216c2140d2",
+      "bytes": 19717,
+      "symbols": [
+        {
+          "line": 92,
+          "declaration": "MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)"
+        },
+        {
+          "line": 293,
+          "declaration": "void MediaPanel::scan()"
+        },
+        {
+          "line": 321,
+          "declaration": "void MediaPanel::choose()"
+        },
+        {
+          "line": 336,
+          "declaration": "void MediaPanel::open(const QString &path)"
+        },
+        {
+          "line": 351,
+          "declaration": "void MediaPanel::showSection(int index)"
+        },
+        {
+          "line": 369,
+          "declaration": "void MediaPanel::apply(const QJsonObject &status)"
+        },
+        {
+          "line": 374,
+          "declaration": "const bool active = available && (name == \"playing\" || name == \"paused\" || name == \"starting\" ||"
+        },
+        {
+          "line": 375,
+          "declaration": "name == \"completed\");"
+        },
+        {
+          "line": 377,
+          "declaration": "play->setIcon(Visuals::icon(name == \"playing\" ? \"pause\" : \"play\", Qt::white));"
+        },
+        {
+          "line": 378,
+          "declaration": "play->setAccessibleName(name == \"playing\" ? \"暂停\" : \"播放\");"
+        },
+        {
+          "line": 418,
+          "declaration": "if (name == \"not_installed\")"
+        },
+        {
+          "line": 428,
+          "declaration": "else if (name == \"error\")"
+        },
+        {
+          "line": 433,
+          "declaration": "else if (name == \"preparing\" || name == \"starting\" || name == \"starting_service\")"
+        },
+        {
+          "line": 444,
+          "declaration": "note->setText(name == \"error\""
+        },
+        {
+          "line": 448,
+          "declaration": ": name == \"playing\""
+        },
+        {
+          "line": 450,
+          "declaration": ": name == \"paused\" ? \"播放已暂停。\""
+        },
+        {
+          "line": 455,
+          "declaration": "void MediaPanel::geometry()"
+        },
+        {
+          "line": 476,
+          "declaration": "void MediaPanel::hideEvent(QHideEvent *event)"
+        },
+        {
+          "line": 489,
+          "declaration": "void MediaPanel::showEvent(QShowEvent *event)"
+        },
+        {
+          "line": 495,
+          "declaration": "void MediaPanel::resizeEvent(QResizeEvent *event)"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/mediapanel.h",
+      "sha256": "e01c0a5da984c8580655580d92c57483f9ff8818fcdb71db4d86da69f9355e42",
+      "bytes": 1356,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/mediasession.cpp",
+      "sha256": "f4430b2dac2dd7f38033048539922d3c5987832148a77e9cda448eeb3e6c6595",
+      "bytes": 4929,
+      "symbols": [
+        {
+          "line": 8,
+          "declaration": "MediaSession::MediaSession(QObject *parent) : QObject(parent)"
+        },
+        {
+          "line": 51,
+          "declaration": "void MediaSession::start(bool explicitRequest)"
+        },
+        {
+          "line": 70,
+          "declaration": "void MediaSession::command(const QString &name, const QJsonObject &params)"
+        },
+        {
+          "line": 87,
+          "declaration": "if (name == \"rect\")"
+        },
+        {
+          "line": 94,
+          "declaration": "void MediaSession::flush()"
+        },
+        {
+          "line": 101,
+          "declaration": "void MediaSession::read()"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/mediasession.h",
+      "sha256": "603f58ac307ab0c07b56183d5012f51e685b170e3709c2989724344c92152c8c",
+      "bytes": 737,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/omnigate-hmi.pro",
+      "sha256": "c1f6e96eaf3370b9b5393d2d7ae2a3cc479d9aca472108439ea7544f3c313716",
+      "bytes": 537,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/updatepanel.cpp",
+      "sha256": "e69cbcee9571d7875980f8eee96e73c9601c033a48d63a8d228de2d7654dbac6",
+      "bytes": 23601,
+      "symbols": [
+        {
+          "line": 42,
+          "declaration": "UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)"
+        },
+        {
+          "line": 230,
+          "declaration": "void UpdatePanel::reloadIdentity(bool restoreTask)"
+        },
+        {
+          "line": 264,
+          "declaration": "void UpdatePanel::checkUpdates()"
+        },
+        {
+          "line": 313,
+          "declaration": "void UpdatePanel::requestNative(const QString &method, const QJsonObject &params)"
+        },
+        {
+          "line": 322,
+          "declaration": "void UpdatePanel::resetPreflight(const QString &text)"
+        },
+        {
+          "line": 330,
+          "declaration": "void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)"
+        },
+        {
+          "line": 473,
+          "declaration": "void UpdatePanel::downloadUpdate()"
+        },
+        {
+          "line": 483,
+          "declaration": "void UpdatePanel::installUpdate()"
+        },
+        {
+          "line": 502,
+          "declaration": "void UpdatePanel::resizeEvent(QResizeEvent *event)"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/updatepanel.h",
+      "sha256": "a91999041be9e5c21bc6d86a9083017886dd95c329920efd05b556eb31f4aeca",
+      "bytes": 1430,
+      "symbols": []
+    },
+    {
+      "path": "components/hmi/src/visuals.cpp",
+      "sha256": "2e2d255c214d18fb78f93561416d2813b1d0907f892faa83e55625e6bc043b8d",
+      "bytes": 33376,
+      "symbols": [
+        {
+          "line": 100,
+          "declaration": "if ((name == \"温度\" && unit != \"°C\") ||"
+        },
+        {
+          "line": 101,
+          "declaration": "(name == \"压力\" && unit != \"MPa\" && unit != \"kPa\"))"
+        },
+        {
+          "line": 103,
+          "declaration": "*reading = sensor[\"value\"].toDouble() / (name == \"压力\" && unit == \"kPa\" ? 1000 : 1);"
+        },
+        {
+          "line": 154,
+          "declaration": "if (name == \"bars\") {"
+        },
+        {
+          "line": 161,
+          "declaration": "} else if (name == \"topology\") {"
+        },
+        {
+          "line": 169,
+          "declaration": "} else if (name == \"globe\") {"
+        },
+        {
+          "line": 173,
+          "declaration": "} else if (name == \"video\") {"
+        },
+        {
+          "line": 177,
+          "declaration": "} else if (name == \"play\") {"
+        },
+        {
+          "line": 180,
+          "declaration": "} else if (name == \"pause\") {"
+        },
+        {
+          "line": 182,
+          "declaration": "} else if (name == \"previous\" || name == \"next\") {"
+        },
+        {
+          "line": 183,
+          "declaration": "if (name == \"previous\") { p.translate(24, 0); p.scale(-1, 1); }"
+        },
+        {
+          "line": 187,
+          "declaration": "} else if (name == \"fullscreen\") {"
+        },
+        {
+          "line": 189,
+          "declaration": "} else if (name == \"volume\") {"
+        },
+        {
+          "line": 194,
+          "declaration": "} else if (name == \"monitor\") {"
+        },
+        {
+          "line": 200,
+          "declaration": "} else if (name == \"sun\") {"
+        },
+        {
+          "line": 207,
+          "declaration": "} else if (name == \"type\") {"
+        },
+        {
+          "line": 209,
+          "declaration": "} else if (name == \"bell\") {"
+        },
+        {
+          "line": 218,
+          "declaration": "} else if (name == \"settings\") {"
+        },
+        {
+          "line": 227,
+          "declaration": "} else if (name == \"clock\") {"
+        },
+        {
+          "line": 231,
+          "declaration": "} else if (name == \"server\") {"
+        },
+        {
+          "line": 236,
+          "declaration": "} else if (name == \"cloud\") {"
+        },
+        {
+          "line": 243,
+          "declaration": "} else if (name == \"thermometer\") {"
+        },
+        {
+          "line": 256,
+          "declaration": "} else if (name == \"chip\") {"
+        },
+        {
+          "line": 264,
+          "declaration": "} else if (name == \"motor\") {"
+        },
+        {
+          "line": 274,
+          "declaration": "} else if (name == \"warning\") {"
+        },
+        {
+          "line": 283,
+          "declaration": "} else if (name == \"document\") {"
+        },
+        {
+          "line": 289,
+          "declaration": "} else if (name == \"gauge\") {"
+        },
+        {
+          "line": 295,
+          "declaration": "} else if (name == \"check\") {"
+        },
+        {
+          "line": 298,
+          "declaration": "} else if (name == \"chevron\") {"
+        },
+        {
+          "line": 301,
+          "declaration": "} else if (name == \"sun\") {"
+        },
+        {
+          "line": 557,
+          "declaration": "if ((i == 0 && name == \"RS485\") || (i == 1 && name.startsWith(\"can\", Qt::CaseInsensitive)) ||"
+        },
+        {
+          "line": 558,
+          "declaration": "(i == 2 && name == \"EtherCAT\")) {"
+        }
+      ]
+    },
+    {
+      "path": "components/hmi/src/visuals.h",
+      "sha256": "d9071594236a5c21265c778e5c5d4770b1c15b49a94f4c50ed047d59faf39ac6",
+      "bytes": 5560,
+      "symbols": []
+    },
+    {
+      "path": "components/media/media.pro",
+      "sha256": "4c5cdcc158cf5a25f193e02672cb92612e6a22ba49de3a8b628f2779940628c2",
+      "bytes": 368,
+      "symbols": []
+    },
+    {
+      "path": "components/media/src/main.cpp",
+      "sha256": "5792c4cbd1329e54a584ec9378d7806684fb576d332a6b2f105a192332fbf8b7",
+      "bytes": 17018,
+      "symbols": [
+        {
+          "line": 262,
+          "declaration": "if (name == \"snapshot\")"
+        },
+        {
+          "line": 268,
+          "declaration": "if (name == \"rect\")"
+        },
+        {
+          "line": 273,
+          "declaration": "if (name == \"close\")"
+        },
+        {
+          "line": 288,
+          "declaration": "if (name == \"open\")"
+        },
+        {
+          "line": 350,
+          "declaration": "if (name == \"pause\")"
+        },
+        {
+          "line": 356,
+          "declaration": "else if (name == \"play\")"
+        },
+        {
+          "line": 362,
+          "declaration": "else if (name == \"seek\")"
+        },
+        {
+          "line": 374,
+          "declaration": "else if (name == \"volume\")"
+        },
+        {
+          "line": 383,
+          "declaration": "else if (name == \"mute\")"
+        },
+        {
+          "line": 391,
+          "declaration": "else if (name == \"visible\")"
+        },
+        {
+          "line": 397,
+          "declaration": "else if (name == \"loop\")"
+        }
+      ]
+    },
+    {
+      "path": "components/runtime/src/applicationauthorization.cpp",
+      "sha256": "44251878bc17b9f7182e6fd8b387f76cf238aa13d5ca77eacf4844fd9618f999",
+      "bytes": 2289,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationauthorization.h",
+      "sha256": "58aa7d568d87489c487c1f26649df62b2cc82f7987ff0671243a1597100d4e74",
+      "bytes": 297,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationcredentials.cpp",
+      "sha256": "705fa9cc9365e2a6ee75a0705aa7aa50b1dad401c4dd9a7887ee4279d27b8197",
+      "bytes": 5341,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationcredentials.h",
+      "sha256": "dbc0fae0d65b47e96a0d088cdc7927ae909b0470be2f2e4318443f8c1d611eed",
+      "bytes": 679,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationhealth.cpp",
+      "sha256": "6d1507269e922400a535cecf134208972306033058e8ac4e8e3507e4ba72ffaa",
+      "bytes": 11210,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationhealth.h",
+      "sha256": "7a8e00d705145a23735f8633ab13797ed029a9e3b6cc92d3e70337f889221be9",
+      "bytes": 152,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationlaunch.cpp",
+      "sha256": "18db46c2056b69a8857d0e811097c974bd01f84320910ce6679c509442681461",
+      "bytes": 19905,
+      "symbols": [
+        {
+          "line": 96,
+          "declaration": "value.uid = name == \"web\" ? 400 : 401;"
+        },
+        {
+          "line": 100,
+          "declaration": "value.bindPrivilegedPort = name == \"web\";"
+        },
+        {
+          "line": 101,
+          "declaration": "const auto account = ::getpwnam(name == \"web\" ? \"dshan-web\" : \"dshan-hmi\");"
+        },
+        {
+          "line": 107,
+          "declaration": "value.uid = ::geteuid() == 0 ? (name == \"hmi\" ? 60001 : 60000) : ::getuid();"
+        },
+        {
+          "line": 137,
+          "declaration": "launchRequire(!value.bindPrivilegedPort || name == \"web\","
+        }
+      ]
+    },
+    {
+      "path": "components/runtime/src/applicationlaunch.h",
+      "sha256": "a27b0d7b425a249b6f57958f7374413b4eeb20a9bf57d9120fce95d22e84e696",
+      "bytes": 98,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationpermissions.cpp",
+      "sha256": "6cd12f02febce08da3e87b64c72249b086ef4500817b8ea76862e4dfe5185f1b",
+      "bytes": 17298,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationpermissions.h",
+      "sha256": "8f2075106e520b0a1936f977d6eec6a0ec5e274f32eee7b38d645d400e92967d",
+      "bytes": 151,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationprocess.cpp",
+      "sha256": "c6a7b73216caa19f70e3d432373bf28254d7b4b69788d394d0a7ed7fd3f4b6a0",
+      "bytes": 15663,
+      "symbols": [
+        {
+          "line": 337,
+          "declaration": "if (!(nativeSupervisor && name == \"supervisor\"))"
+        }
+      ]
+    },
+    {
+      "path": "components/runtime/src/applicationprocess.h",
+      "sha256": "39a7510d2c6b116d9e5c6ae74666a7cccfea04e27bb05d35025f60e1b22d5d12",
+      "bytes": 639,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationrecord.cpp",
+      "sha256": "95ce25f985552e6ef54d1bf043b6d07d280d8e433eb5db62061b992a16d98c63",
+      "bytes": 14137,
+      "symbols": [
+        {
+          "line": 317,
+          "declaration": "if (name == \"CapBnd\" && !record[\"bounding_enforced\"].toBool())"
+        }
+      ]
+    },
+    {
+      "path": "components/runtime/src/applicationrecord.h",
+      "sha256": "04d05cc67f20f9b770373a04b4e0b5c123954313b3ee066de49d16f41a2ee9b9",
+      "bytes": 1618,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationsupervision.cpp",
+      "sha256": "4dbd5aa4e083fcb05628ff68a4e126ce8c42264988d7da14c8ba0db86963cef4",
+      "bytes": 9561,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/applicationsupervision.h",
+      "sha256": "bf7d69728fc9611a190a2829da203cdd2ef9fb72061b3e1975e4c6bd51c7463d",
+      "bytes": 1036,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/developmentrelease.cpp",
+      "sha256": "c9007e73f91ff98b4ae971e6fbcdb4c392f75c9b509829aa769617a3fcb368e3",
+      "bytes": 9793,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/developmentrelease.h",
+      "sha256": "78f4f0dfe5949ca27ccbab09b57ef1622b4b26c590f438aa65fdd0ad2b9e9ff3",
+      "bytes": 551,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/display.cpp",
+      "sha256": "0e9522a5f2413c6a2143355a598eccced8d29a124f5c4f9bd81d9e5b59ce1adc",
+      "bytes": 7070,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/display.h",
+      "sha256": "1e34e88f9971fbaccb6278b276782be1ee2435477c5b9913f455b3d7cb112165",
+      "bytes": 307,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/main.cpp",
+      "sha256": "fd8e4f6a804b892674ad4964436c60b02429395e7e69021d92fc001b3f49b9fe",
+      "bytes": 6080,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/protocol.cpp",
+      "sha256": "e0427b91ef0e643150e4dc00ed0af9c77c08dfe2dbb935e5d7dde9de60f2ef73",
+      "bytes": 8142,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/protocol.h",
+      "sha256": "82d5cee1c2eb8c7a42c44285bc574bc664569eb0b89a5abda0f5c0916e7e5cb2",
+      "bytes": 520,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/service.cpp",
+      "sha256": "682385ae1504ae47158dc468cf2e1d834f102eca39c2b3e28e667f2502a14e08",
+      "bytes": 17991,
+      "symbols": [
+        {
+          "line": 64,
+          "declaration": "if (name == \"latest.json\")"
+        },
+        {
+          "line": 315,
+          "declaration": "if (method == \"service.health\") {"
+        },
+        {
+          "line": 319,
+          "declaration": "if (method == \"service.ready\") {"
+        },
+        {
+          "line": 330,
+          "declaration": "if (method == \"service.shutdown\") {"
+        },
+        {
+          "line": 346,
+          "declaration": "if (method == \"display.brightness.get\" ||"
+        },
+        {
+          "line": 347,
+          "declaration": "method == \"display.brightness.set\") {"
+        },
+        {
+          "line": 350,
+          "declaration": "method == \"display.brightness.set\");"
+        },
+        {
+          "line": 352,
+          "declaration": "if (method == \"update.start\")"
+        },
+        {
+          "line": 354,
+          "declaration": "if (method == \"update.status\") {"
+        },
+        {
+          "line": 361,
+          "declaration": "if (method == \"update.identity\") {"
+        }
+      ]
+    },
+    {
+      "path": "components/runtime/src/service.h",
+      "sha256": "12f85bf44676428ef89e65ccd978f7481283749ce2cfae2fc0d227de29c6f54f",
+      "bytes": 820,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/storage.cpp",
+      "sha256": "1e3b3dde3e2af1c068304284d35336526cadb64bfde1be5a9db45e5aab9116cb",
+      "bytes": 16685,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/storage.h",
+      "sha256": "fb2f91498161ecc3f7a544d99196bf9d3d04697488778154b79d1ca8c10ca55e",
+      "bytes": 1493,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/systemstorage.cpp",
+      "sha256": "db7e103d4fccddfe167055f0ee0fb72e2e7753006df3cf7e9f58d4d365bbbcdb",
+      "bytes": 18109,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/systemstorage.h",
+      "sha256": "0b6d9fb1b4bf380a99a9ae315499817010049b2020428db1f3cb807834573c22",
+      "bytes": 365,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/updater.cpp",
+      "sha256": "134d36d3dcf15e43d522fdcb3d9f327016bc23b6337ed785e7d6d60e9ffbeb2a",
+      "bytes": 33443,
+      "symbols": []
+    },
+    {
+      "path": "components/runtime/src/updater.h",
+      "sha256": "ca39d62792443ee4ad462ec4a81c39feb252ff087fb1963b617326f633690ef7",
+      "bytes": 1488,
+      "symbols": []
+    },
+    {
+      "path": "components/updater/README.md",
+      "sha256": "60c6e12f3cd2bc625a3641bd2194cc2c53e582d5efd01d30b256cf622c15950c",
+      "bytes": 4432,
+      "symbols": []
+    },
+    {
+      "path": "components/web/app.py",
+      "sha256": "e9fe12a2ffa1083025b6313227891b4c8f064cd49079112a2f3704ddc15edf50",
+      "bytes": 34684,
+      "symbols": []
+    },
+    {
+      "path": "components/web/hmi_api.py",
+      "sha256": "17988175ff58448ec19e7747be142f01d0c6861476efdc3057d14c42764ce822",
+      "bytes": 35121,
+      "symbols": [
+        {
+          "line": 416,
+          "declaration": "def _snapshot():"
+        },
+        {
+          "line": 519,
+          "declaration": "def _execute_action(action, p):"
+        },
+        {
+          "line": 543,
+          "declaration": "if name == \"ntp\" and re.search(r\"\\bFAIL\\s*$\", result[\"output\"], re.MULTILINE):"
+        },
+        {
+          "line": 704,
+          "declaration": "def create_blueprint():"
+        },
+        {
+          "line": 708,
+          "declaration": "@bp.get(\"/api/hmi/v1/snapshot\")"
+        },
+        {
+          "line": 712,
+          "declaration": "@bp.get(\"/api/hmi/v1/history\")"
+        },
+        {
+          "line": 713,
+          "declaration": "def history():"
+        },
+        {
+          "line": 724,
+          "declaration": "@bp.get(\"/api/hmi/v1/alarms\")"
+        },
+        {
+          "line": 735,
+          "declaration": "@bp.post(\"/api/hmi/v1/alarms/<int:alarm_id>/ack\")"
+        },
+        {
+          "line": 736,
+          "declaration": "def acknowledge(alarm_id):"
+        },
+        {
+          "line": 759,
+          "declaration": "@bp.route(\"/api/hmi/v1/settings\", methods=[\"GET\", \"PUT\"])"
+        },
+        {
+          "line": 760,
+          "declaration": "def settings():"
+        },
+        {
+          "line": 761,
+          "declaration": "if request.method == \"GET\":"
+        },
+        {
+          "line": 781,
+          "declaration": "@bp.post(\"/api/hmi/v1/actions\")"
+        },
+        {
+          "line": 798,
+          "declaration": "@bp.get(\"/api/hmi/v1/audit\")"
+        }
+      ]
+    },
+    {
+      "path": "docs/design/cloud-home-integration-v1/README.md",
+      "sha256": "dbd3509e59d5ead58871bda33aa254f8d5e8ea488007d898cf4adeaf6358c9fb",
+      "bytes": 12662,
+      "symbols": []
+    },
+    {
+      "path": "docs/design/video-player-v1/README.md",
+      "sha256": "12d037c5cb507f31254435febeae152318fc36352b38d6d1e1c7322ecffa1e2a",
+      "bytes": 5606,
+      "symbols": []
+    },
+    {
+      "path": "platform/contracts/application-update-v1.json",
+      "sha256": "63499acec8682643016c291ae9fd51c0a577c0ac4d4f2edd6a2ccd2ee84beb14",
+      "bytes": 938,
+      "symbols": []
+    },
+    {
+      "path": "tools/design/cloud_home_preview.cpp",
+      "sha256": "9bc27ed81569f703376b484b74cb7d01119f737d7d24aa0720f899c97827a16c",
+      "bytes": 29168,
+      "symbols": []
+    },
+    {
+      "path": "tools/design/video_player_preview.cpp",
+      "sha256": "690305c528634ef9dff4999527d752e1162b50953692d2ae14d219004a6c1c81",
+      "bytes": 35018,
+      "symbols": []
+    }
+  ],
+  "snapshot_note": "冻结的逐文件读取快照；工作区存在并行开发，不是原子Git快照。source-drift与package-validation记录后续诊断变化。"
+}

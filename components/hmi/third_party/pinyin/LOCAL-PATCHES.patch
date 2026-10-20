@@ -1,0 +1,76 @@
+--- a/share/userdict.cpp
++++ b/share/userdict.cpp
+@@ -14,6 +14,7 @@
+  * limitations under the License.
+  */
+ 
++// DshanControl modification 2026-10-19: bound UTF-16 sync buffers in elements.
+ #include "../include/userdict.h"
+ #include "../include/splparser.h"
+ #include "../include/ngram.h"
+@@ -1869,11 +1870,11 @@
+     // Add pinyin
+     for (j = 0; j < nchar; j++) {
+       int ret_len = spl_trie->get_spelling_str16(
+-          spl[j], ptemp, temp + sizeof(temp) - ptemp);
++          spl[j], ptemp, temp + sizeof(temp) / sizeof(temp[0]) - ptemp);
+       if (ret_len <= 0)
+         break;
+       ptemp += ret_len;
+-      if (ptemp < temp + sizeof(temp) - 1) {
++      if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+         *(ptemp++) = ' ';
+       } else {
+         j = 0;
+@@ -1884,14 +1885,14 @@
+       continue;
+     }
+     ptemp--;
+-    if (ptemp < temp + sizeof(temp) - 1) {
++    if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+       *(ptemp++) = ',';
+     } else {
+       continue;
+     }
+     // Add phrase
+     for (j = 0; j < nchar; j++) {
+-      if (ptemp < temp + sizeof(temp) - 1) {
++      if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+         *(ptemp++) = wrd[j];
+       } else {
+         break;
+@@ -1900,29 +1901,29 @@
+     if (j < nchar) {
+       continue;
+     }
+-    if (ptemp < temp + sizeof(temp) - 1) {
++    if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+       *(ptemp++) = ',';
+     } else {
+       continue;
+     }
+     // Add frequency
+     uint32 intf = extract_score_freq(score);
+-    int ret_len = utf16le_lltoa(intf, ptemp, temp + sizeof(temp) - ptemp);
++    int ret_len = utf16le_lltoa(intf, ptemp, temp + sizeof(temp) / sizeof(temp[0]) - ptemp);
+     if (ret_len <= 0)
+       continue;
+     ptemp += ret_len;
+-    if (ptemp < temp + sizeof(temp) - 1) {
++    if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+       *(ptemp++) = ',';
+     } else {
+       continue;
+     }
+     // Add last modified time
+     uint64 last_mod = extract_score_lmt(score);
+-    ret_len = utf16le_lltoa(last_mod, ptemp, temp + sizeof(temp) - ptemp);
++    ret_len = utf16le_lltoa(last_mod, ptemp, temp + sizeof(temp) / sizeof(temp[0]) - ptemp);
+     if (ret_len <= 0)
+       continue;
+     ptemp += ret_len;
+-    if (ptemp < temp + sizeof(temp) - 1) {
++    if (ptemp < temp + sizeof(temp) / sizeof(temp[0]) - 1) {
+       *(ptemp++) = ';';
+     } else {
+       continue;

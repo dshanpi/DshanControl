@@ -1,0 +1,115 @@
+{
+  "files_checked": 72,
+  "changed": [
+    {
+      "path": "components/desktop/src/main.cpp",
+      "read_sha256": "3a08a98c45bb3e4caba12923554787e4a9f95c8badc0a2419acbcd50f6879b65",
+      "now_sha256": "7a876e0e0299b6a02086e407b4e3f5e1ce13ae349ef9ed35ff0c8ed4b0deda70"
+    },
+    {
+      "path": "components/desktop/src/model.cpp",
+      "read_sha256": "e16ca84c25a5e8381ac8110a4263accae2174d0ea8602e2c5767d952d7bf50a1",
+      "now_sha256": "4e3e65440ba94e264ea32098c75e0c408e1755dd52d44b5e4fcea3f17c01d29c"
+    },
+    {
+      "path": "components/desktop/src/model.h",
+      "read_sha256": "5c532e80dca5937ee03a0c8401bf522dd6079c2c3de3ac9bd2ab2546adbcc14f",
+      "now_sha256": "fdc5e7bdc9391e15fac9b5fe53cde60cd678d27c2f1e4be6115ccac1bf0f6742"
+    },
+    {
+      "path": "components/desktop/src/mqtt.cpp",
+      "read_sha256": "9774a7c8519ee93ddbd94d8ec72dbaf08bc7b6cc566a3ca63d14a31235b35c48",
+      "now_sha256": "52c1ad0600b40c753295c8553249da97f87e05f7e05192705407d6479d6d0dd0"
+    },
+    {
+      "path": "components/desktop/src/mqtt.h",
+      "read_sha256": "8c35fc2b11e40ffcfcd1a03c3f2bfd450f8817611da69aa5b0ebe222919fa651",
+      "now_sha256": "183dd9db506aacd6e7c613432ceb4a8199f3e655f84850b74fc947500d252b9a"
+    },
+    {
+      "path": "components/desktop/src/providers.cpp",
+      "read_sha256": "fa90e14f19c8fb78aeebbf4ae2d4366b7e7005e44e5e5b180cd5201796ae8a89",
+      "now_sha256": "1ef544c4ab2591e89be81debe8938b8866806f0e4ffb4c000d4bf02e14ee681c"
+    },
+    {
+      "path": "components/desktop/src/providers.h",
+      "read_sha256": "e6fcc32f9609334bf7191763c5ed850b962b2d6646c174610e9623a75fdad53a",
+      "now_sha256": "1a818e2661c7eb101296510fac623967a7c3e0e1a49dba2984199d163f6cb732"
+    },
+    {
+      "path": "components/desktop/src/server.cpp",
+      "read_sha256": "641a82cef78e94219263bdcfbd6f8039969c666c091d6f174402f9c75e44d809",
+      "now_sha256": "2abd0709262339b9d5772b532d1993ea6ff37cc09a3ae83bad93f4fb514a0b5b"
+    },
+    {
+      "path": "components/desktop/src/server.h",
+      "read_sha256": "5adc7dc222c3d7b69f0e4c46f4d6c8a997840d9f3342314fff1008005c31f76d",
+      "now_sha256": "6e3f27ad4eb7841dc9921a250ca05d12274ca62389e176c8e8473bd85d45417f"
+    },
+    {
+      "path": "components/hmi/src/cloudpanel.cpp",
+      "read_sha256": "e897f797fd046aaeb338de2724378e1bd944da828893b9610bbec5fec73cc2ad",
+      "now_sha256": "3af02c413c2b87d5322bd0c752f984b666ba6c270671eed3ba6295e340c3246f"
+    },
+    {
+      "path": "components/hmi/src/cloudpanel.h",
+      "read_sha256": "e9df00afc01b1f47aee3be79733d490cb48626313fdf9fab683cbd4799a209ba",
+      "now_sha256": "4ec451b395d4f0280b47e2a136b14202cb1f24beb349d289f5d3a0c9f96f9bd6"
+    },
+    {
+      "path": "components/hmi/src/desktopclient.cpp",
+      "read_sha256": "fea0123a8b0d0d08212956aca173186cd21c9eaae7f9ab9f9526545e471b3998",
+      "now_sha256": "bcc85519e02643a168fd34dc478ddd3f895ea598d59e8cbafee05e33e1540ae3"
+    },
+    {
+      "path": "components/hmi/src/desktopclient.h",
+      "read_sha256": "35f21d9296d3fde1e3af885124abfcf8425ed3a5b059c39c0b8c1698b11b7bc5",
+      "now_sha256": "1c778c976508a52cd38627d3173205e4c3dbcf2de70e7e76be1cebe7fc591b8c"
+    },
+    {
+      "path": "components/hmi/src/familypanel.cpp",
+      "read_sha256": "c8cf51d165e4551f0355b6ad3a6293facfacf87c9823edb098951f4df783539f",
+      "now_sha256": "320d91fae16120931d915ff178e853af397d5294be12ab93d33e251fbe7d7fac"
+    },
+    {
+      "path": "components/hmi/src/familypanel.h",
+      "read_sha256": "9f8fa01f14820efde827bedb80ec13c84df478779b1abaa5b7fd0cfe630fda18",
+      "now_sha256": "ffcd4187c2853dc0063c50363e636f1b894507f1a4bdef6976360cc13348e344"
+    },
+    {
+      "path": "components/hmi/src/mainwindow.cpp",
+      "read_sha256": "178644c47d66cb37731c2cd835295069c6e36f3101960eb7d04a85a7529cfb6b",
+      "now_sha256": "6257b088fdd197c63d331d7ec9bcdb68240454450f83576ce25002ebd60a421d"
+    },
+    {
+      "path": "components/hmi/src/mainwindow.h",
+      "read_sha256": "4c93c3785ab9aeeafdf660de36f92e47c5d450ac0e41ac087f556007ce7a77f2",
+      "now_sha256": "ab72bb087298b2085cc01ba230eb71bb61b2c76e8a581c64edd8fbaa17f3e883"
+    },
+    {
+      "path": "components/hmi/src/mediasession.cpp",
+      "read_sha256": "580772ad390d91be90662b5698f11f4bf7e217faf320d83d4f28a8b5d541ce63",
+      "now_sha256": "f4430b2dac2dd7f38033048539922d3c5987832148a77e9cda448eeb3e6c6595"
+    },
+    {
+      "path": "components/hmi/src/mediasession.h",
+      "read_sha256": "0f1d7b1ef631671039fa66507806ccbe2124ee23cb7286a730ac71c1081e6a44",
+      "now_sha256": "603f58ac307ab0c07b56183d5012f51e685b170e3709c2989724344c92152c8c"
+    },
+    {
+      "path": "components/hmi/src/omnigate-hmi.pro",
+      "read_sha256": "585e514610d3208c3604b1b2ac8cc4e1294517bb7a40a3450372627f3a313250",
+      "now_sha256": "c1f6e96eaf3370b9b5393d2d7ae2a3cc479d9aca472108439ea7544f3c313716"
+    },
+    {
+      "path": "components/hmi/src/visuals.cpp",
+      "read_sha256": "b0bb604768b38002fe57906ccde05e051cd71150a26b95693128695841714819",
+      "now_sha256": "2e2d255c214d18fb78f93561416d2813b1d0907f892faa83e55625e6bc043b8d"
+    },
+    {
+      "path": "components/media/src/main.cpp",
+      "read_sha256": "b74a44db5da77869ba80016174ffa9bf436c3a14d4cb1813ae52f64696d27ef9",
+      "now_sha256": "5792c4cbd1329e54a584ec9378d7806684fb576d332a6b2f105a192332fbf8b7"
+    }
+  ]
+}

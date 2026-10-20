@@ -1,0 +1,1 @@
+<RCC><qresource prefix="/desktop"><file>assets/reference-poster.png</file><file>assets/app-registry.json</file><file>assets/default-layout.json</file><file>assets/widget-compatibility.json</file><file alias="pinyin/dict_pinyin.dat">../../third_party/pinyin/data/dict_pinyin.dat</file><file alias="pinyin/NOTICE">../../third_party/pinyin/NOTICE</file></qresource></RCC>

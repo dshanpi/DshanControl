@@ -298,6 +298,31 @@ class S4SystemTests(unittest.TestCase):
             self.assertEqual([], list(outside.iterdir()))
             self.assertEqual(before, (target / 'etc/init.d/S60mount_udisk').read_bytes())
 
+    def test_postbuild_null_access_preserves_vendor_rules_and_audit_rejects_regression(self):
+        with tempfile.TemporaryDirectory() as temp:
+            hardware, _, br = self.fixture(Path(temp))
+            config = br / 'target/etc/mdev.conf'
+            vendor = b'# vendor hotplug rules\nsd[a-z] 0:0 0660 @/etc/mdev/insert\n'
+            config.write_bytes(vendor)
+            self.assertTrue(any('/dev/null access' in error
+                                for error in audit.audit(hardware, br)['configuration_errors']))
+            rootfs.finalize(br / 'target')
+            self.assertEqual(b'null 0:0 0666\n' + vendor, config.read_bytes())
+            self.assertEqual([], audit.audit(hardware, br)['configuration_errors'])
+            first = config.read_bytes()
+            rootfs.finalize(br / 'target')
+            self.assertEqual(first, config.read_bytes())
+            outside = Path(temp) / 'outside'
+            outside.write_bytes(vendor)
+            config.unlink()
+            config.symlink_to(outside)
+            boot = br / 'target/etc/init.d/S60mount_udisk'
+            boot.write_bytes(b'unchanged before complete preflight')
+            with self.assertRaisesRegex(ValueError, 'symlink'):
+                rootfs.finalize(br / 'target')
+            self.assertEqual(vendor, outside.read_bytes())
+            self.assertEqual(b'unchanged before complete preflight', boot.read_bytes())
+
     def test_postbuild_replaces_late_vendor_formatter_and_rejects_wrong_board(self):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp)

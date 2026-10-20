@@ -47,6 +47,8 @@ class LayoutPage : public QWidget
     {
         return false;
     }
+  protected:
+    void resizeEvent(QResizeEvent *event) override;
 };
 // QScrollArea otherwise uses a nested wrapped label's preferred height for the
 // whole page. Let the layout minimum drive scrolling and distribute free space.

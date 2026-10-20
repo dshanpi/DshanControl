@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MDEV_NULL_RULE = b'null 0:0 0666\n'
 
 AIC_D80_FILES = (
     'aic_userconfig_8800d80-Typ.txt',
@@ -68,17 +69,26 @@ def finalize(target):
              ('S73dshancontrol-time', 'etc/init.d/S73dshancontrol-time', 0o755),
              ('storage.py', 'usr/lib/dshancontrol-update/storage.py', 0o644),
              ('display.env', 'etc/dshancontrol/display.env', 0o644)]
+    # mdev otherwise creates /dev/null as root:root 0660 on this vendor image.
+    # Reduced-role subprocesses open it for DEVNULL before running commands.
+    mdev = target / 'etc/mdev.conf'
     # Validate all destinations before replacing anything, including symlinked
     # parent directories which could otherwise write outside the staged rootfs.
-    for _, relative, _ in files:
+    for relative in [item[1] for item in files] + ['etc/mdev.conf']:
         destination = target / relative
         if any(p.is_symlink() for p in (destination,) + tuple(destination.parents) if p != target and target in p.parents):
             raise ValueError('refusing symlink destination: ' + relative)
+    if mdev.exists() and not mdev.is_file():
+        raise ValueError('S4 mdev configuration must be a regular file')
+    mdev_original = mdev.read_bytes() if mdev.exists() else b''
     for source, relative, mode in files:
         destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(str(runtime / source), str(destination))
         destination.chmod(mode)
+    if not mdev_original.startswith(MDEV_NULL_RULE):
+        mdev.write_bytes(MDEV_NULL_RULE + mdev_original)
+    mdev.chmod(0o644)
     if not init.is_symlink():
         init.symlink_to('bin/busybox')
     if not wifi_alias.is_symlink():

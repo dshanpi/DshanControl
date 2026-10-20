@@ -1,0 +1,232 @@
+{
+  "warning": "仅合同示例，不是可直接执行的生产指令；示例设备/告警/任务/版本必须替换为真实读取值，本包工具不发送任何请求",
+  "requests": [
+    {
+      "id": "http_snapshot",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/hmi/v1/snapshot",
+      "body": null
+    },
+    {
+      "id": "http_save_brightness",
+      "transport": "http",
+      "method": "PUT",
+      "path": "/api/hmi/v1/settings",
+      "body": {
+        "brightness": 184
+      }
+    },
+    {
+      "id": "http_apply_brightness",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/hmi/v1/actions",
+      "body": {
+        "action": "brightness",
+        "params": {
+          "value": 184
+        },
+        "confirmed": true
+      }
+    },
+    {
+      "id": "http_ack",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/hmi/v1/alarms/123/ack",
+      "body": {},
+      "note": "123仅示例；运行使用查询所得正整数ID"
+    },
+    {
+      "id": "desktop.snapshot",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "desktop.snapshot",
+        "params": {}
+      }
+    },
+    {
+      "id": "cloud.refresh",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "cloud.refresh",
+        "params": {}
+      }
+    },
+    {
+      "id": "reporting.configure",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "reporting.configure",
+        "params": {
+          "enabled": true,
+          "period_seconds": 30
+        }
+      }
+    },
+    {
+      "id": "reporting.send",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "reporting.send",
+        "params": {}
+      }
+    },
+    {
+      "id": "home.refresh",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "home.refresh",
+        "params": {}
+      }
+    },
+    {
+      "id": "home.functions",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "home.functions",
+        "params": {
+          "device_id": "example_device"
+        }
+      }
+    },
+    {
+      "id": "home.command",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "home.command",
+        "params": {
+          "device_id": "example_device",
+          "code": "switch",
+          "value": true,
+          "command_id": "0123456789abcdef0123456789abcdef",
+          "revision": 7,
+          "confirmed": true
+        }
+      }
+    },
+    {
+      "id": "voice.command",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "voice.command",
+        "params": {
+          "command": "start_listen"
+        }
+      }
+    },
+    {
+      "id": "voice.clear",
+      "transport": "desktop_local_socket",
+      "envelope": {
+        "protocol": 1,
+        "method": "voice.clear",
+        "params": {}
+      }
+    },
+    {
+      "id": "media_rect",
+      "transport": "media_stdin",
+      "envelope": {
+        "protocol": 1,
+        "request_id": "example-rect",
+        "command": "rect",
+        "params": {
+          "x": 44,
+          "y": 146,
+          "width": 596,
+          "height": 282
+        }
+      }
+    },
+    {
+      "id": "media_open",
+      "transport": "media_stdin",
+      "envelope": {
+        "protocol": 1,
+        "request_id": "example-open",
+        "command": "open",
+        "params": {
+          "path": "/mnt/UDISK/example.mp4",
+          "volume": 50
+        }
+      }
+    },
+    {
+      "id": "media_visible",
+      "transport": "media_stdin",
+      "envelope": {
+        "protocol": 1,
+        "request_id": "example-visible",
+        "command": "visible",
+        "params": {
+          "value": false
+        }
+      }
+    },
+    {
+      "id": "media_seek",
+      "transport": "media_stdin",
+      "envelope": {
+        "protocol": 1,
+        "request_id": "example-seek",
+        "command": "seek",
+        "params": {
+          "position_ms": 1000
+        }
+      }
+    },
+    {
+      "id": "update.identity_17",
+      "transport": "native_runtime_cli_rpc",
+      "method": "update.identity",
+      "params": {}
+    },
+    {
+      "id": "update.status_18",
+      "transport": "native_runtime_cli_rpc",
+      "method": "update.status",
+      "params": {
+        "task_id": "EXAMPLE_TASK_ID"
+      }
+    },
+    {
+      "id": "update.start_19",
+      "transport": "native_runtime_cli_rpc",
+      "method": "update.start",
+      "params": {
+        "operation": "check"
+      }
+    },
+    {
+      "id": "update.start_20",
+      "transport": "native_runtime_cli_rpc",
+      "method": "update.start",
+      "params": {
+        "operation": "download",
+        "source_task_id": "EXAMPLE_CHECK_TASK"
+      }
+    },
+    {
+      "id": "update.start_21",
+      "transport": "native_runtime_cli_rpc",
+      "method": "update.start",
+      "params": {
+        "operation": "install",
+        "source_task_id": "EXAMPLE_DOWNLOAD_TASK",
+        "confirmed": true,
+        "version": "EXAMPLE_SELECTED_VERSION",
+        "package_sha256": "REPLACE_WITH_VERIFIED_SHA256"
+      }
+    }
+  ]
+}

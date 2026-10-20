@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Loopback-only telemetry and control API for the OmniGate Qt HMI."""
+import atexit
+import contextlib
 import json
 import math
 import os
@@ -22,6 +24,8 @@ MODBUS_CONFIG = Path(os.environ.get("OMNIGATE_MODBUS_CONFIG", "/etc/thingsboard-
 OMNIGATE_CONFIG = Path(os.environ.get("OMNIGATE_CONFIG", "/etc/omnigate-web/config.json"))
 MAX_OUTPUT = 32768
 DB_LOCK = threading.RLock()
+DB_CONNECTION = None
+DB_CONNECTION_PATH = None
 CPU_LOCK = threading.Lock()
 CPU_PREVIOUS = None
 LAST_TELEMETRY_BUCKET = None
@@ -121,13 +125,45 @@ def _platform_request(method, params):
     return response.get("result")
 
 
+def _close_db():
+    global DB_CONNECTION, DB_CONNECTION_PATH
+    with DB_LOCK:
+        if DB_CONNECTION is not None:
+            DB_CONNECTION.close()
+            DB_CONNECTION = None
+            DB_CONNECTION_PATH = None
+
+
+@contextlib.contextmanager
 def _db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH), timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    return conn
+    """One serialized connection per Web process, with a transaction per request.
+
+    Keeping WAL open avoids repeated last-connection checkpoints and exclusive
+    cleanup locks while the native health process opens its read-only probe.
+    The lock covers the whole transaction, including commit or rollback.
+    """
+    global DB_CONNECTION, DB_CONNECTION_PATH
+    with DB_LOCK:
+        path = str(DB_PATH.absolute())
+        if DB_CONNECTION is not None and DB_CONNECTION_PATH != path:
+            _close_db()
+        if DB_CONNECTION is None:
+            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(path, timeout=10, check_same_thread=False)
+            try:
+                conn.row_factory = sqlite3.Row
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA synchronous=NORMAL")
+            except Exception:
+                conn.close()
+                raise
+            DB_CONNECTION = conn
+            DB_CONNECTION_PATH = path
+        with DB_CONNECTION as conn:
+            yield conn
+
+
+atexit.register(_close_db)
 
 
 def _init_db():
@@ -470,8 +506,9 @@ def _snapshot():
             # interoperability check). Even complete host metrics cannot prove
             # industrial-system health. Keep alarms visible in demo mode too.
             "status": "有告警" if alarms["active"] > 0 else ("演示" if demo_mode else "未验证"),
-            "online_devices": sum(1 for x in buses + networks if x.get("online")) +
-                              (12 if settings["demo_mode"] else 0),
+            # A local interface being UP does not prove any field device is online.
+            # Until field-device freshness is available, retain an unknown count.
+            "online_devices": 12 if demo_mode else None,
             "today_alarms": alarms["today"],
         },
         "buses": buses,
@@ -734,6 +771,18 @@ def create_blueprint():
 
     @bp.post("/api/hmi/v1/alarms/<int:alarm_id>/ack")
     def acknowledge(alarm_id):
+        # Consume the JSON request before committing. Closing a socket with an
+        # unread POST body can reset it and hide a successful acknowledgment.
+        raw = request.stream.read(4097)
+        if len(raw) > 4096:
+            return jsonify(ok=False, error="告警确认请求过大"), 413
+        if raw:
+            try:
+                body = json.loads(raw)
+            except (ValueError, UnicodeDecodeError):
+                return jsonify(ok=False, error="告警确认请求不是有效JSON"), 400
+            if not isinstance(body, dict) or body:
+                return jsonify(ok=False, error="告警确认不接受额外参数"), 400
         if not 1 <= alarm_id <= 9007199254740991:
             raise ValueError("告警 ID 非法")
         include_demo = _settings()["demo_mode"]

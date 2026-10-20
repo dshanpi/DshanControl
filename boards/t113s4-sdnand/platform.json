@@ -6,7 +6,8 @@
   "runtime_profile": "lite",
   "capabilities": [],
   "channels": {
-    "display0": {"kind": "display", "device": "/dev/fb0", "role": "local-hmi"}
+    "display0": {"kind": "display", "device": "/dev/fb0", "role": "local-hmi"},
+    "wifi0": {"kind": "wifi", "device": "wlan0", "role": "wan"}
   },
   "update": {"strategy": "application-versions", "system_install": "board-image", "qualified": false},
   "security": {"development_adb": true},

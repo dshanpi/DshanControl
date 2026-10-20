@@ -11,12 +11,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'components/updater'))
 from update_protocol import TARGET_FIELDS, digest, read_json, require, validate_manifest, validate_target
 sys.path.insert(0, str(ROOT / 'scripts'))
-from application_payload import payload
+from application_payload import payload, component_inputs
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--hmi', required=True, type=Path)
+    p.add_argument('--desktop-service', type=Path)
+    p.add_argument('--media-worker', type=Path)
+    p.add_argument('--imageformats', type=Path)
     p.add_argument('--target-contract', required=True, type=Path)
     p.add_argument('--build-info', required=True, type=Path)
     p.add_argument('--version', required=True)
@@ -28,6 +31,9 @@ def main():
     a = p.parse_args()
     contract = read_json(a.target_contract)
     validate_target(contract)
+    components = component_inputs(a.desktop_service, a.media_worker, a.imageformats)
+    require(not components or contract.get('desktop_provider') is True,
+            'desktop bundle requires an explicitly qualified desktop runtime contract')
     status = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], universal_newlines=True)
     require(not status.strip(), 'commit reviewed changes before packaging; dirty source is not releasable')
     commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], universal_newlines=True).strip()
@@ -36,23 +42,26 @@ def main():
     require(build.get('application_commit') == commit and build.get('application_dirty') is False,
             'native artifact must come from this clean application commit')
     require(build.get('hmi_sha256') == digest(a.hmi), 'native artifact differs from build record')
+    require(build.get('component_sha256', {}) == {name: digest(path) for name, path in components.items()},
+            'desktop artifacts differ from the clean target build record')
     require(build.get('target') == {k: contract[k] for k in TARGET_FIELDS}, 'native build target mismatch')
     # Native payload ABI must agree with its target contract (runtime dependencies
     # and exact sysroot are additionally validated in target-build evidence).
-    elf = subprocess.check_output(['readelf', '-h', str(a.hmi)], universal_newlines=True)
-    attrs = subprocess.check_output(['readelf', '-A', str(a.hmi)], universal_newlines=True)
-    if contract['architecture'] == 'armv7-a':
-        require('Machine:' in elf and 'ARM' in elf and 'ELF32' in elf, 'HMI architecture mismatch')
-        hard = 'Tag_ABI_VFP_args: VFP registers' in attrs or 'hard-float ABI' in elf
-        require(hard == (contract['float_abi'] == 'hard'), 'HMI float ABI mismatch')
-    else:
-        require(False, 'native ABI validator for this architecture is not implemented')
+    for artifact in [a.hmi] + list(components.values()):
+        elf = subprocess.check_output(['readelf', '-h', str(artifact)], universal_newlines=True)
+        attrs = subprocess.check_output(['readelf', '-A', str(artifact)], universal_newlines=True)
+        if contract['architecture'] == 'armv7-a':
+            require('Machine:' in elf and 'ARM' in elf and 'ELF32' in elf, 'HMI architecture mismatch')
+            hard = 'Tag_ABI_VFP_args: VFP registers' in attrs or 'hard-float ABI' in elf
+            require(hard == (contract['float_abi'] == 'hard'), 'HMI float ABI mismatch')
+        else:
+            require(False, 'native ABI validator for this architecture is not implemented')
     a.output.mkdir(parents=True, exist_ok=False)
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp) / 'payload'
         stage.mkdir()
-        payload(ROOT, stage, a.hmi)
+        payload(ROOT, stage, a.hmi, a.desktop_service, a.media_worker, a.imageformats)
         filename = 'DshanControl-app-' + a.version + '-' + contract['board_id'] + '.tar.gz'
         archive = a.output / filename
         with tarfile.open(str(archive), 'w:gz') as tar:

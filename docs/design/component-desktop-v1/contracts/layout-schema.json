@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DshanControl proposed desktop layout v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "revision",
+    "active_page",
+    "pages"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "active_page": {
+      "enum": [
+        "page0",
+        "page1"
+      ]
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "slots"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "page0",
+              "page1"
+            ]
+          },
+          "slots": {
+            "type": "array",
+            "minItems": 7,
+            "maxItems": 7,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "slot_id",
+                "type",
+                "binding"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "slot_id": {
+                  "enum": [
+                    "trend",
+                    "media",
+                    "cloud",
+                    "bus",
+                    "alarms",
+                    "home",
+                    "voice"
+                  ]
+                },
+                "type": {
+                  "enum": [
+                    "trend",
+                    "video",
+                    "image",
+                    "cloud",
+                    "bus",
+                    "alarms",
+                    "home",
+                    "voice",
+                    "empty"
+                  ]
+                },
+                "binding": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "point_id": {
+                      "type": "string",
+                      "maxLength": 256
+                    },
+                    "secondary_point_id": {
+                      "type": "string",
+                      "maxLength": 256
+                    },
+                    "device_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "path": {
+                      "type": "string",
+                      "maxLength": 4096
+                    },
+                    "fit": {
+                      "enum": [
+                        "contain",
+                        "cover"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-additional-validation": [
+    "page ids unique",
+    "widget ids globally unique",
+    "slot ids exactly seven per page",
+    "type in slot compatibility or empty",
+    "active_page must exist",
+    "absolute normalized local file paths only when present",
+    "128KiB input limit",
+    "reject future schema without overwriting"
+  ]
+}

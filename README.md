@@ -1,3 +1,5 @@
+> **Qt5组件桌面测试版**：本分支尚未全部验收。请先阅读 [版本说明与未验收项](PREVIEW.md) 和 [一比一设计需求包](docs/design/component-desktop-v1/README.md)。
+
 # DshanControl
 
 ## T113s4 SD NAND 开发交付

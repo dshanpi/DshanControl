@@ -1,0 +1,194 @@
+{
+  "repository": "https://github.com/qt/qtvirtualkeyboard",
+  "tag": "v5.11.3",
+  "tree": "a8cab520dc7bedff73ec60a5a189b21cdf01f083",
+  "subtree": "src/virtualkeyboard/3rdparty/pinyin/",
+  "license": "Apache-2.0; original NOTICE and source headers retained",
+  "files": [
+    {
+      "path": "NOTICE",
+      "git_blob": "64aaa8dbd68e6917b35c02655ba2f8d763165368",
+      "sha256": "b5830d96fb5a7e7e7ebcc295f352846b4b998e78fdc8f9aa68e134d2e4b39986"
+    },
+    {
+      "path": "data/dict_pinyin.dat",
+      "git_blob": "1be3f9c79feacf9c6d33f62950c5ef1e8283dadb",
+      "sha256": "6bf0bbde4e3134cce38d08524a9f4dc1af40435243c8e36b38eb68d1e14462b2"
+    },
+    {
+      "path": "include/atomdictbase.h",
+      "git_blob": "0a70a510883e582f430b336b5a3aa36a4f26811a",
+      "sha256": "04ec8f2d51b07f5d309bab4d5eed3dcd4f8ce458d3defe4162614e10ff424f0a"
+    },
+    {
+      "path": "include/dictbuilder.h",
+      "git_blob": "da0d6cd341501edfc13418894690ac87f3d07757",
+      "sha256": "35941652c4419458805e30bb9d89a0b69cdd7a00b4a4b895c1e47acdd347dcba"
+    },
+    {
+      "path": "include/dictdef.h",
+      "git_blob": "5e1d7818d22339241b6900ab51e0cb80b9227983",
+      "sha256": "5321129227c9c12dc28dd4a10f243a264358d67a4ec71a47499a18fca0be5d33"
+    },
+    {
+      "path": "include/dictlist.h",
+      "git_blob": "27fa6d8e1ca3509a583e9a1f3366086b599e44d6",
+      "sha256": "6336011f1c9dac0e99ef85edae2860f757553b102a12571a41012026301dc5e9"
+    },
+    {
+      "path": "include/dicttrie.h",
+      "git_blob": "75b7ee05c4bf953967ce897c5b30219719499883",
+      "sha256": "f7264d8301c1852255af2db753884de4549afe91ce1d40006603900db9e28055"
+    },
+    {
+      "path": "include/lpicache.h",
+      "git_blob": "60735971f70d45ac14d83fbad03d6f50d1fdf90e",
+      "sha256": "be5cbf7a69c7ab12b6912b226a3dcbde9f52e288c6639b14b4abe2df0a35756d"
+    },
+    {
+      "path": "include/matrixsearch.h",
+      "git_blob": "61e78aa64fcea16d1add038ed6c69c2e9274c8ba",
+      "sha256": "faf65fd5648b216bf7023b70d33c427408c20a51b69f7bc607df29be58f65ba2"
+    },
+    {
+      "path": "include/mystdlib.h",
+      "git_blob": "dfcf980ba9d1033d307104f2d35b312eb9584a48",
+      "sha256": "c5b8f130dd1eb8d49264c97b46f65bb9643bdbbce76faf27dfd4ccb3a8a327de"
+    },
+    {
+      "path": "include/ngram.h",
+      "git_blob": "7adb46d8d6b3d3950886ccf477b60812b25a8da5",
+      "sha256": "23c7b69a7aea57549a55be37b140b695b52676a6ec9eb367c329cc60b4ee24d5"
+    },
+    {
+      "path": "include/pinyinime.h",
+      "git_blob": "e376c20c95937a7575c63e59b05715beaf6a0e73",
+      "sha256": "0806f9847b5d9de67b7f16813343c2fe1897dfceac0183c074a65ba0f6ee22e3"
+    },
+    {
+      "path": "include/searchutility.h",
+      "git_blob": "f135710704cbc05ccf4fd13112c7e21f7c8a2451",
+      "sha256": "4ddbdf54bdf70220504d8d4a783f6e19c4bef8e5e0fc9a8ee1307b7811e9dfa4"
+    },
+    {
+      "path": "include/spellingtable.h",
+      "git_blob": "fd79c6eff5a825c0e277c5bf7201645608fe8994",
+      "sha256": "69c1b45651156a68177372098661b658d630a398395dc614fb2162ca8883d3a1"
+    },
+    {
+      "path": "include/spellingtrie.h",
+      "git_blob": "03510ed361b575568c2d46bfa992876dd458cb9f",
+      "sha256": "ee42b670940713dcb3d3617bcbedcca2e55b5146d0ba66704d7f983ea2a88f59"
+    },
+    {
+      "path": "include/splparser.h",
+      "git_blob": "d783bd73d4649965af508f30f15e076b0dcf5bfb",
+      "sha256": "09a1daaec9366ebe4202d69c54a9b93534791fc976eaba5f313c209c82193f0b"
+    },
+    {
+      "path": "include/sync.h",
+      "git_blob": "bf42d1f147e827d6b5cfd7f8a6e443e3cc2ee384",
+      "sha256": "f21bb5b30258febb0ef34146e55a47ffa748ebe570953704d139f0e45c9de153"
+    },
+    {
+      "path": "include/userdict.h",
+      "git_blob": "db010912bb19d88d12b47b89efb9aaad4bfdc92d",
+      "sha256": "eedc7817f08c3eb0c705535d3a86b304ac885ae5551b18dc6ec260be4ea4a757"
+    },
+    {
+      "path": "include/utf16char.h",
+      "git_blob": "7e957db5b116479cf5a6fe4dcfd92eda525e3cfb",
+      "sha256": "90bf7e256ad0c050f59a22acdd79a9eaebe0de32aae9684ed7b68e44cdbd6126"
+    },
+    {
+      "path": "include/utf16reader.h",
+      "git_blob": "b6d6719e641005f59fea35bd1abd3d50bc68b6d4",
+      "sha256": "4e81908a8ddfbcd79500b1e51b444c35c44cf2567a3fd69b658f147bb8c33d97"
+    },
+    {
+      "path": "qt_attribution.json",
+      "git_blob": "c739749f087b917bfe767b3d26509c32780a389b",
+      "sha256": "f6faf83458dfa3110fd471791f5f90ec36fd299a21efac438b54bf81722aa9da"
+    },
+    {
+      "path": "share/dictbuilder.cpp",
+      "git_blob": "6f0bd4f78a9ada27747fffba65de692c31123a35",
+      "sha256": "e1b0cb286b7ab4bb69c78ba17c25e4db8babb7028483e3c0bf991082a89761cf"
+    },
+    {
+      "path": "share/dictlist.cpp",
+      "git_blob": "64d8d085c6fed9a656704991047e289595e6a879",
+      "sha256": "3e536611f0ef58883ba0d15d467f11677f556b5dc9a24700f14badc828b1a97e"
+    },
+    {
+      "path": "share/dicttrie.cpp",
+      "git_blob": "0cdd09827816f14b63896afccff5143e05068c82",
+      "sha256": "b89bc450f1664a33735db80c99532f806b8c99f609492b63ab60a63162653f91"
+    },
+    {
+      "path": "share/lpicache.cpp",
+      "git_blob": "4bb4ca2602227efdb12ac6d3f41eee69d9dd7882",
+      "sha256": "b61f8175d834a976bde9e8faac8d074784b12011429ce4ad48bdb24fd9efbd47"
+    },
+    {
+      "path": "share/matrixsearch.cpp",
+      "git_blob": "41e11433218a4cd8022a83d54da910a467ecedaf",
+      "sha256": "a074821f538fe5f34c31ccc1d7f3ad774c9540943f12a4170aa9403447542dd1"
+    },
+    {
+      "path": "share/mystdlib.cpp",
+      "git_blob": "93bbcc9f86e85ca0725f6bb0699e4238162c602e",
+      "sha256": "753725a943da62462feeaa33d9f7c0c2aa1083bfc7b256299663b63567760c37"
+    },
+    {
+      "path": "share/ngram.cpp",
+      "git_blob": "6aec850bafccbe3e5e7232f6cbad90cf50e7a98a",
+      "sha256": "12cee247ea8077da7233cacbd61affbb939c6a208be00ae82687cd4716e31042"
+    },
+    {
+      "path": "share/pinyinime.cpp",
+      "git_blob": "4d206a765057a6fa43dd1ed28a80cb50894bd74e",
+      "sha256": "3ce4bb3af4220592d3d4cd38eb3f47c65bfdf1aa1f90fc9705e2e0ada88785b1"
+    },
+    {
+      "path": "share/searchutility.cpp",
+      "git_blob": "281da388bf62f866858f6b5d79780c74d133d8a4",
+      "sha256": "72b5b4de7065b675cd7d2dd50e2ece9a25cded2d4359865e943ae832994f7d73"
+    },
+    {
+      "path": "share/spellingtable.cpp",
+      "git_blob": "6005e20d2aef49a538db3d0a3b2cd27464c088b8",
+      "sha256": "c9dc7ea1f72b44047a0c75703b23ec02041bdc7820338c224d1051e41d9d600e"
+    },
+    {
+      "path": "share/spellingtrie.cpp",
+      "git_blob": "e01c89a50507bff34674135d8092839f45a0b5b9",
+      "sha256": "41306ad7e7d45985a74b221f2d929d366d6881fa1cca397a81f9fdb4841c22aa"
+    },
+    {
+      "path": "share/splparser.cpp",
+      "git_blob": "d75aec6ab308d242d0ce0760ba6cf7d417254754",
+      "sha256": "33c150844d15e36474e3da12eb2d36efd23645a658d49f8ebaf529bf1223b03d"
+    },
+    {
+      "path": "share/sync.cpp",
+      "git_blob": "91e27b88f11427aa86d38e7fb3079d31356ef569",
+      "sha256": "62ec48ce9592a2a010494aed125f122019f0b801d23e44b6a54e27db14aab09b"
+    },
+    {
+      "path": "share/userdict.cpp",
+      "git_blob": "4687da2d187ff39342c09ec44a789798fb2a2bc0",
+      "sha256": "dcece540d6fb982a61869431dffa14736a83beab15b074a38938c0418d916490"
+    },
+    {
+      "path": "share/utf16char.cpp",
+      "git_blob": "fadb6cf2f4dc12a3ee6cbb10e0c7de5e06b1c5fb",
+      "sha256": "bd3da194b3b694c2dd4c44553d4602253014948746dd50810759b8a5557de9dc"
+    },
+    {
+      "path": "share/utf16reader.cpp",
+      "git_blob": "d8e5de598e5aba9d5210b0f9059f33f4b664d62c",
+      "sha256": "abca33d43a79f551597becb1a5ad17d1834c622345eff331831321fd7b6ba1d2"
+    }
+  ]
+}

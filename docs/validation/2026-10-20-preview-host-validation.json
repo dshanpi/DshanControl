@@ -1,0 +1,62 @@
+{
+  "at_utc": "2026-10-20T11:13:38.882822+00:00",
+  "scope": "Clean Git source export on Ubuntu; no board mutations or real external accounts",
+  "core": {
+    "run": 5,
+    "failed": 0,
+    "seconds": 0.124
+  },
+  "repository": {
+    "run": 289,
+    "passed": 279,
+    "skipped": 10,
+    "failed": 0,
+    "seconds": 395.184
+  },
+  "qt": [
+    {
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "milliseconds": 51804
+    },
+    {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "milliseconds": 3554
+    },
+    {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "milliseconds": 2590
+    }
+  ],
+  "requirements": {
+    "ok": true,
+    "checked_files": 46,
+    "approved_pngs": 10,
+    "errors": []
+  },
+  "initial_failure": {
+    "errors": 5,
+    "reason": "Voice test fixture nested AF_UNIX path exceeded Linux limit in deep exported checkout",
+    "fix": "Use standard TemporaryDirectory honoring TMPDIR; test-only change",
+    "retest": "Complete repository suite rerun, not skipped"
+  },
+  "source_checkout_status": "Production code unchanged since prepared preview; fixture temporary-path fix and harmless blank-line cleanup only",
+  "not_verified": [
+    "86400-second board soak",
+    "physical LCD/touch",
+    "real cloud/home/voice end-to-end",
+    "native UID402 system-contract migration",
+    "other platform and industrial qualification"
+  ],
+  "production_qualified": false,
+  "logs_sha256": {
+    "source-host-tests.log": "f2157bc9cef4a77c80f75cfe57ff926fa258d0a90c555fa8734523f6638c8253",
+    "source-host-tests-final.log": "bf84f5e30a01d18d60b7bf7d0ef7a45f59c9a965754cf4449ce3624cb16d121d",
+    "source-hmi-tests.log": "8dee162b798a68bd250413098c1ad569fa3fc571d8a2c81814e1771156308a05"
+  }
+}

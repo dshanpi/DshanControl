@@ -46,7 +46,9 @@ quint32 number(const QJsonValue &value) {
   return quint32(value.toDouble());
 }
 struct Profile {
-  uid_t web = 400, hmi = 401;
+  uid_t web = 400, hmi = 401, provider = 402;
+  bool desktopProvider = false, mediaDevices = false;
+  QStringList mediaNodes;
   gid_t group = 400;
   QString base, apps, data, run, records, heartbeat, framebuffer, touch;
   bool fixture = false;
@@ -67,20 +69,37 @@ struct Profile {
     check(QFileInfo(data).absolutePath() == base && apps != data,
           "Permission data roots disagree");
     const auto policy = config["application_health"].toObject();
+    check(!policy.contains("desktop_provider") ||
+              policy["desktop_provider"].isBool(),
+          "Invalid desktop provider policy");
+    desktopProvider = policy["desktop_provider"].toBool(false);
+    check(!policy.contains("media_devices") || policy["media_devices"].isBool(),
+          "Invalid media device policy");
+    mediaDevices = policy["media_devices"].toBool(false);
+    check(!mediaDevices || desktopProvider,
+          "Media devices require the component desktop policy");
     check(policy["launch_receipts_required"] == true,
           "Managed launch records required");
     if (fixture) {
       check(config["permission_fixtures"].isObject(),
             "Invalid permission fixture policy");
       const auto values = config["permission_fixtures"].toObject();
-      const QSet<QString> allowed{"web_uid",  "hmi_uid",     "gid",
-                                  "run_root", "framebuffer", "touchscreen"};
+      const QSet<QString> allowed{"web_uid",     "hmi_uid",     "gid",
+                                  "run_root",    "framebuffer", "touchscreen",
+                                  "desktop_uid", "media_nodes"};
       for (const auto &key : values.keys())
         check(allowed.contains(key), "Unknown permission fixture field");
       web = number(values["web_uid"]);
       hmi = number(values["hmi_uid"]);
       group = number(values["gid"]);
       check(web != hmi, "Distinct application identities required");
+      if (desktopProvider) {
+        provider = number(values["desktop_uid"]);
+        check(provider != web && provider != hmi,
+              "Distinct desktop provider required");
+      } else
+        check(!values.contains("desktop_uid"),
+              "Unused desktop identity refused");
       run = values["run_root"].toString();
       framebuffer = values["framebuffer"].toString();
       touch = values["touchscreen"].toString();
@@ -104,6 +123,12 @@ struct Profile {
       const auto second = ::getpwnam("dshan-hmi");
       check(second && second->pw_uid == hmi && second->pw_gid == group,
             "Dedicated HMI account missing or mismatched");
+      if (desktopProvider) {
+        const auto account = ::getpwnam("dshan-desktop");
+        check(account && account->pw_uid == provider &&
+                  account->pw_gid == group,
+              "Dedicated desktop provider account missing or mismatched");
+      }
       const auto shared = ::getgrnam("dshan-app");
       check(shared && shared->gr_gid == group,
             "Dedicated application group missing or mismatched");
@@ -112,8 +137,8 @@ struct Profile {
       for (const auto &entry :
            QDir("/sys/class/input").entryList({"event*"}, QDir::Dirs)) {
         const auto sys = "/sys/class/input/" + entry;
-        if (QString::fromUtf8(readSysfsAttribute(sys + "/device/name", 256)).trimmed() !=
-            "gt9xxnew_ts")
+        if (QString::fromUtf8(readSysfsAttribute(sys + "/device/name", 256))
+                .trimmed() != "gt9xxnew_ts")
           continue;
         check(touch.isEmpty(), "Ambiguous named touchscreen",
               "permissions-device");
@@ -131,11 +156,48 @@ struct Profile {
               "Expected character device missing", "permissions-device");
         const auto actual = QString::number(major(info.st_rdev)) + ':' +
                             QString::number(minor(info.st_rdev));
-        check(QString::fromUtf8(readSysfsAttribute(pair.second, 128)).trimmed() ==
-                  actual,
-              "Device and sysfs identity disagree", "permissions-device");
+        check(
+            QString::fromUtf8(readSysfsAttribute(pair.second, 128)).trimmed() ==
+                actual,
+            "Device and sysfs identity disagree", "permissions-device");
       }
     }
+    if (mediaDevices) {
+      const QMap<QString, QString> named{
+          {"cedar", "/dev/cedar_dev"},
+          {"display", "/dev/disp"},
+          {"ion", "/dev/ion"},
+          {"audio_control", "/dev/snd/controlC0"},
+          {"audio_playback", "/dev/snd/pcmC0D0p"}};
+      const auto nodes =
+          config["permission_fixtures"].toObject()["media_nodes"].toObject();
+      if (fixture)
+        check(nodes.keys() == named.keys(),
+              "Exactly five isolated media node fixtures required");
+      for (auto it = named.cbegin(); it != named.cend(); ++it) {
+        const auto path = fixture ? nodes[it.key()].toString() : it.value();
+        plain(path);
+        if (fixture)
+          check(path.startsWith(base + '/'), "Media fixture escaped its root");
+        else {
+          struct stat info;
+          check(::lstat(QFile::encodeName(path).constData(), &info) == 0 &&
+                    S_ISCHR(info.st_mode),
+                "Expected media character device missing",
+                "permissions-device");
+          const auto sys = "/sys/dev/char/" +
+                           QString::number(major(info.st_rdev)) + ':' +
+                           QString::number(minor(info.st_rdev)) + "/uevent";
+          const auto lines = readSysfsAttribute(sys, 4096).split('\n');
+          check(lines.contains("DEVNAME=" + path.mid(5).toUtf8()),
+                "Media device and kernel name disagree", "permissions-device");
+        }
+        check(!mediaNodes.contains(path), "Duplicate media fixture refused");
+        mediaNodes.append(path);
+      }
+    } else if (fixture)
+      check(!config["permission_fixtures"].toObject().contains("media_nodes"),
+            "Unused media fixtures refused");
     records = run + "/processes";
     heartbeat = run + "/hmi/heartbeat.json";
     check(policy["pid_root"] == records && policy["hmi_heartbeat"] == heartbeat,
@@ -265,7 +327,7 @@ void auditVersionTree(const QString &path) {
     }
   }
 }
-void requireNoRoleProcesses(uid_t web, uid_t hmi) {
+void requireNoRoleProcesses(uid_t web, uid_t hmi, uid_t provider) {
   for (const auto &name :
        QDir("/proc").entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
     if (!QRegularExpression("^[0-9]+$").match(name).hasMatch())
@@ -300,7 +362,7 @@ void requireNoRoleProcesses(uid_t web, uid_t hmi) {
         bool valid = false;
         const auto value = id.toUInt(&valid);
         check(valid, "Invalid process UID");
-        check(value != web && value != hmi,
+        check(value != web && value != hmi && (!provider || value != provider),
               "Application role process remains active; no permission change",
               "permissions-active");
       }
@@ -320,15 +382,16 @@ QJsonObject applicationPermissions(const QJsonObject &config, bool apply) {
     control.reset(new FileLock(
         config["control_lock"].toString(profile.apps + "/.control.lock")));
     for (const auto &root : {profile.records, profile.run})
-      for (const auto &role :
-           {QString("web"), QString("hmi"), QString("supervisor")})
+      for (const auto &role : {QString("web"), QString("hmi"),
+                               QString("supervisor"), QString("desktop")})
         for (const auto &suffix : {QString(".pid"), QString(".launch.json")}) {
           const auto file = root + '/' + role + suffix;
           check(!QFileInfo(file).exists() && !QFileInfo(file).isSymLink(),
                 "Stop application roles before changing permissions",
                 "permissions-active");
         }
-    requireNoRoleProcesses(profile.web, profile.hmi);
+    requireNoRoleProcesses(profile.web, profile.hmi,
+                           profile.desktopProvider ? profile.provider : 0);
   }
   auditVersionTree(profile.apps + "/releases");
   std::vector<std::unique_ptr<Entry>> entries;
@@ -343,6 +406,33 @@ QJsonObject applicationPermissions(const QJsonObject &config, bool apply) {
   add(QFileInfo(profile.heartbeat).absolutePath(), profile.hmi, profile.group,
       0700);
   add(profile.data, profile.web, profile.group, 0700);
+  if (profile.desktopProvider) {
+    add(profile.run + "/desktop", profile.provider, profile.group, 0750);
+    // Credentials remain outside application payloads; never create or rewrite
+    // configuration contents. Only an explicitly provisioned regular file is
+    // included in the permission transaction.
+    const auto privateConfig = profile.fixture
+                                   ? profile.base + "/desktop-private.json"
+                                   : QString("/etc/dshancontrol/desktop.json");
+    if (QFileInfo::exists(privateConfig) ||
+        QFileInfo(privateConfig).isSymLink())
+      add(privateConfig, profile.provider, profile.group, 0600, S_IFREG);
+  }
+  // HMI state is a sibling of private Web data: never grant HMI traversal of
+  // data/ merely to reach a nested layout directory. No user content is
+  // written.
+  const auto desktop = profile.base + "/desktop";
+  add(desktop, profile.hmi, profile.group, 0700);
+  const QSet<QString> desktopFiles{
+      "layout-v1.json", "layout-v1.json.before-reset", "layout-v1.json.lock"};
+  for (const auto &entry :
+       QDir(desktop).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot |
+                                   QDir::Hidden | QDir::System)) {
+    check(desktopFiles.contains(entry.fileName()),
+          "Unknown desktop state entry retained", "permissions-unknown-data");
+    add(entry.absoluteFilePath(), profile.hmi, profile.group, 0600, S_IFREG);
+  }
+
   const QSet<QString> known{
       "web.json",    "hmi.json",    "session.key", "edge.db",    "hmi.db",
       "edge.db-wal", "edge.db-shm", "hmi.db-wal",  "hmi.db-shm", "eds"};
@@ -378,6 +468,9 @@ QJsonObject applicationPermissions(const QJsonObject &config, bool apply) {
       profile.fixture ? S_IFREG : S_IFCHR);
   add(profile.touch, profile.hmi, profile.group, 0600,
       profile.fixture ? S_IFREG : S_IFCHR);
+  for (const auto &path : profile.mediaNodes)
+    add(path, profile.hmi, profile.group, 0600,
+        profile.fixture ? S_IFREG : S_IFCHR);
   QJsonArray plan;
   for (const auto &entry : entries)
     plan.append(entry->json());

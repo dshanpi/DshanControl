@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-16",
+  "status": "development-board-fix-verified",
+  "scope": "Observed S4 WiFi status mapping and reduced-role address discovery; two development system configuration overlays on complete imageca98",
+  "base_image_sha256": "ca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a",
+  "factory_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+  "application_code_or_binary_changed": false,
+  "source_state": "uncommitted-workspace-changes",
+  "cause": {
+    "empty_wireless_list": "system board manifest omitted wlan0 so the API and Qt filtering had no wireless channel",
+    "missing_address": "vendor mdev default root:root0660 /dev/null denied UID400 subprocess.DEVNULL before ip could run",
+    "initial_ip_observer_assertion": "correctly refused empty address after mapping alone",
+    "initial_data_observer_assertion": "one live minute telemetry sample was replaced on normal application restart; historical rows checked separately without excluding arbitrary changes"
+  },
+  "fix": {
+    "platform_manifest": {
+      "path": "/etc/omnigate/platform.json",
+      "before_sha256": "b0aeb882e093d6cbfa7e9eadec1ae467b9befde5b564fca5380e29bf9546d53b",
+      "after_sha256": "91e1ace6e05ed7a7cd825af4c66b7d0a0e4ab0b1143db73d8248d076dfed4b83",
+      "added_channel": {
+        "name": "wifi0",
+        "kind": "wifi",
+        "device": "wlan0",
+        "role": "wan"
+      }
+    },
+    "mdev_configuration": {
+      "kind": "development-system-configuration-overlay",
+      "path": "/etc/mdev.conf",
+      "before_sha256": "587c5fa47358e9c3817d7c64c801091fb6d39a9c526556c9d1048b69bb05f089",
+      "after_sha256": "3b195484f88a947e25497eaf7dcfb445774e7b20dd70a10c0df107b3242bae19",
+      "source_rule": "null 0:0 0666",
+      "existing_vendor_rules_preserved": true,
+      "busybox_mdev_conf_enabled_in_selected_build": true
+    },
+    "live_dev_null": {
+      "character_device": true,
+      "major": 1,
+      "minor": 3,
+      "uid": 0,
+      "gid": 0,
+      "before_mode": "0660",
+      "after_mode": "0666"
+    },
+    "source_finalizer_and_read_only_audit_updated": true,
+    "existing_vendor_hotplug_rules_preserved": true,
+    "configuration_files_transferred_over_mutual_tls_network": true,
+    "application_restarted_once": true,
+    "network_services_restarted": false
+  },
+  "network": {
+    "wpa_state": "COMPLETED",
+    "ip_address": "192.168.1.68",
+    "default_route_interface": "wlan0",
+    "dns_resolved": true,
+    "external_probes": [
+      {
+        "url": "https://www.baidu.com/",
+        "status": 200,
+        "bytes_sampled": 256,
+        "elapsed_seconds": 0.19
+      },
+      {
+        "url": "https://api.github.com/rate_limit",
+        "status": 200,
+        "bytes_sampled": 256,
+        "elapsed_seconds": 0.62
+      },
+      {
+        "url": "https://github.com/",
+        "error": "URLError",
+        "detail": "<urlopen error timed out>",
+        "elapsed_seconds": 8.05
+      }
+    ],
+    "github_homepage_failure_does_not_establish_global_network_failure": true
+  },
+  "board_verification": {
+    "boot_id": "dd3870c5-c7e0-45c9-a19f-b01d75654c17",
+    "health": {
+      "application_commit": "5e268ac5a5ad6a31f63d7ae8f2a0a25a7a10ed4e",
+      "databases": 2,
+      "hmi_functional_heartbeat": true,
+      "ok": true,
+      "processes": {
+        "hmi": 4135,
+        "supervisor": 4083,
+        "web": 4134
+      }
+    },
+    "health_observation_exit_codes": [
+      0
+    ],
+    "manifest_sha256": "91e1ace6e05ed7a7cd825af4c66b7d0a0e4ab0b1143db73d8248d076dfed4b83",
+    "network_api": [
+      {
+        "address": "192.168.1.68/24",
+        "kind": "wifi",
+        "name": "wlan0",
+        "online": true,
+        "source": "real",
+        "state": "up"
+      }
+    ],
+    "platform_channels": {
+      "display0": {
+        "device": "/dev/fb0",
+        "kind": "display",
+        "role": "local-hmi"
+      },
+      "wifi0": {
+        "device": "wlan0",
+        "kind": "wifi",
+        "role": "wan"
+      }
+    },
+    "formal_system_contract_unchanged": true,
+    "installed_identity_unchanged": true,
+    "static_files_unchanged": [
+      "web.json",
+      "session.key",
+      "hmi.json"
+    ],
+    "databases": [
+      {
+        "database": "edge.db",
+        "quick_check": "ok",
+        "all_historical_rows_preserved": true,
+        "live_minute_samples_refreshed": [],
+        "tables": {
+          "metadata": {
+            "before": 1,
+            "after": 1
+          },
+          "devices": {
+            "before": 0,
+            "after": 0
+          },
+          "points": {
+            "before": 0,
+            "after": 0
+          },
+          "audit": {
+            "before": 0,
+            "after": 0
+          },
+          "sqlite_sequence": {
+            "before": 0,
+            "after": 0
+          }
+        }
+      },
+      {
+        "database": "hmi.db",
+        "quick_check": "ok",
+        "all_historical_rows_preserved": true,
+        "live_minute_samples_refreshed": [
+          {
+            "table": "telemetry",
+            "bucket": 1792120980,
+            "reason": "per-minute sample replaced by normal restarted application"
+          }
+        ],
+        "tables": {
+          "alarms": {
+            "before": 0,
+            "after": 0
+          },
+          "sqlite_sequence": {
+            "before": 0,
+            "after": 0
+          },
+          "audit": {
+            "before": 0,
+            "after": 0
+          },
+          "telemetry": {
+            "before": 790,
+            "after": 796
+          }
+        }
+      }
+    ],
+    "application_restarted": true,
+    "network_services_restarted": false
+  },
+  "verification_scope": {
+    "qt_data_source_has_live_wifi_interface_and_address": true,
+    "physical_screen_confirmation": false,
+    "extra_os_reboot_test": false,
+    "full_system_image_rebuilt": false,
+    "existing_draft_images_and_assets_unchanged": true,
+    "production_qualified": false
+  },
+  "tests": {
+    "first_host_run": {
+      "core": 5,
+      "repository": 246,
+      "skipped": 9,
+      "passed": true
+    },
+    "final_host_run": {
+      "command": "make test",
+      "core": 5,
+      "repository": 247,
+      "skipped": 9,
+      "passed": true,
+      "includes_manifest_api_present_absent_and_mdev_preservation_tamper_link_regressions": true
+    }
+  },
+  "private_evidence": "dist/wifi-report-20261016; original system configs and quiescent data snapshots retained privately; no WiFi credentials or private signing keys in this receipt"
+}

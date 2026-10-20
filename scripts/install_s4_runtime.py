@@ -7,7 +7,7 @@ from pathlib import Path
 from check_hmi_resources import verify as verify_hmi_resources
 
 
-from application_payload import payload
+from application_payload import payload, component_inputs, component_licenses
 
 
 def main():
@@ -17,7 +17,17 @@ def main():
     p.add_argument('--hmi', required=True, type=Path)
     p.add_argument('--runtime', type=Path,
                    help='target C++ system runtime; omitted only for legacy image reproduction')
+    p.add_argument('--desktop-service', type=Path)
+    p.add_argument('--media-worker', type=Path)
+    p.add_argument('--imageformats', type=Path)
     args = p.parse_args()
+    try:
+        components = component_inputs(args.desktop_service, args.media_worker, args.imageformats)
+        component_licenses(args.source, components)
+    except ValueError as error:
+        p.error(str(error))
+    if components and not args.runtime:
+        p.error('desktop components require the managed native runtime')
     src, target = args.source, args.target.resolve()
     if str(target) == '/':
         p.error('refusing host root')
@@ -66,7 +76,7 @@ def main():
         p.error('native target requires --runtime; refusing mixed legacy installation')
     if factory.exists():
         shutil.rmtree(str(factory))
-    payload(src, factory, args.hmi)
+    payload(src, factory, args.hmi, args.desktop_service, args.media_worker, args.imageformats)
     (factory / 'installed.json').write_text(json.dumps(installed, indent=2) + '\n')
     for source, name, mode in files:
         destination = target / name
@@ -91,6 +101,9 @@ def main():
                                           'native_supervisor': True},
                       task_service=True,
                       control_lock='/mnt/UDISK/dshancontrol/apps/.control.lock')
+        if components:
+            config['application_health']['desktop_provider'] = True
+            config['application_health']['media_devices'] = True
         service = {'socket': '/run/dshancontrol/platform.sock',
                    'updater_config': '/etc/dshancontrol/updater.json',
                    'task_root': '/mnt/UDISK/dshancontrol/update-tasks',

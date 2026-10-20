@@ -2,10 +2,25 @@
 #include "../../components/hmi/src/visuals.h"
 #include "../../components/hmi/src/updatepanel.h"
 #include "../../components/hmi/src/applicationheartbeat.h"
+#include "../../components/hmi/src/desktopclient.h"
+#include "../../components/hmi/src/cloudpanel.h"
+#include "../../components/hmi/src/familypanel.h"
+#include "../../components/hmi/src/mediapanel.h"
+#include "../../components/hmi/src/desktop/desktopcanvas.h"
+#include "../../components/hmi/src/desktop/desktoptrendpanel.h"
+#include "../../components/hmi/src/desktop/desktopshell.h"
+#include "../../components/hmi/src/displayprobe.h"
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <unistd.h>
 #include <QSaveFile>
+#include <QScreen>
+#include <QWindow>
 #include <time.h>
 #include <QCheckBox>
 #include <QFileDialog>
+#include <QToolButton>
+#include <QTreeView>
 #include <QDir>
 #include <QTemporaryDir>
 #include <QRawFont>
@@ -66,6 +81,8 @@ class FixtureReply : public QNetworkReply
 class HmiUiTest : public QObject
 {
     Q_OBJECT
+    QTemporaryDir isolatedState;
+    QTcpServer isolatedProxy;
     QJsonObject snapshot()
     {
         // Explicit test-only fixture: never loaded by the production executable.
@@ -107,12 +124,429 @@ class HmiUiTest : public QObject
     }
     void isolate(MainWindow &w)
     {
+        w.desktopClient->poll.stop();
+        w.desktopClient->disconnect();
         w.refreshTimer.stop();
         w.networkManager.disconnect(&w);
         for (auto *r : w.networkManager.findChildren<QNetworkReply *>())
             r->abort();
     }
   private slots:
+    void mediaWorkerFailuresAreBoundedAndDoNotRestart()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        auto script = [&](const QString &name, const QByteArray &body) {
+            const auto path = dir.filePath(name);
+            QFile file(path);
+            if (!file.open(QIODevice::WriteOnly)) return QString();
+            file.write("#!/usr/bin/python3\n" + body);
+            file.close();
+            file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+            return path;
+        };
+        MediaSession session;
+        session.executable = script("bad.py", "import time\nprint('{\"protocol\":1,\"event\":\"status\",\"available\":\"true\",\"state\":\"playing\"}', flush=True)\ntime.sleep(20)\n");
+        session.start();
+        QTRY_COMPARE(session.snapshot()["error"].toString(), QString("worker-invalid-status"));
+        QTRY_COMPARE(session.process->state(), QProcess::NotRunning);
+        session.start();
+        QCOMPARE(session.process->state(), QProcess::NotRunning);
+        session.executable = script("silent.py", "import time\ntime.sleep(20)\n");
+        session.startupDeadline.setInterval(80);
+        session.start(true);
+        QTRY_COMPARE(session.snapshot()["error"].toString(), QString("worker-start-timeout"));
+        QTRY_COMPARE(session.process->state(), QProcess::NotRunning);
+        QVERIFY(session.queue.isEmpty());
+    }
+    void mediaResizeCannotOvertakeQueuedOpen()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("delayed.py");
+        const auto log = dir.filePath("commands.jsonl");
+        QFile script(path);
+        QVERIFY(script.open(QIODevice::WriteOnly));
+        script.write("#!/usr/bin/python3\nimport json,sys,time\ntime.sleep(.35)\ns={'protocol':1,'event':'status','available':True,'capabilities':['suspend-during-prepare','visibility-state'],'state':'idle'}\nprint(json.dumps(s),flush=True)\nwidth=0\nfor line in sys.stdin:\n r=json.loads(line)\n with open('" + log.toUtf8() + "','a') as f: f.write(line)\n if r['command']=='rect': width=r['params']['width']\n elif r['command']=='open':\n  s['state']='prepared' if width==400 else 'error'\n  print(json.dumps(s),flush=True)\n elif r['command']=='close': break\n");
+        script.close();
+        QVERIFY(script.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        MediaSession session;
+        session.executable = path;
+        session.start();
+        auto rectangle = [&](int width) {
+            session.command("rect", {{"x", 0}, {"y", 0}, {"width", width}, {"height", 200}});
+        };
+        rectangle(400);
+        session.command("open", {{"path", "/test.avi"}, {"volume", 60}});
+        // An asynchronous layout pass during worker startup must not move the
+        // prerequisite rectangle behind open; only trailing resizes may merge.
+        rectangle(500);
+        rectangle(600);
+        QTRY_COMPARE(session.snapshot()["state"].toString(), QString("prepared"));
+        session.process->closeWriteChannel();
+        QTRY_COMPARE(session.process->state(), QProcess::NotRunning);
+        QFile commands(log);
+        QVERIFY(commands.open(QIODevice::ReadOnly));
+        const auto lines = commands.readAll().trimmed().split('\n');
+        QCOMPARE(lines.size(), 3);
+        const auto first = QJsonDocument::fromJson(lines[0]).object();
+        QCOMPARE(first["command"].toString(), QString("rect"));
+        QCOMPARE(first["params"].toObject()["width"].toInt(), 400);
+        QCOMPARE(QJsonDocument::fromJson(lines[1]).object()["command"].toString(), QString("open"));
+        QCOMPARE(QJsonDocument::fromJson(lines[2]).object()["params"].toObject()["width"].toInt(), 600);
+    }
+    void mediaExitNeverWaitsForBlockedDecoder()
+    {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("blocked.py");
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("#!/usr/bin/python3\nimport signal,time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\nprint('{\"protocol\":1,\"event\":\"status\",\"available\":true,\"capabilities\":[\"suspend-during-prepare\",\"visibility-state\"],\"state\":\"idle\"}',flush=True)\ntime.sleep(30)\n");
+        f.close();
+        QVERIFY(f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        auto *session = new MediaSession;
+        session->executable = path;
+        session->start();
+        QTRY_VERIFY(session->snapshot()["available"] == true);
+        QPointer<QProcess> worker(session->process);
+        int ticks = 0;
+        QTimer heartbeat;
+        connect(&heartbeat, &QTimer::timeout, this, [&ticks]() { ++ticks; });
+        heartbeat.start(20);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        delete session;
+        QVERIFY2(elapsed.elapsed() < 150, "GUI destructor waited for media child");
+        QTRY_VERIFY_WITH_TIMEOUT(worker.isNull(), 4500);
+        QVERIFY(ticks >= 40);
+    }
+    void mediaHidePreservesPositionAndCancelsPendingAutostart()
+    {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("worker.py");
+        const auto log = dir.filePath("commands.jsonl");
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("#!/usr/bin/python3\nimport json,sys\ns={'protocol':1,'event':'status','available':True,'capabilities':['suspend-during-prepare','visibility-state'],'state':'playing','first_frame':True,'position_ms':12345,'duration_ms':60000,'visible':True,'width':640,'height':360}\nprint(json.dumps(s),flush=True)\nfor line in sys.stdin:\n r=json.loads(line)\n with open('" + log.toUtf8() + "','a') as f: f.write(line)\n if r['command']=='suspend': s.update(state='paused',visible=False)\n elif r['command']=='visible': s['visible']=r['params']['value']\n elif r['command']=='close': break\n else: continue\n print(json.dumps(s),flush=True)\n");
+        f.close();
+        QVERIFY(f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        MediaPanel panel;
+        panel.session.executable = path;
+        panel.resize(1024, 489);
+        panel.show();
+        QTRY_VERIFY(panel.state["first_frame"] == true);
+        panel.hide();
+        QTRY_COMPARE(panel.state["state"].toString(), QString("paused"));
+        QCOMPARE(panel.state["position_ms"].toInt(), 12345);
+        QVERIFY(panel.state["visible"] == false);
+        panel.show();
+        QTRY_VERIFY(panel.state["visible"] == true);
+        QCOMPARE(panel.state["state"].toString(), QString("paused"));
+        QCOMPARE(panel.state["position_ms"].toInt(), 12345);
+        QFile commands(log);
+        QVERIFY(commands.open(QIODevice::ReadOnly));
+        const auto before = commands.readAll();
+        QVERIFY(before.contains("suspend"));
+        QVERIFY(!before.contains("close"));
+        QVERIFY(!before.contains("\"command\":\"open\""));
+        commands.close();
+        panel.apply({{"available", true}, {"state", "preparing"}, {"first_frame", false}});
+        panel.hide();
+        QTRY_COMPARE(panel.state["state"].toString(), QString("paused"));
+        QVERIFY(commands.open(QIODevice::ReadOnly));
+        QVERIFY(commands.readAll().count("suspend") >= 2);
+    }
+
+    void mediaViewportExposesOnlyActiveCedarRectangle()
+    {
+        MediaPanel panel;
+        panel.session.executable = "/missing-test-worker";
+        panel.resize(1024, 489);
+        panel.show();
+        QTest::qWait(30);
+        QJsonObject data{{"available", true}, {"backend", "cedar-tplayer"},
+                         {"state", "playing"}, {"first_frame", true}, {"visible", true},
+                         {"width", 640}, {"height", 360}};
+        panel.apply(data);
+        panel.geometry();
+        panel.geometryTimer->stop();
+        auto image = [&]() {
+            QImage result(panel.stage->size(), QImage::Format_ARGB32_Premultiplied);
+            result.fill(QColor(12, 34, 56));
+            panel.stage->render(&result);
+            return result.convertToFormat(QImage::Format_ARGB32);
+        };
+        auto frame = image();
+        QCOMPARE(qAlpha(frame.pixel(frame.width()/2, frame.height()/2)), 0);
+        QVERIFY(qAlpha(frame.pixel(0, 0)) == 255);
+        for (const auto &name : {"paused", "error", "completed", "idle"})
+        {
+            data["state"] = name;
+            panel.apply(data);
+            frame = image();
+            for (int y=0; y<frame.height(); ++y)
+                for (int x=0; x<frame.width(); ++x)
+                    QVERIFY(qAlpha(frame.pixel(x,y)) == 255);
+        }
+        data["state"] = "playing";
+        data["visible"] = false;
+        panel.apply(data);
+        frame = image();
+        QCOMPARE(qAlpha(frame.pixel(frame.width()/2,frame.height()/2)),255);
+        data["visible"] = true;
+        data["first_frame"] = false;
+        panel.apply(data);
+        frame = image();
+        QCOMPARE(qAlpha(frame.pixel(frame.width()/2,frame.height()/2)),255);
+    }
+
+    void componentRoutesReuseExistingPagesAndHideLegacyNavigation()
+    {
+        MainWindow w;
+        isolate(w);
+        w.setDesktopEmbedded(true);
+        w.show();
+        QTest::qWait(20);
+        QVERIFY(!w.nav->isVisible());
+        const QStringList ids = {"overview", "fieldbus", "network", "devices", "alarms",
+            "settings", "cloud_bind", "reporting", "voice", "home", "video", "update"};
+        const QList<int> indices = {0,1,2,3,4,5,6,6,7,7,8,5};
+        for (int i = 0; i < ids.size(); ++i) {
+            QVERIFY(w.openApplication(ids[i]));
+            QCOMPARE(w.pages->currentIndex(), indices[i]);
+            QVERIFY(!w.nav->isVisible());
+        }
+        QCOMPARE(w.findChild<QTabWidget *>("settingsTabs")->currentIndex(), 3);
+        QCOMPARE(w.findChildren<QWidget *>("applicationUpdatePanel").size(), 1);
+        QVERIFY(!w.openApplication("unregistered-app"));
+        w.openApplication("reporting");
+        QCOMPARE(w.findChild<SectionTabs *>("cloudTabs")->currentIndex(), 1);
+        w.openApplication("cloud_bind");
+        QCOMPARE(w.findChild<SectionTabs *>("cloudTabs")->currentIndex(), 0);
+        w.openApplication("home");
+        QCOMPARE(w.findChild<SectionTabs *>("familyTabs")->currentIndex(), 1);
+        w.openApplication("voice");
+        QCOMPARE(w.findChild<SectionTabs *>("familyTabs")->currentIndex(), 0);
+        w.setDesktopEmbedded(false);
+        QVERIFY(w.nav->isVisible());
+    }
+
+    void embeddedSettingsReportPhysicalScreenInsteadOfContentArea()
+    {
+        DesktopV1::DesktopShell shell;
+        auto *application = shell.findChild<MainWindow *>();
+        QVERIFY(application);
+        isolate(*application);
+        shell.show();
+        QVERIFY(shell.openApplication("settings"));
+        QTest::qWait(30);
+        auto *screen = shell.windowHandle()->screen();
+        QVERIFY(screen);
+        for (const auto &size : {QSize(1024, 600), QSize(1280, 720)}) {
+            shell.resize(size);
+            QTest::qWait(30);
+            QVERIFY(application->height() < shell.height());
+            const QSize pixels = screen->size() * screen->devicePixelRatio();
+            QCOMPARE(application->screenResolution->text(),
+                     QString("%1 × %2（已检测）").arg(pixels.width()).arg(pixels.height()));
+        }
+    }
+
+    void componentDesktopProjectsLiveStateAndClearsLostData()
+    {
+        DesktopV1::DesktopCanvas canvas(false);
+        auto root = snapshot();
+        root["settings"] = QJsonObject{{"brightness", 220}, {"demo_mode", false}};
+        root["networks"] = QJsonArray{QJsonObject{{"kind", "wifi"}, {"source", "real"},
+            {"online", true}, {"address", "192.168.1.68/24"}}};
+        root["alarms"] = QJsonObject{{"active", 0}, {"recent", QJsonArray()}};
+        canvas.applyHmi(root);
+        QVERIFY(canvas.model.networkOnline);
+        QVERIFY(canvas.model.wirelessOnline);
+        QVERIFY(!canvas.model.wiredOnline);
+        QCOMPARE(canvas.model.wireless, QString("192.168.1.68/24"));
+        QCOMPARE(canvas.model.wired, QString("未提供接口"));
+        QCOMPARE(canvas.model.alarmCount, QString("0"));
+        QCOMPARE(canvas.model.alarmText, QString("暂无活动告警"));
+        QCOMPARE(canvas.model.temperature, QString("--")); // SoC temperature is not an environment binding.
+        root["alarms"] = QJsonObject{{"active", 1}, {"recent", QJsonArray{
+            QJsonObject{{"state", "active"}, {"message", "not a current real alarm"}, {"source", "demo"}},
+            QJsonObject{{"state", "active"}, {"message", "实际故障"}, {"source", "real"}, {"ts", 1791817100}}}}};
+        canvas.applyHmi(root);
+        QCOMPARE(canvas.model.alarmText, QString("实际故障"));
+        root["alarms"] = QJsonObject{{"active", 1.5}};
+        canvas.applyHmi(root);
+        QCOMPARE(canvas.model.alarmCount, QString("--"));
+        root["networks"] = QJsonArray{QJsonObject{{"kind", "wifi"}, {"source", "demo"}, {"online", true}}};
+        canvas.applyHmi(root);
+        QVERIFY(!canvas.model.networkOnline);
+        QCOMPARE(canvas.model.wireless, QString("演示数据"));
+        canvas.applyHmi({});
+        QVERIFY(!canvas.model.online);
+        QVERIFY(!canvas.model.networkOnline);
+        QCOMPARE(canvas.model.alarmCount, QString("--"));
+        QCOMPARE(canvas.model.busStates, QStringList({"未获取", "未获取", "未获取"}));
+        QCOMPARE(canvas.brightness, -1);
+    }
+
+    void displayPatternRetainsExactColorsAndPixelGeometry()
+    {
+        const auto image = DisplayProbe::reference();
+        QCOMPARE(image.size(), QSize(1024, 600));
+        QCOMPARE(image.pixelColor(30, 80), QColor(Qt::red));
+        QCOMPARE(image.pixelColor(150, 80), QColor(Qt::green));
+        QCOMPARE(image.pixelColor(275, 80), QColor(Qt::blue));
+        QCOMPARE(image.pixelColor(30, 194), QColor("#142C4B"));
+        QCOMPARE(image.pixelColor(190, 194), QColor("#1468FA"));
+        QCOMPARE(image.pixelColor(25, 280), QColor(Qt::black));
+        QCOMPARE(image.pixelColor(960, 280), QColor(Qt::white));
+        QCOMPARE(image.pixelColor(0, 0), QColor(Qt::black));
+        QCOMPARE(image.pixelColor(1023, 599), QColor(Qt::black));
+    }
+
+    void componentDesktopKeepsProviderAvailabilitySeparateFromCloud()
+    {
+        DesktopV1::DesktopCanvas canvas(false);
+        canvas.applyServices({{"service_connected", true}, {"reporting", QJsonObject{{"enabled", true}}}});
+        QCOMPARE(canvas.model.cloudState, QString("设备尚未登记"));
+        QVERIFY(!canvas.model.cloudOnline);
+        canvas.applyServices({{"service_connected", true},
+            {"cloud", QJsonObject{{"configured", true}, {"mqtt", "offline"}}},
+            {"reporting", QJsonObject{{"enabled", true}}}});
+        QCOMPARE(canvas.model.cloudState, QString("上报已启用 · 云端离线"));
+        canvas.applyServices({{"service_connected", true},
+            {"cloud", QJsonObject{{"configured", true}, {"mqtt", "connected"}}},
+            {"reporting", QJsonObject{{"enabled", true}}}});
+        QVERIFY(canvas.model.cloudOnline);
+        canvas.applyServices({});
+        QVERIFY(!canvas.model.cloudOnline);
+        QCOMPARE(canvas.model.cloudState, QString("接入服务未连接"));
+        DesktopV1::DesktopCanvas fixture(true);
+        fixture.applyHmi({});
+        fixture.applyServices({});
+        QCOMPARE(fixture.model.connection, QString("网络已连接"));
+        QCOMPARE(fixture.model.alarmCount, QString("02"));
+    }
+
+    void desktopClientSerializesVoiceReleaseAndNeverReplaysAControl()
+    {
+        QTemporaryDir temp; QVERIFY(temp.isValid());
+        QLocalServer server; QVERIFY(server.listen(temp.filePath("desktop.sock")));
+        QList<QJsonObject> requests;
+        connect(&server,&QLocalServer::newConnection,this,[&](){
+            auto *socket=server.nextPendingConnection();
+            connect(socket,&QLocalSocket::readyRead,socket,[&,socket](){
+                auto bytes=socket->property("received").toByteArray()+socket->readAll();socket->setProperty("received",bytes);
+                if(!bytes.contains('\n')||socket->property("finished").toBool())return;
+                socket->setProperty("finished",true);const auto request=QJsonDocument::fromJson(bytes).object();requests.append(request);
+                if(request["method"]=="home.command"){socket->abort();return;}
+                const QJsonObject reply{{"protocol",1},{"ok",true},{"result",QJsonObject{{"version",1}}}};
+                socket->write(QJsonDocument(reply).toJson(QJsonDocument::Compact)+'\n');socket->disconnectFromServer();
+            });connect(socket,&QLocalSocket::disconnected,socket,&QObject::deleteLater);
+        });
+        DesktopClient client;client.poll.stop();client.socketPath=temp.filePath("desktop.sock");client.serverUid=geteuid();
+        client.request("voice.command",{{"command","start_listen"}});
+        client.request("voice.command",{{"command","stop_listen"}});
+        QTRY_VERIFY(requests.size()>=2);
+        QCOMPARE(requests[0]["params"].toObject()["command"].toString(),QString("start_listen"));
+        QCOMPARE(requests[1]["params"].toObject()["command"].toString(),QString("stop_listen"));
+        client.request("home.command",{{"command_id",QString(32,'a')}});
+        auto count=[&](){int n=0;for(const auto &request:requests)if(request["method"]=="home.command")++n;return n;};
+        QTRY_COMPARE(count(),1);QTest::qWait(100);QCOMPARE(count(),1);
+    }
+    void voiceUiCancellationStopsSession_data()
+    {
+        QTest::addColumn<int>("reason");
+        const char *names[] = {"release", "button-touch-cancel", "panel-touch-cancel",
+                               "window-deactivate", "application-deactivate", "hide", "tab-switch",
+                               "free-touch-cancel", "free-window-deactivate", "free-hide", "free-tab-switch"};
+        for (int i=0; i<11; ++i) QTest::newRow(names[i]) << i;
+    }
+    void voiceUiCancellationStopsSession()
+    {
+        QFETCH(int, reason);
+        QTemporaryDir temporary; QLocalServer server;
+        QVERIFY(server.listen(temporary.filePath("voice-ui.sock")));
+        QStringList commands;
+        connect(&server, &QLocalServer::newConnection, this, [&]() {
+            auto *socket=server.nextPendingConnection();
+            connect(socket,&QLocalSocket::readyRead,socket,[&,socket]() {
+                auto bytes=socket->property("bytes").toByteArray()+socket->readAll();
+                socket->setProperty("bytes",bytes); if(!bytes.contains('\n')) return;
+                const auto request=QJsonDocument::fromJson(bytes.trimmed()).object();
+                if(request["method"]=="voice.command") commands << request["params"].toObject()["command"].toString();
+                socket->write(QJsonDocument(QJsonObject{{"protocol",1},{"ok",true},{"result",QJsonObject{{"voice",QJsonObject{{"configured",true},{"ready",true},{"state","idle"}}}}}}).toJson(QJsonDocument::Compact)+'\n');
+                socket->disconnectFromServer();
+            });
+            connect(socket,&QLocalSocket::disconnected,socket,&QObject::deleteLater);
+        });
+        DesktopClient client; client.poll.stop(); client.socketPath=temporary.filePath("voice-ui.sock");client.serverUid=geteuid();
+        FamilyPanel panel(&client); panel.resize(1024,600); panel.show();
+        panel.apply({{"service_connected",true},{"voice",QJsonObject{{"configured",true},{"ready",true},{"state","idle"}}}});
+        auto *talk=panel.findChild<QPushButton *>("voiceTalk");QVERIFY(talk);QVERIFY(talk->isEnabled());QVERIFY(talk->isVisible());
+        QTest::qWait(30);
+        const bool freeChat = reason >= 7;
+        const QString startCommand = freeChat ? "enter_free_chat" : "start_listen";
+        if (freeChat) {
+            auto *mode=panel.findChild<QComboBox *>("voiceMode");QVERIFY(mode);
+            mode->setCurrentIndex(1);QVERIFY(QMetaObject::invokeMethod(mode,"activated",Q_ARG(int,1)));
+            const int triggers[] = {2,3,5,6};reason=triggers[reason-7];
+        } else QTest::mousePress(talk,Qt::LeftButton);
+        QTRY_COMPARE(commands.count(startCommand),1);
+        if(reason==0) QTest::mouseRelease(talk,Qt::LeftButton);
+        else if(reason==1) { QEvent e(QEvent::TouchCancel);QApplication::sendEvent(talk,&e); }
+        else if(reason==2) { QEvent e(QEvent::TouchCancel);QApplication::sendEvent(&panel,&e); }
+        else if(reason==3) { QEvent e(QEvent::WindowDeactivate);QApplication::sendEvent(&panel,&e); }
+        else if(reason==4) { QEvent e(QEvent::ApplicationDeactivate);QApplication::sendEvent(qApp,&e); }
+        else if(reason==5) panel.hide();
+        else panel.selectSection(1);
+        QTRY_VERIFY_WITH_TIMEOUT(commands.contains("stop_listen"),1500);
+        QCOMPARE(commands.count(startCommand),1);
+        // A delayed release after cancellation must not enqueue another stop or restart.
+        QTest::mouseRelease(talk,Qt::LeftButton);QTest::qWait(80);
+        QCOMPARE(commands.count("stop_listen"),1);
+        QCOMPARE(commands.count(startCommand),1);
+        QVERIFY(!talk->isDown());
+        if(freeChat) QCOMPARE(commands.count("exit_free_chat"),1);
+    }
+    void newDesktopPagesHaveTruthfulEmptyStatesAndFitTheActualWindow()
+    {
+        MainWindow w;isolate(w);w.markOffline();w.show();QTest::qWait(30);
+        QCOMPARE(w.pages->count(),9);
+        for(const auto size:{QSize(1024,600),QSize(800,480),QSize(1280,720)}){
+            w.resize(size);QTest::qWait(40);QCOMPARE(w.size(),size);
+            for(int page=6;page<=8;++page){w.showPage(page);QTest::qWait(50);
+                auto *outer=qobject_cast<QScrollArea *>(w.pages->currentWidget());QVERIFY(outer);
+                QVERIFY2(outer->horizontalScrollBar()->maximum()==0,qPrintable(QString("new desktop page horizontal overflow %1/%2").arg(page).arg(size.width())));
+                if(size.width()>=1024)QVERIFY2(outer->verticalScrollBar()->maximum()==0,qPrintable(QString("new desktop page vertical overflow %1: %2").arg(page).arg(outer->verticalScrollBar()->maximum())));
+                const auto sections=outer->findChildren<QTabWidget *>();
+                if(sections.isEmpty())QVERIFY(w.grab().save(QString("screenshots/desktop-%1x%2-page%3.png").arg(size.width()).arg(size.height()).arg(page)));
+                for(auto *tabs:sections)for(int tab=0;tab<tabs->count();++tab){tabs->setCurrentIndex(tab);QTest::qWait(40);
+                    QVERIFY(w.grab().save(QString("screenshots/desktop-%1x%2-page%3-tab%4.png").arg(size.width()).arg(size.height()).arg(page).arg(tab)));
+                    for(auto *b:tabs->currentWidget()->findChildren<QPushButton *>())if(b->isVisible())QVERIFY(b->height()>=44);
+                }
+            }
+        }
+        QVERIFY(!w.cloudPanel->findChild<QCheckBox *>("reportingEnabled")->isEnabled());
+        QVERIFY(!w.familyPanel->findChild<QPushButton *>("voiceTalk")->isEnabled());
+        QVERIFY(w.cloudPanel->findChild<QLabel *>("pairingCode")->text().contains("—"));
+    }
+    void householdUiPreservesReportedValueWhileCommandIsPending()
+    {
+        MainWindow w;isolate(w);w.resize(1024,600);w.show();w.showPage(7);w.updateSnapshot(snapshot());w.refreshTimer.stop();
+        QJsonObject state{{"version",1},{"service_connected",true},{"home",QJsonObject{
+            {"configured",true},{"authorization","authorized"},{"fresh",true},{"busy",false},{"revision",1},
+            {"devices",QJsonArray{QJsonObject{{"id","lamp"},{"name","书房台灯"},{"online",true},{"room","书房"},
+                {"status",QJsonArray{QJsonObject{{"code","switch"},{"value",false}}}}}}},
+            {"functions",QJsonObject{{"lamp",QJsonArray{QJsonObject{{"code","switch"},{"type","Boolean"},{"writable",true},{"values",QJsonObject()}}}}}},
+            {"pending",QJsonObject{{"lamp/switch",QJsonObject{{"state","awaiting_confirmation"},{"value",true}}}}}}}};
+        w.familyPanel->apply(state);auto *tabs=w.familyPanel->findChild<QTabWidget *>("familyTabs");tabs->setCurrentIndex(1);
+        auto *devices=w.familyPanel->findChild<QTableWidget *>("homeDevices");devices->setCurrentCell(0,0);QTest::qWait(30);w.familyPanel->apply(state);
+        auto toggles=w.familyPanel->findChildren<QCheckBox *>();
+        QCheckBox *control=nullptr;for(auto *toggle:toggles)if(toggle->property("code")=="switch")control=toggle;
+        QVERIFY(control);QVERIFY(!control->isChecked());QVERIFY(!control->isEnabled());
+        QVERIFY(w.grab().save("screenshots/desktop-home-command-pending-fixture.png"));
+    }
     void functionalHeartbeatRequiresBackendIdentityAndLiveGuiLoop()
     {
         QTemporaryDir temp; QVERIFY(temp.isValid());
@@ -158,6 +592,42 @@ class HmiUiTest : public QObject
     }
     void initTestCase()
     {
+        // The same binary can run on a board with a live production service.
+        // Unmocked HTTP requests terminate at this rejecting local test proxy;
+        // per-case fixture proxies still override it. Never forward a request.
+        QVERIFY(isolatedState.isValid());
+        QVERIFY(isolatedProxy.listen(QHostAddress::LocalHost));
+        connect(&isolatedProxy, &QTcpServer::newConnection, this, [this]() {
+            while (isolatedProxy.hasPendingConnections()) {
+                auto *socket = isolatedProxy.nextPendingConnection();
+                connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+                connect(socket, &QTcpSocket::readyRead, socket, [socket]() {
+                    const auto bytes = socket->property("headers").toByteArray() + socket->readAll();
+                    if (bytes.size() > 65536) { socket->abort(); return; }
+                    socket->setProperty("headers", bytes);
+                    if (!bytes.contains("\r\n\r\n") || socket->property("rejected").toBool()) return;
+                    socket->setProperty("rejected", true);
+                    socket->write("HTTP/1.1 503 Test Isolation\r\nConnection: close\r\n"
+                                  "X-Dshan-Test-Isolation: 1\r\nContent-Length: 0\r\n\r\n");
+                    socket->disconnectFromHost();
+                });
+            }
+        });
+        QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::HttpProxy,
+            "127.0.0.1", isolatedProxy.serverPort()));
+        QNetworkAccessManager gate;
+        gate.setProxy(QNetworkProxy::applicationProxy());
+        auto *probe = gate.get(QNetworkRequest(QUrl("http://127.0.0.1/api/health")));
+        QTRY_VERIFY(probe->isFinished());
+        // A failed init aborts all cases before any control-action test runs.
+        QVERIFY2(probe->rawHeader("X-Dshan-Test-Isolation") == QByteArray("1"), qPrintable(probe->errorString()));
+        QCOMPARE(probe->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 503);
+        qputenv("DSHANCONTROL_DESKTOP_STATE_DIR", isolatedState.filePath("desktop").toUtf8());
+        qputenv("DSHANCONTROL_DESKTOP_SOCKET", isolatedState.filePath("absent-desktop.sock").toUtf8());
+        qputenv("DSHANCONTROL_NATIVE_PLATFORM_SOCKET", QByteArray());
+        qputenv("DSHANCONTROL_UPDATER_CONFIG", isolatedState.filePath("absent-updater.json").toUtf8());
+        qputenv("DSHANCONTROL_UPDATER_EXECUTABLE", isolatedState.filePath("absent-runtime").toUtf8());
+        qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","0");
         // Each clean test run, including a single selected test, owns its output.
         // Do not depend on a later layout test to create this directory.
         QVERIFY(QDir().mkpath("screenshots"));
@@ -1481,7 +1951,7 @@ class HmiUiTest : public QObject
             QVERIFY(target >= 0); w.alarmTable->setCurrentCell(target, 1);
             QVERIFY(w.alarmAck->isEnabled());
             dialogs.clear(); timer.start(10); w.alarmAck->click();
-            QTRY_VERIFY(dialogs.contains("操作完成"));
+            QTRY_VERIFY2(dialogs.contains("操作完成"), qPrintable(dialogs.join(" | ")));
             QTRY_COMPARE(w.alarmTable->item(w.alarmTable->currentRow(), 5)->data(Qt::UserRole).toString(), QString("acknowledged"));
             QVERIFY(!w.alarmAck->isEnabled());
             w.sendJson("GET", "/audit", {}, "audit");
@@ -1492,6 +1962,848 @@ class HmiUiTest : public QObject
         }
 
     }
+
+
+
+
+
+
+    void desktopGesturesKeepControlsAndDraftsExclusive()
+    {
+        using namespace DesktopV1;
+        QTemporaryDir dir;DesktopCanvas canvas;canvas.configureLayoutStorage(dir.filePath("layout.json"));canvas.show();QTest::qWait(20);
+        QSignalSpy apps(&canvas,&DesktopCanvas::appRequested);
+        QTest::mouseClick(&canvas,Qt::RightButton,Qt::NoModifier,QPoint(100,200));QCOMPARE(apps.count(),0);QCOMPARE(canvas.state,0);
+        QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(400,25));QTest::qWait(610);
+        QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(400,25));QCOMPARE(canvas.state,1);QVERIFY(!canvas.layoutEditing());
+        canvas.change(0);QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,200));QTest::qWait(610);
+        QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,200));QCOMPARE(canvas.state,3);QCOMPARE(apps.count(),0);
+        const auto before=canvas.layoutSnapshot();QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,440));
+        QTest::mouseMove(&canvas,QPoint(600,440));QEvent cancel(QEvent::TouchCancel);QApplication::sendEvent(&canvas,&cancel);
+        QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(600,440));QCOMPARE(canvas.layoutSnapshot(),before);
+        canvas.discardLayout();canvas.change(2);QTest::qWait(20);QTest::mouseClick(canvas.search,Qt::LeftButton);
+        auto *keyboard=canvas.findChild<DesktopKeyboard *>("desktopKeyboard");QVERIFY(keyboard->isVisible());keyboard->append("a");
+        QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,2);QVERIFY(keyboard->composition().isEmpty());QVERIFY(keyboard->isVisible());
+        QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,2);QVERIFY(!keyboard->isVisible());
+        QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,0);
+    }
+
+    void desktopKeyboardAcceptsChineseAndRespectsOverlayLifecycle()
+    {
+        using namespace DesktopV1;
+        DesktopCanvas canvas;canvas.show();canvas.change(2);QTest::qWait(20);
+        QTest::mouseClick(canvas.search,Qt::LeftButton);QTest::qWait(20);
+        auto *keyboard=canvas.findChild<DesktopKeyboard *>("desktopKeyboard");QVERIFY(keyboard);QVERIFY(keyboard->isVisible());
+        QVERIFY(!keyboard->geometry().intersects(canvas.search->geometry()));
+        for(const auto &letter:QString("wangluo")) {
+            auto *key=keyboard->findChild<QPushButton *>("keyboardKey_"+QString(letter));QVERIFY(key);QTest::mouseClick(key,Qt::LeftButton);
+        }
+        QCOMPARE(keyboard->composition(),QString("wangluo"));QVERIFY2(keyboard->candidates().contains("网络"),qPrintable(keyboard->candidates().join(",")));
+        QCOMPARE(canvas.search->text(),QString());
+        keyboard->choose(keyboard->candidates().indexOf("网络"));QCOMPARE(canvas.search->text(),QString("网络"));
+        QVERIFY(canvas.grab().save("screenshots/desktop-chinese-keyboard.png"));
+        keyboard->append("a");QVERIFY(canvas.dismissKeyboardFirst());QVERIFY(keyboard->isVisible());QVERIFY(keyboard->composition().isEmpty());
+        QVERIFY(canvas.dismissKeyboardFirst());QVERIFY(!keyboard->isVisible());QCOMPARE(canvas.state,2);
+        QTest::mouseClick(canvas.search,Qt::LeftButton);QVERIFY(keyboard->isVisible());
+        canvas.change(0);QVERIFY(!keyboard->isVisible());QVERIFY(canvas.search->text().isEmpty());
+        canvas.resize(1280,720);canvas.change(2);QTest::qWait(20);QTest::mouseClick(canvas.search,Qt::LeftButton);
+        QVERIFY(!keyboard->geometry().intersects(canvas.search->geometry()));QVERIFY(canvas.rect().contains(keyboard->geometry()));
+        for(auto *button:keyboard->findChildren<QPushButton *>()){QVERIFY(button->width()>=44);QVERIFY(button->height()>=44);}
+        keyboard->findChild<QPushButton *>("keyboardLanguage")->click();keyboard->append("a");QCOMPARE(canvas.search->text(),QString("a"));
+        keyboard->findChild<QPushButton *>("keyboardNumbers")->click();keyboard->append("1");QCOMPARE(canvas.search->text(),QString("a1"));
+        canvas.change(0);
+    }
+
+    void desktopShortSwipesDoNotCommitOrLaunch()
+    {
+        DesktopV1::DesktopCanvas canvas(false);
+        QTemporaryDir dir;
+        canvas.configureLayoutStorage(dir.filePath("layout.json"));
+        canvas.resize(1024,600); canvas.show();
+        QSignalSpy apps(&canvas,&DesktopV1::DesktopCanvas::appRequested);
+        const auto swipe = [&](int state, QPoint from, QPoint to) {
+            canvas.change(state); canvas.repaint();
+            QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,from);
+            QTest::mouseMove(&canvas,to);
+            QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,to);
+        };
+        swipe(0,{500,25},{500,79}); QCOMPARE(canvas.state,0);
+        swipe(0,{500,570},{500,516}); QCOMPARE(canvas.state,0);
+        swipe(1,{500,350},{500,296}); QCOMPARE(canvas.state,1);
+        swipe(2,{500,300},{500,354}); QCOMPARE(canvas.state,2);
+        for (int dx : {-54,54}) {
+            swipe(0,{450,300},{450+dx,300}); QCOMPARE(canvas.state,0);
+            QCOMPARE(canvas.desk,0);
+        }
+        QCOMPARE(apps.count(),0);
+        QVERIFY(!canvas.layoutEditing());
+    }
+    void desktopDrawerSearchAndCategoriesRejectEmptyTargets()
+    {
+        DesktopV1::DesktopCanvas canvas(false);
+        canvas.resize(1024,600); canvas.show(); canvas.change(2); QTest::qWait(30);
+        QSignalSpy apps(&canvas,&DesktopV1::DesktopCanvas::appRequested);
+        canvas.search->setText("网络"); canvas.repaint();
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(110,280));
+        QCOMPARE(apps.count(),1);
+        QCOMPARE(apps.takeFirst()[0].toString(),QString("network"));
+        canvas.change(2); canvas.search->setText("网络"); canvas.repaint();
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(210,195));
+        QCOMPARE(canvas.group,1); canvas.repaint();
+        for (int y : {280,423})
+            for (int x : {110,265,420,575,730,885})
+                QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(x,y));
+        QCOMPARE(apps.count(),0); QCOMPARE(canvas.state,2);
+        canvas.search->clear(); canvas.repaint();
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(110,280));
+        QCOMPARE(apps.count(),1);
+        QCOMPARE(apps.takeFirst()[0].toString(),QString("overview"));
+        canvas.change(2); canvas.search->setText("不存在的应用名"); canvas.repaint();
+        for (int y : {280,423})
+            for (int x : {110,265,420,575,730,885})
+                QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(x,y));
+        QCOMPARE(apps.count(),0); QCOMPARE(canvas.state,2);
+    }
+
+    void desktopLayoutResetBacksUpBeforeReplacing()
+    {
+        using namespace DesktopV1;
+        QTemporaryDir dir;const auto path=dir.filePath("layout.json");QFile file(path);
+        const QByteArray broken="{broken JSON preserved}";
+        QVERIFY(file.open(QIODevice::WriteOnly));file.write(broken);file.close();
+        DesktopLayoutStore store(path);QString error;store.load(&error);QVERIFY(!error.isEmpty());
+        QVERIFY(store.restoreDefaults(&error));QFile backup(path+".before-reset");QVERIFY(backup.open(QIODevice::ReadOnly));QCOMPARE(backup.readAll(),broken);backup.close();
+        DesktopLayoutStore reopened(path);QCOMPARE(reopened.load(&error),DesktopLayoutStore::defaults());
+        auto layout=DesktopLayoutStore::defaults();layout["revision"]=2;QVERIFY(store.commit(layout,&error));
+        // Backup failure must not touch the current layout.
+        QVERIFY(backup.remove());QVERIFY(QDir().mkdir(backup.fileName()));
+        QVERIFY(file.open(QIODevice::ReadOnly));const auto before=file.readAll();file.close();
+        QVERIFY(!store.restoreDefaults(&error));QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),before);file.close();
+        QVERIFY(QDir().rmdir(backup.fileName()));
+        DesktopCanvas canvas;canvas.configureLayoutStorage(path);canvas.change(3);QVERIFY(canvas.removeWidget(0));
+        QVERIFY(canvas.restoreDefaultLayout());QCOMPARE(canvas.layoutSnapshot(),DesktopLayoutStore::defaults());QVERIFY(!canvas.layoutEditing());
+    }
+
+    void desktopPointHistoryRejectsInvalidStaleAndOutOfOrderSamples()
+    {
+        using namespace DesktopV1;
+        DesktopPointHistory history;history.setBindings({"sensor/temperature"});
+        const qint64 start=1792380000000LL;
+        auto sample=[&](qint64 ts,double value) {return QJsonObject{{"point_id","sensor/temperature"},{"name","环境温度"},
+            {"type","temperature"},{"unit","°C"},{"source","mqtt"},{"quality","good"},{"value",value},
+            {"timestamp",QDateTime::fromMSecsSinceEpoch(ts,Qt::UTC).toString(Qt::ISODateWithMs)}};};
+        history.ingest({sample(start,24)},true,start,0);
+        QCOMPARE(history.current("sensor/temperature",start,0)["value"].toDouble(),24.0);
+        QCOMPARE(history.series("sensor/temperature",start).size(),1);
+        history.ingest({sample(start,999)},true,start+1000,1000);
+        QCOMPARE(history.current("sensor/temperature",start+1000,1000)["value"].toDouble(),24.0);
+        history.ingest({sample(start-1000,20)},true,start+2000,2000);
+        QCOMPARE(history.series("sensor/temperature",start+2000).size(),1);
+        QCOMPARE(history.current("sensor/temperature",start+60000,60000)["quality"].toString(),QString("stale"));
+        QVERIFY(history.current("sensor/temperature",start+60000,60000)["value"].isNull());
+        qint64 t=start+3000,mono=3000;
+        for(const auto &value:QList<QJsonValue>{QJsonValue(),QJsonValue("24"),QJsonValue(true)}) {
+            auto bad=sample(t,24);bad["value"]=value;history.ingest({bad},true,t,mono);
+            QVERIFY(history.current("sensor/temperature",t,mono)["quality"]!="good");t+=1000;mono+=1000;
+        }
+        auto wrong=sample(t,24);wrong["unit"]="Pa";history.ingest({wrong},true,t,mono);
+        QVERIFY(history.current("sensor/temperature",t,mono)["value"].isNull());t+=1000;mono+=1000;
+        auto demo=sample(t,24);demo["source"]="demo";history.ingest({demo},true,t,mono);
+        QVERIFY(history.current("sensor/temperature",t,mono)["quality"]!="good");t+=1000;mono+=1000;
+        history.ingest({sample(t,24)},true,t,mono);
+        QVERIFY(history.series("sensor/temperature",t).last().startsSegment);
+        history.ingest({},false,t+1000,mono+1000);QVERIFY(history.current("sensor/temperature",t+1000,mono+1000)["value"].isNull());
+        history.ingest({sample(t,24)},true,t+2000,mono+2000);
+        QVERIFY(history.current("sensor/temperature",t+2000,mono+2000)["quality"]!="good");
+        history.ingest({sample(t+3000,24)},true,t+3000,mono+3000);
+        QVERIFY(history.series("sensor/temperature",t+3000).last().startsSegment);
+        // Independent UTC jump breaks history instead of stretching an old segment.
+        history.ingest({sample(t+200000,24)},true,t+200000,mono+4000);
+        QCOMPARE(history.series("sensor/temperature",t+200000).size(),1);
+        DesktopPointHistory bounded;bounded.setBindings({"sensor/temperature"});
+        for(int i=0;i<1900;++i)bounded.ingest({sample(start+i*500,24)},true,start+i*500,i*500);
+        QCOMPARE(bounded.series("sensor/temperature",start+1899*500).size(),1800);
+        QVERIFY(DesktopPointHistory::validUnit("pressure","MPa"));QVERIFY(!DesktopPointHistory::validUnit("pressure","unknown"));
+    }
+
+    void desktopTrendBindingUsesStableIdsAndPreservesDraftHistory()
+    {
+        using namespace DesktopV1;
+        QTemporaryDir dir;DesktopCanvas canvas;canvas.configureLayoutStorage(dir.filePath("layout.json"));
+        const auto now=QDateTime::currentDateTimeUtc();
+        auto point=[&](QString id,QString type,QString unit,double value){return QJsonObject{{"point_id",id},{"name",id},
+            {"type",type},{"unit",unit},{"source","mqtt"},{"quality","good"},{"value",value},{"timestamp",now.toString(Qt::ISODateWithMs)}};};
+        const QJsonArray points={point("sensor/temperature","temperature","°C",24.3),point("sensor/humidity","humidity","%",52.6)};
+        canvas.applyServices({{"service_connected",true},{"reporting",QJsonObject{{"points",points}}}});
+        canvas.change(3);QVERIFY(!canvas.bindTrend(0,"arbitrary/unknown",QString()));
+        QVERIFY(canvas.bindTrend(0,"sensor/temperature","sensor/humidity"));
+        QCOMPARE(canvas.boundPoint(0)["value"].toDouble(),24.3);QCOMPARE(canvas.boundHistory(0).size(),1);
+        QVERIFY(canvas.commitLayout());const auto saved=canvas.layoutSnapshot();
+        canvas.change(3);QVERIFY(canvas.removeWidget(0));canvas.discardLayout();
+        QCOMPARE(canvas.layoutSnapshot(),saved);QCOMPARE(canvas.boundHistory(0).size(),1);
+        DesktopCanvas restored;restored.configureLayoutStorage(dir.filePath("layout.json"));QVERIFY(restored.boundPoint(0)["value"].isNull());
+        restored.applyServices({{"service_connected",true},{"reporting",QJsonObject{{"points",points}}}});
+        QCOMPARE(restored.boundPoint(0,true)["value"].toDouble(),52.6);
+        restored.show();QTest::qWait(20);QVERIFY(restored.grab().save("screenshots/desktop-bound-trend.png"));
+        restored.applyServices({{"service_connected",false}});QVERIFY(restored.boundPoint(0)["value"].isNull());
+    }
+
+    void desktopImagePickerPreservesDraftOnCancel_data()
+    {
+        QTest::addColumn<bool>("acceptBinding");
+        QTest::newRow("apply") << true;
+        QTest::newRow("cancel") << false;
+    }
+    void desktopImagePickerPreservesDraftOnCancel()
+    {
+        QFETCH(bool, acceptBinding);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString first = dir.filePath("first.png"), second = dir.filePath("second.jpg");
+        QImage sample(32, 24, QImage::Format_RGB32);
+        sample.fill(Qt::red);
+        QVERIFY(sample.save(first));
+        sample.fill(Qt::blue);
+        QVERIFY(sample.save(second));
+        DesktopV1::DesktopCanvas canvas(false);
+        canvas.resize(1024, 600);
+        canvas.configureLayoutStorage(dir.filePath("layout.json"));
+        canvas.desk = 1;
+        canvas.change(3);
+        QVERIFY(canvas.bindImage(0, first));
+        const auto before = canvas.layoutSnapshot();
+        canvas.show();
+        QTest::qWait(30);
+        bool bindingSeen = false, pickerSeen = false, sized = false, fontSized = true;
+        bool touchSized = true, selected = false, timedOut = false, localized = true;
+        QString labelFailure;
+        int step = 0;
+        QElapsedTimer pickerReady;
+        QTimer poll, timeout;
+        timeout.setSingleShot(true);
+        connect(&timeout, &QTimer::timeout, &canvas, [&]() {
+            timedOut = true;
+            for (auto *w : QApplication::topLevelWidgets())
+                if (auto *dialog = qobject_cast<QDialog *>(w)) dialog->reject();
+        });
+        connect(&poll, &QTimer::timeout, &canvas, [&]() {
+            auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            if (!dialog) return;
+            if (step == 0 && dialog->objectName() == "desktopImageBindingDialog") {
+                bindingSeen = true;
+                sized = dialog->width() <= 992 && dialog->height() <= 568;
+                for (auto *label : dialog->findChildren<QLabel *>())
+                    fontSized = fontSized && label->font().pixelSize() == 14;
+                for (auto *button : dialog->findChildren<QPushButton *>())
+                    touchSized = touchSized && button->height() >= 44;
+                auto *button = dialog->findChild<QPushButton *>("desktopImageChoose");
+                if (!button) return;
+                ++step;
+                QMetaObject::invokeMethod(button, "click", Qt::QueuedConnection);
+            } else if (step == 1 && dialog->objectName() == "desktopLocalFilePicker") {
+                auto *picker = qobject_cast<QFileDialog *>(dialog);
+                if (!picker) return;
+                pickerSeen = picker->testOption(QFileDialog::DontUseNativeDialog);
+                localized = localized && QStringList({"选择", "打开"}).contains(picker->labelText(QFileDialog::Accept))
+                            && picker->labelText(QFileDialog::Reject) == "取消"
+                            && picker->labelText(QFileDialog::LookIn) == "位置";
+                if (!localized) labelFailure = picker->labelText(QFileDialog::Accept) + " | "
+                    + picker->labelText(QFileDialog::Reject) + " | " + picker->labelText(QFileDialog::LookIn);
+                auto *parentButton = picker->findChild<QToolButton *>("toParentButton");
+                localized = localized && parentButton && parentButton->text() == "上级"
+                    && parentButton->toolButtonStyle() == Qt::ToolButtonTextOnly;
+                auto *tree = picker->findChild<QTreeView *>("treeView");
+                localized = localized && tree && tree->model()->headerData(0, Qt::Horizontal).toString() == "名称";
+                sized = sized && picker->width() <= 992 && picker->height() <= 568;
+                if (!pickerReady.isValid()) { pickerReady.start(); return; }
+                // QFileSystemModel populates and restores its initial selection asynchronously.
+                if (pickerReady.elapsed() < 200) return;
+                auto *fileName = picker->findChild<QLineEdit *>("fileNameEdit");
+                if (!fileName) return;
+                fileName->clear();
+                QTest::keyClicks(fileName, QFileInfo(second).fileName());
+                if (picker->selectedFiles() != QStringList{second}) return;
+                ++step;
+                QMetaObject::invokeMethod(picker, "accept", Qt::QueuedConnection);
+            } else if (step == 2 && dialog->objectName() == "desktopImageBindingDialog") {
+                for (auto *label : dialog->findChildren<QLabel *>())
+                    selected = selected || label->text() == "second.jpg";
+                if (!selected) return;
+                ++step;
+                acceptBinding ? dialog->accept() : dialog->reject();
+            }
+        });
+        poll.start(30);
+        timeout.start(6000);
+        // Exercise the public touch route into the modal, including a large inherited font.
+        const auto oldFont = QApplication::font();
+        QFont large = oldFont;
+        large.setPointSize(24);
+        QApplication::setFont(large);
+        QTest::mouseClick(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(250, 220));
+        QApplication::setFont(oldFont);
+        poll.stop(); timeout.stop();
+        QVERIFY(!timedOut);
+        QVERIFY(bindingSeen); QVERIFY(pickerSeen); QVERIFY(sized);
+        QVERIFY(fontSized); QVERIFY(touchSized); QVERIFY(selected); QVERIFY2(localized, qPrintable(labelFailure));
+        if (acceptBinding) {
+            QTRY_VERIFY(!canvas.boundImage(0).isNull());
+            QVERIFY(canvas.boundImage(0).pixelColor(0, 0).blue() >= 253);
+            QVERIFY(canvas.boundImage(0).pixelColor(0, 0).red() <= 2);
+            QVERIFY(canvas.layoutSnapshot() != before);
+        } else {
+            QCOMPARE(canvas.layoutSnapshot(), before);
+            QTRY_COMPARE(canvas.boundImage(0).pixelColor(0, 0), QColor(Qt::red));
+        }
+        DesktopV1::DesktopCanvas disk(false);
+        disk.configureLayoutStorage(dir.filePath("layout.json"));
+        disk.desk = 1;
+        QVERIFY(disk.boundImage(0).isNull());
+    }
+    void desktopImagesDecodeSafelyAndPersistBindings()
+    {
+        using namespace DesktopV1;
+        QTemporaryDir dir; QVERIFY(dir.isValid()); const auto good=dir.filePath("equipment.png");
+        QImage source(1400,900,QImage::Format_RGB32); source.fill(QColor("#1468fa"));
+        {QPainter painter(&source);painter.setPen(Qt::white);painter.setFont(QFont("Dshan Sans",48));painter.drawText(source.rect(),Qt::AlignCenter,"图片组件测试 · 非现场数据");}
+        QVERIFY(source.save(good));
+        const auto broken=dir.filePath("broken.png");QFile f(broken);QVERIFY(f.open(QIODevice::WriteOnly));f.write("not an image");f.close();
+        QImage large(4097,1,QImage::Format_RGB32);large.fill(Qt::red);const auto oversized=dir.filePath("oversized.png");QVERIFY(large.save(oversized));
+        const auto bmp=dir.filePath("unsupported.bmp");QVERIFY(source.copy(0,0,8,8).save(bmp));
+        DesktopImageCache cache;QSignalSpy changes(&cache,&DesktopImageCache::changed);
+        cache.setPaths({good,broken,oversized,bmp});QTRY_COMPARE(changes.count(),4);
+        QVERIFY(!cache.image(good).isNull());QVERIFY(cache.image(good).width()<=1024);QVERIFY(cache.image(good).height()<=600);
+        for(const auto &path:{broken,oversized,bmp}) {QVERIFY(cache.image(path).isNull());QVERIFY(!cache.status(path).isEmpty());}
+        QSignalSpy dispatched(&cache,&DesktopImageCache::decodeRequested);
+        for(int i=0;i<30;++i)cache.reload(good);
+        QTRY_VERIFY(!cache.image(good).isNull());QVERIFY(dispatched.count()<=2);
+        cache.setPaths({});QVERIFY(cache.image(good).isNull());
+        const auto layoutFile=dir.filePath("layout.json");DesktopCanvas canvas;canvas.configureLayoutStorage(layoutFile);
+        canvas.desk=1;canvas.change(3);QVERIFY(!canvas.bindImage(0,"relative.png"));
+        QVERIFY(!canvas.bindImage(0,good,"stretch"));QVERIFY(!canvas.bindImage(1,good));
+        QVERIFY(canvas.bindImage(0,good,"contain"));QTRY_VERIFY(!canvas.boundImage(0).isNull());
+        QVERIFY(canvas.commitLayout());DesktopCanvas restored;restored.configureLayoutStorage(layoutFile);
+        QCOMPARE(restored.desk,1);QTRY_VERIFY(!restored.boundImage(0).isNull());
+        restored.change(3);QVERIFY(restored.bindImage(0,broken));QTRY_VERIFY(restored.boundImage(0).isNull());
+        restored.discardLayout();QTRY_VERIFY(!restored.boundImage(0).isNull());
+        restored.show();QTest::qWait(20);QDir().mkpath("screenshots");QVERIFY(restored.grab().save("screenshots/desktop-image-bound.png"));
+        restored.change(3);QVERIFY(restored.bindImage(0,QString()));QVERIFY(restored.commitLayout());
+        DesktopCanvas cleared;cleared.configureLayoutStorage(layoutFile);QVERIFY(cleared.boundImage(0).isNull());
+    }
+
+    void desktopLayoutStorePreservesInvalidAndConflictingFiles()
+    {
+        using DesktopV1::DesktopLayoutStore;
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        const QString path=dir.filePath("layout.json"); QString error;
+        DesktopLayoutStore first(path); auto layout=first.load(&error);
+        QVERIFY(DesktopLayoutStore::validate(layout,&error)); QVERIFY(first.commit(layout,&error));
+        QFile file(path); QVERIFY(file.open(QIODevice::ReadOnly)); const auto initial=file.readAll(); file.close();
+        DesktopLayoutStore second(path); QCOMPARE(second.load(&error),layout);
+        layout["revision"]=2; QVERIFY(first.commit(layout,&error));
+        QVERIFY(!second.commit(layout,&error)); QVERIFY(!error.isEmpty());
+        auto invalid=layout; invalid["schema_version"]=99;
+        QVERIFY(!DesktopLayoutStore::validate(invalid,&error));
+        invalid=layout; auto pages=invalid["pages"].toArray(); auto page=pages[0].toObject();
+        auto entries=page["slots"].toArray(); auto entry=entries[1].toObject();
+        entry["id"]=entries[0].toObject()["id"]; entries[1]=entry;
+        page["slots"]=entries; pages[0]=page; invalid["pages"]=pages;
+        QVERIFY(!DesktopLayoutStore::validate(invalid,&error));
+        invalid=layout; pages=invalid["pages"].toArray(); page=pages[0].toObject(); entries=page["slots"].toArray();
+        entry=entries[0].toObject(); entry["type"]="cloud"; entries[0]=entry;
+        page["slots"]=entries; pages[0]=page; invalid["pages"]=pages;
+        QVERIFY(!first.commit(invalid,&error));
+        QVERIFY(file.open(QIODevice::ReadOnly)); const auto valid=file.readAll(); file.close();
+        QVERIFY(valid!=initial);
+        const auto permissions=QFile::permissions(dir.path());
+        QVERIFY(QFile::setPermissions(dir.path(),QFile::ReadOwner|QFile::ExeOwner));
+        const bool writeWithoutPermission=first.commit(layout,&error);
+        QVERIFY(QFile::setPermissions(dir.path(),permissions)); QVERIFY(!writeWithoutPermission);
+        QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),valid); file.close();
+        const QList<QByteArray> broken={QByteArray("{broken"),QByteArray("{\"schema_version\":99}"),QByteArray(140000,'x')};
+        for(const auto &bytes:broken) {
+            QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate)); QCOMPARE(file.write(bytes),qint64(bytes.size())); file.close();
+            DesktopLayoutStore corrupt(path); QCOMPARE(corrupt.load(&error),DesktopLayoutStore::defaults());
+            QVERIFY(!error.isEmpty()); QVERIFY(!corrupt.commit(layout,&error));
+            QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),bytes); file.close();
+        }
+        const QString linked=dir.filePath("linked.json"); QVERIFY(QFile::link(path,linked));
+        DesktopLayoutStore symlink(linked); symlink.load(&error); QVERIFY(!symlink.commit(layout,&error));
+    }
+
+    void overlayAnimationKeepsEventLoopResponsiveAndBlocksOldTargets()
+    {
+        qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","1");
+        QTemporaryDir dir;DesktopV1::DesktopCanvas canvas;
+        qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","0");
+        canvas.configureLayoutStorage(dir.filePath("layout.json"));canvas.show();QTest::qWait(20);
+        int ticks=0;QTimer timer;connect(&timer,&QTimer::timeout,this,[&](){++ticks;});timer.start(15);
+        QSignalSpy covered(&canvas,&DesktopV1::DesktopCanvas::overlayChanged);
+        QSignalSpy applications(&canvas,&DesktopV1::DesktopCanvas::appRequested);
+        canvas.change(2);QVERIFY(canvas.overlayTransitionActive());QVERIFY(!canvas.search->isVisible());
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,270));QCOMPARE(applications.size(),0);
+        QTRY_VERIFY_WITH_TIMEOUT(!canvas.overlayTransitionActive(),1000);
+        QVERIFY(ticks>=3);QVERIFY(canvas.search->isVisible());
+        canvas.change(0);QVERIFY(canvas.overlayTransitionActive());QVERIFY(covered.last()[0].toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(!canvas.overlayTransitionActive(),1000);
+        QVERIFY(!covered.last()[0].toBool());QVERIFY(!canvas.search->isVisible());
+        canvas.change(1);QTest::qWait(40);canvas.change(0);
+        QTRY_VERIFY_WITH_TIMEOUT(!canvas.overlayTransitionActive(),1000);QCOMPARE(canvas.state,0);
+        DesktopV1::DesktopCanvas lowPower;lowPower.change(2);QVERIFY(!lowPower.overlayTransitionActive());
+    }
+
+    void incompatibleDragReturnsWithoutChangingDraftOrBlockingEvents()
+    {
+        qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","1");QTemporaryDir dir;DesktopV1::DesktopCanvas canvas;
+        qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","0");canvas.configureLayoutStorage(dir.filePath("layout.json"));canvas.show();canvas.change(3);QTest::qWait(20);
+        const auto before=canvas.layoutSnapshot();int ticks=0;QTimer timer;connect(&timer,&QTimer::timeout,this,[&](){++ticks;});timer.start(15);
+        QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,440));
+        QTest::mouseMove(&canvas,QPoint(200,220),20);QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(200,220));
+        QVERIFY(canvas.dragReturning());QCOMPARE(canvas.layoutSnapshot(),before);
+        QTRY_VERIFY_WITH_TIMEOUT(!canvas.dragReturning(),1000);QVERIFY(ticks>=3);QCOMPARE(canvas.layoutSnapshot(),before);
+        QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,440));QTest::mouseMove(&canvas,QPoint(200,220),20);
+        QEvent cancel(QEvent::TouchCancel);QApplication::sendEvent(&canvas,&cancel);
+        QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(200,220));
+        QVERIFY(!canvas.dragReturning());QCOMPARE(canvas.layoutSnapshot(),before);
+    }
+
+    void componentLibraryUsesInlineChoicesAndRejectsIncompatibleSlots()
+    {
+        QTemporaryDir dir;DesktopV1::DesktopCanvas canvas;canvas.configureLayoutStorage(dir.filePath("layout.json"));
+        canvas.resize(1024,600);canvas.show();QTest::qWait(20);
+        const auto before=canvas.layoutSnapshot();canvas.change(4);QTest::qWait(10);
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,235));
+        QCOMPARE(canvas.layoutSnapshot(),before);QVERIFY(!canvas.backLibraryLevel());
+        canvas.change(3);QVERIFY(canvas.removeWidget(0));canvas.change(4);QTest::qWait(10);
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,235));QTest::qWait(10);
+        QVERIFY(canvas.backLibraryLevel());QTest::qWait(10);
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,235));QTest::qWait(10);
+        QDir().mkpath("screenshots");QVERIFY(canvas.grab().save("screenshots/desktop-library-subgroup.png"));
+        // Only the large empty slot exists: image is compatible, video is disabled.
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,245));QCOMPARE(canvas.state,4);
+        QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,4);QVERIFY(!canvas.backLibraryLevel());QTest::qWait(10);
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,235));QTest::qWait(10);
+        QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,185));QCOMPARE(canvas.state,3);
+        QCOMPARE(canvas.layoutSnapshot()["pages"].toArray()[0].toObject()["slots"].toArray()[0].toObject()["type"].toString(),QString("image"));
+        canvas.discardLayout();QCOMPARE(canvas.layoutSnapshot(),before);
+    }
+
+    void trendContextUsesSharedStablePointHistoryAndLegacyRouteStillWorks()
+    {
+        QTemporaryDir dir;DesktopV1::DesktopCanvas source;source.configureLayoutStorage(dir.filePath("layout.json"));
+        const auto stamp=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+        QJsonObject point{{"point_id","machine/pressure"},{"name","泵出口压力"},{"type","pressure"},{"unit","MPa"},
+            {"value",0.62},{"quality","good"},{"source","modbus"},{"timestamp",stamp}};
+        source.applyServices({{"service_connected",true},{"reporting",QJsonObject{{"points",QJsonArray{point}}}}});
+        source.change(3);QVERIFY(source.bindTrend(0,"machine/pressure",QString()));QVERIFY(source.commitLayout());
+        QSignalSpy context(&source,&DesktopV1::DesktopCanvas::appContextRequested);source.openWidget(0);
+        QCOMPARE(context.size(),1);QCOMPARE(context[0][0].toString(),QString("devices"));
+        MainWindow window;isolate(window);window.setDesktopPointSource(&source);
+        QVERIFY(window.openApplication("devices",qvariant_cast<QJsonObject>(context[0][1])));
+        QCOMPARE(window.devicePageStack->currentIndex(),1);
+        QCOMPARE(window.boundTrendPanel->reading()["value"].toDouble(),0.62);
+        QCOMPARE(window.boundTrendPanel->reading()["point_id"].toString(),QString("machine/pressure"));
+        QCOMPARE(source.boundHistory(0).size(),1);
+        window.resize(1024,600);window.show();QTest::qWait(30);
+        DesktopV1::DesktopShell shell;
+        auto *embedded=shell.findChild<MainWindow *>();QVERIFY(embedded);isolate(*embedded);
+        embedded->setDesktopPointSource(&source);
+        QVERIFY(shell.openApplication("devices",qvariant_cast<QJsonObject>(context[0][1])));
+        shell.resize(1024,600);shell.show();QTest::qWait(30);
+        QVERIFY(embedded->boundTrendPanel->mapTo(&shell,embedded->boundTrendPanel->rect().bottomRight()).y()<=542);
+        QDir().mkpath("screenshots");QVERIFY(shell.grab().save("screenshots/desktop-trend-context.png"));
+        source.applyServices({});QVERIFY(window.boundTrendPanel->reading()["value"].isNull());
+        QVERIFY(window.openApplication("devices"));QCOMPARE(window.devicePageStack->currentIndex(),0);
+        QVERIFY(!window.openApplication("devices",{{"point_id","invalid"}}));
+    }
+
+    void boundHomeAndVideoKeepStableContextWithoutAutoplay()
+    {
+        using DesktopV1::DesktopCanvas;
+        QTemporaryDir dir;
+        const auto layout=dir.filePath("layout.json");
+        const auto media=dir.filePath("not-decoded-test.mp4");
+        QFile file(media);QVERIFY(file.open(QIODevice::WriteOnly));file.write("test-only invalid media bytes");file.close();
+        DesktopCanvas canvas;canvas.configureLayoutStorage(layout);
+        QJsonObject home{{"configured",true},{"fresh",true},{"devices",QJsonArray{
+            QJsonObject{{"id","lamp-a"},{"name","台灯甲"},{"online",true},{"room","A"}},
+            QJsonObject{{"id","lamp-b"},{"name","台灯乙"},{"online",true},{"room","B"}}}}};
+        QJsonObject snapshot{{"service_connected",true},{"home",home}};
+        canvas.applyServices(snapshot);canvas.change(3);
+        QVERIFY(canvas.bindHome(5,"lamp-b"));QVERIFY(!canvas.bindHome(5,"unknown"));
+        QVERIFY(canvas.bindVideo(1,media));QVERIFY(!canvas.bindVideo(1,"relative.mp4"));
+        QVERIFY(canvas.commitLayout());
+        DesktopCanvas restored;restored.configureLayoutStorage(layout);
+        QSignalSpy context(&restored,&DesktopCanvas::appContextRequested);
+        restored.openWidget(5);QCOMPARE(context.size(),1);
+        QCOMPARE(context[0][0].toString(),QString("home"));
+        QCOMPARE(qvariant_cast<QJsonObject>(context[0][1])["device_id"].toString(),QString("lamp-b"));
+        restored.openWidget(1);QCOMPARE(context.size(),2);
+        QCOMPARE(qvariant_cast<QJsonObject>(context[1][1])["path"].toString(),media);
+        MainWindow window;isolate(window);window.familyPanel->apply(snapshot);
+        QVERIFY(window.openApplication("home",{{"device_id","lamp-b"}}));
+        auto *devices=window.familyPanel->findChild<QTableWidget *>("homeDevices");
+        QVERIFY(devices->currentRow()>=0);
+        QCOMPARE(devices->item(devices->currentRow(),0)->data(Qt::UserRole).toString(),QString("lamp-b"));
+        QVERIFY(window.openApplication("video",{{"path",media}}));
+        QCOMPARE(window.mediaPanel->selectedFile,media);
+        QVERIFY(window.mediaPanel->session.queue.isEmpty());
+        QVERIFY(window.openApplication("video",{{"path",dir.filePath("removed.mp4")}}));
+        QVERIFY(window.mediaPanel->selectedFile.isEmpty());
+        QVERIFY(!window.mediaPanel->play->isEnabled());
+        restored.change(3);QVERIFY(restored.bindHome(5,"lamp-b"));
+        QVERIFY(restored.bindVideo(1,QString()));restored.discardLayout();
+        context.clear();restored.openWidget(1);QCOMPARE(qvariant_cast<QJsonObject>(context[0][1])["path"].toString(),media);
+    }
+
+    void desktopInitialDefaultIsSeparateFromEditingAndPreservesExistingFiles()
+    {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("layout-v1.json");
+        DesktopV1::DesktopCanvas canvas;
+        canvas.configureLayoutStorage(path);
+        QVERIFY(QFileInfo::exists(path));
+        QVERIFY(!canvas.layoutEditing());
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto before = file.readAll();
+        file.close();
+        QCOMPARE(QJsonDocument::fromJson(before).object(), DesktopV1::DesktopLayoutStore::defaults());
+        canvas.change(3); QVERIFY(canvas.removeWidget(0)); canvas.discardLayout();
+        QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), before); file.close();
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate)); file.write("FUTURE OR BROKEN USER FILE"); file.close();
+        canvas.configureLayoutStorage(path);
+        QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), QByteArray("FUTURE OR BROKEN USER FILE"));
+        QVERIFY(!canvas.layoutEditing());
+    }
+
+    void desktopLayoutEditingPersistsAndCancels()
+    {
+        using DesktopV1::DesktopCanvas;
+        QTemporaryDir dir; QVERIFY(dir.isValid()); const QString path=dir.filePath("layout.json");
+        DesktopCanvas canvas; canvas.configureLayoutStorage(path); canvas.show();
+        const auto original=canvas.layoutSnapshot();
+        canvas.change(3); QVERIFY(canvas.layoutEditing()); QVERIFY(canvas.removeWidget(3));
+        QVERIFY(!canvas.placeWidget("cloud",3)); QVERIFY(canvas.placeWidget("alarms",3));
+        QVERIFY(canvas.swapWidgets(3,5)); QVERIFY(!canvas.swapWidgets(0,3));
+        QVERIFY(canvas.commitLayout()); QVERIFY(!canvas.layoutEditing());
+        const auto saved=canvas.layoutSnapshot(); QVERIFY(saved!=original);
+        QCOMPARE(saved["pages"].toArray()[1],original["pages"].toArray()[1]);
+        DesktopCanvas restored; restored.configureLayoutStorage(path); QCOMPARE(restored.layoutSnapshot(),saved);
+        restored.change(3); QVERIFY(restored.removeWidget(0)); restored.discardLayout(); QCOMPARE(restored.layoutSnapshot(),saved);
+        canvas.change(3); QVERIFY(canvas.removeWidget(0));
+        QTimer::singleShot(0,[](){ auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()); if(box)box->button(QMessageBox::Cancel)->click(); });
+        canvas.change(0); QVERIFY(canvas.layoutEditing());
+        QTimer::singleShot(0,[](){ auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()); if(box)box->button(QMessageBox::Discard)->click(); });
+        canvas.change(0); QVERIFY(!canvas.layoutEditing()); QCOMPARE(canvas.layoutSnapshot(),saved);
+        DesktopCanvas denied; denied.configureLayoutStorage(dir.filePath("missing/layout.json")); denied.change(3);
+        QVERIFY(denied.removeWidget(0)); QVERIFY(!denied.commitLayout()); QVERIFY(denied.layoutEditing());
+        canvas.change(3); QTest::mousePress(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(100,440));
+        QTest::mouseMove(&canvas,QPoint(600,440),20); QTest::mouseRelease(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(600,440));
+        QVERIFY(canvas.layoutSnapshot()!=saved); QVERIFY(canvas.commitLayout());
+        QDir().mkpath("screenshots"); QVERIFY(canvas.grab().save("screenshots/desktop-custom-layout.png"));
+    }
+
+    void desktopBrightnessReadsDriverAndCancelsStaleObservations()
+    {
+        QTemporaryDir dir;
+        QLocalServer server;
+        const auto path=dir.filePath("display.sock");
+        QVERIFY(server.listen(path));
+        QList<QJsonObject> requests;
+        QList<QPointer<QLocalSocket>> held;
+        bool hold=false;
+        QJsonValue raw=100;
+        QString source="driver-configured-brightness";
+        connect(&server,&QLocalServer::newConnection,this,[&]() {
+            auto *socket=server.nextPendingConnection();
+            auto bytes=std::make_shared<QByteArray>();
+            connect(socket,&QLocalSocket::readyRead,this,[&,socket,bytes]() {
+                *bytes+=socket->readAll();
+                if(!bytes->contains('\n'))return;
+                requests.append(QJsonDocument::fromJson(bytes->trimmed()).object());
+                if(hold) {held.append(socket);return;}
+                socket->write(QJsonDocument(QJsonObject{{"protocol",1},{"ok",true},
+                    {"result",QJsonObject{{"channel","display0"},{"brightness",raw},{"source",source}}}}).toJson(QJsonDocument::Compact)+"\n");
+                socket->flush();
+            });
+        });
+        QList<int> values;
+        DisplayBrightnessReader reader([&](int value,const QString &) {values.append(value);});
+        reader.path=path;reader.serverUid=getuid();
+        QTRY_COMPARE(values.size(),1);QCOMPARE(values.last(),100);
+        QCOMPARE(requests.last(),QJsonObject({{"protocol",1},{"method","display.brightness.get"},
+                                             {"params",QJsonObject{{"channel","display0"}}}}));
+        for(const auto &value:QList<QJsonValue>{QString("100"),true,100.5,-1,256})
+        {
+            raw=value;const int count=values.size();reader.refresh();
+            QTRY_COMPARE(values.size(),count+1);QCOMPARE(values.last(),-1);
+        }
+        raw=0;reader.refresh();QTRY_COMPARE(values.last(),0);
+        source="saved-preference";reader.refresh();QTRY_COMPARE(values.last(),-1);
+        source="driver-configured-brightness";hold=true;reader.refresh();QTRY_COMPARE(held.size(),1);
+        const int before=values.size();
+        held[0]->write("{\"protocol\":1,\"ok\":true,\"result\":{\"channel\":\"display0\",\"brightness\":220,\"source\":\"driver-configured-brightness\"}}\n");
+        held[0]->flush();reader.setSuspended(true);QTest::qWait(40);QCOMPARE(values.size(),before);
+        reader.refresh();QTest::qWait(20);QCOMPARE(values.size(),before);
+        hold=false;raw=184;reader.setSuspended(false);QTRY_COMPARE(values.size(),before+1);QCOMPARE(values.last(),184);
+        for(const auto &request:requests)QCOMPARE(request["method"].toString(),QString("display.brightness.get"));
+    }
+    void desktopBrightnessPeerAndTimeoutFailuresStayUnknown()
+    {
+        QTemporaryDir dir;QLocalServer server;const auto path=dir.filePath("display.sock");QVERIFY(server.listen(path));
+        QByteArray received;
+        connect(&server,&QLocalServer::newConnection,this,[&]() {
+            auto *socket=server.nextPendingConnection();
+            connect(socket,&QLocalSocket::readyRead,this,[&,socket]() {received+=socket->readAll();});
+        });
+        QList<int> values;QString message;
+        DisplayBrightnessReader reader([&](int v,const QString &e){values.append(v);message=e;});
+        reader.path=path;reader.serverUid=getuid()+1;
+        QTRY_COMPARE(values.size(),1);QCOMPARE(values.last(),-1);QVERIFY(message.contains("身份"));QVERIFY(received.isEmpty());
+        reader.serverUid=getuid();reader.deadlineMs=50;reader.refresh();
+        QTRY_COMPARE(values.size(),2);QCOMPARE(values.last(),-1);QVERIFY(message.contains("超时"));
+        QVERIFY(received.contains("display.brightness.get"));
+    }
+    void desktopBrightnessNeverUsesSavedPreferenceAsHardwareState()
+    {
+        DesktopV1::DesktopCanvas canvas;
+        auto data=snapshot();auto settings=data["settings"].toObject();settings["demo_mode"]=false;settings["brightness"]=220;data["settings"]=settings;
+        canvas.applyHmi(data);QCOMPARE(canvas.brightness,-1);
+        canvas.observeBrightness(100,QString());QCOMPARE(canvas.brightness,39);
+        canvas.applyHmi(data);QCOMPARE(canvas.brightness,39);
+        canvas.observeBrightness(-1,"读取屏幕亮度超时");QCOMPARE(canvas.brightness,-1);
+        canvas.applyHmi(data);QCOMPARE(canvas.brightness,-1);
+        canvas.observeBrightness(0,QString());QCOMPARE(canvas.brightness,0);
+    }
+
+    void staleSnapshotCannotReplaceSettingsAfterBrightnessTransaction_data()
+    {
+        QTest::addColumn<bool>("obsoleteFailure");
+        QTest::newRow("late-success") << false;
+        QTest::newRow("late-error") << true;
+    }
+    void staleSnapshotCannotReplaceSettingsAfterBrightnessTransaction()
+    {
+        QFETCH(bool, obsoleteFailure);
+        MainWindow w; isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();
+        w.requestActive = false; // isolate aborted the constructor request without its completion slot.
+        QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+        QList<QPointer<QTcpSocket>> snapshots;
+        int writes = 0;
+        auto respond = [](QTcpSocket *socket, const QJsonObject &body) {
+            const auto bytes = QJsonDocument(body).toJson(QJsonDocument::Compact);
+            socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: " +
+                QByteArray::number(bytes.size()) + "\r\n\r\n" + bytes);
+            socket->disconnectFromHost();
+        };
+        connect(&server, &QTcpServer::newConnection, this, [&]() {
+            auto *socket = server.nextPendingConnection();
+            connect(socket, &QTcpSocket::readyRead, socket, [&, socket]() {
+                auto bytes = socket->property("request").toByteArray() + socket->readAll();
+                socket->setProperty("request", bytes);
+                const int split = bytes.indexOf("\r\n\r\n"); if (split < 0) return;
+                int length = 0;
+                for (const auto &line : bytes.left(split).split('\n'))
+                    if (line.toLower().startsWith("content-length:")) length = line.mid(15).trimmed().toInt();
+                if (bytes.size() < split + 4 + length || socket->property("handled").toBool()) return;
+                socket->setProperty("handled", true);
+                const auto path = QUrl(QString::fromUtf8(bytes.split(' ')[1])).path();
+                if (path.endsWith("/snapshot")) { snapshots.append(socket); return; }
+                ++writes;
+                const auto body = QJsonDocument::fromJson(bytes.mid(split + 4, length)).object();
+                if (path.endsWith("/settings")) respond(socket, {{"ok", true}, {"settings", body}});
+                else respond(socket, {{"ok", true}, {"result", QJsonObject{{"brightness", 184}}}});
+            });
+            connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+        });
+        w.networkManager.setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", server.serverPort()));
+        connect(&w.networkManager, &QNetworkAccessManager::finished, &w, &MainWindow::handleReply);
+        QSignalSpy snapshotsApplied(&w, &MainWindow::hmiSnapshotChanged);
+        QSignalSpy finished(&w, &MainWindow::desktopBrightnessFinished);
+        w.requestSnapshot(); w.requestSnapshot(); w.requestSnapshot();
+        QTRY_COMPARE(snapshots.size(), 1); QVERIFY(w.requestActive);
+        const int priorDisplay = w.brightnessSlider->value();
+        QVERIFY(w.requestDesktopBrightness(72));
+        auto duringSave = snapshot(); auto duringSettings = duringSave["settings"].toObject();
+        duringSettings["brightness"] = 17; duringSave["settings"] = duringSettings;
+        w.updateSnapshot(duringSave); w.refreshTimer.stop();
+        QCOMPARE(w.brightnessSlider->value(), priorDisplay);
+        snapshotsApplied.clear();
+        QTRY_COMPARE(finished.count(), 1); QVERIFY(finished.first()[0].toBool());
+        QCOMPARE(writes, 2); w.refreshTimer.stop();
+        QVERIFY(snapshots.first());
+        respond(snapshots.first(), obsoleteFailure ? QJsonObject{{"ok", false}, {"error", "obsolete failure"}} : snapshot());
+        QTRY_COMPARE(snapshots.size(), 2);
+        QCOMPARE(snapshotsApplied.count(), 0); // The pre-write reply is obsolete.
+        auto current = snapshot(); auto settings = current["settings"].toObject();
+        settings["brightness"] = 184; current["settings"] = settings;
+        QVERIFY(snapshots.last()); respond(snapshots.last(), current);
+        QTRY_COMPARE(snapshotsApplied.count(), 1);
+        QCOMPARE(w.brightnessSlider->value(), 184); QVERIFY(!w.requestActive);
+        QCOMPARE(writes, 2); w.refreshTimer.stop();
+    }
+
+    void reopeningUpdatePanelReattachesWithoutStartingAnotherInstall()
+    {
+        QTemporaryDir temp; QVERIFY(temp.isValid());
+        auto write = [&](const QString &name, const QByteArray &bytes) {
+            QFile file(temp.filePath(name));
+            return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
+        };
+        QVERIFY(write("updater", "#!/bin/sh\ncd \"$(dirname \"$0\")\"\nprintf '%s\\t%s\\n' \"$2\" \"$3\" >> requests\nif [ \"$2\" = update.identity ]; then cat identity; else cat result; fi\n"));
+        QVERIFY(QFile::setPermissions(temp.filePath("updater"), QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        QVERIFY(write("updater.json", "{\"task_service\":true}"));
+        QVERIFY(write("identity", "{\"system\":{\"board_id\":\"fixture-board\",\"contract_id\":\"fixture-contract\"},\"installed\":{\"version\":\"0.1.0-dev\"},\"check_configured\":true}"));
+        const QString id(32, 'e');
+        QJsonObject task{{"task_id", id}, {"operation", "install"}, {"status", "running"}, {"stage", "health"}};
+        QVERIFY(write("result", QJsonDocument(task).toJson(QJsonDocument::Compact)));
+        auto create = [&]() {
+            const bool hadConfig = qEnvironmentVariableIsSet("DSHANCONTROL_UPDATER_CONFIG");
+            const bool hadExecutable = qEnvironmentVariableIsSet("DSHANCONTROL_UPDATER_EXECUTABLE");
+            const auto config = qgetenv("DSHANCONTROL_UPDATER_CONFIG");
+            const auto executable = qgetenv("DSHANCONTROL_UPDATER_EXECUTABLE");
+            qputenv("DSHANCONTROL_UPDATER_CONFIG", temp.filePath("updater.json").toLocal8Bit());
+            qputenv("DSHANCONTROL_UPDATER_EXECUTABLE", temp.filePath("updater").toLocal8Bit());
+            auto *panel = new UpdatePanel;
+            if (hadConfig) qputenv("DSHANCONTROL_UPDATER_CONFIG", config); else qunsetenv("DSHANCONTROL_UPDATER_CONFIG");
+            if (hadExecutable) qputenv("DSHANCONTROL_UPDATER_EXECUTABLE", executable); else qunsetenv("DSHANCONTROL_UPDATER_EXECUTABLE");
+            return panel;
+        };
+        for (int session = 0; session < 2; ++session) {
+            QScopedPointer<UpdatePanel> panel(create());
+            QTRY_COMPARE(panel->taskId, id); QVERIFY(panel->taskPoll.isActive());
+            QVERIFY(!panel->install->isEnabled()); QVERIFY(!panel->download->isEnabled());
+            panel->taskPoll.setInterval(10);
+            QTest::qWait(80);
+            if (session == 1) {
+                task["status"] = "success"; task["stage"] = "completed";
+                QVERIFY(write("result", QJsonDocument(task).toJson(QJsonDocument::Compact)));
+                QTRY_VERIFY(!panel->taskPoll.isActive());
+                QTRY_COMPARE(panel->process.state(), QProcess::NotRunning);
+            }
+        }
+        QFile requests(temp.filePath("requests")); QVERIFY(requests.open(QIODevice::ReadOnly));
+        int latestQueries = 0, specificQueries = 0;
+        for (const auto &line : requests.readAll().split('\n')) {
+            if (line.isEmpty()) continue;
+            const auto columns = line.split('\t'); QCOMPARE(columns.size(), 2);
+            QVERIFY(columns[0] == "update.identity" || columns[0] == "update.status");
+            if (columns[0] == "update.status") {
+                const auto params = QJsonDocument::fromJson(columns[1]).object();
+                if (params.isEmpty()) ++latestQueries;
+                else { QCOMPARE(params["task_id"].toString(), id); ++specificQueries; }
+            }
+        }
+        QCOMPARE(latestQueries, 2); QVERIFY(specificQueries >= 2);
+    }
+
+    void desktopBrightnessUsesExistingTransaction()
+    {
+        MainWindow w; isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();
+        QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+        QList<QJsonObject> writes; int mode = 0;
+        connect(&server, &QTcpServer::newConnection, this, [&]() {
+            auto *socket = server.nextPendingConnection();
+            connect(socket, &QTcpSocket::readyRead, socket, [&, socket]() {
+                QByteArray bytes = socket->property("request").toByteArray() + socket->readAll();
+                socket->setProperty("request", bytes);
+                const int split = bytes.indexOf("\r\n\r\n"); if (split < 0) return;
+                int length = 0;
+                for (const auto &line : bytes.left(split).split('\n'))
+                    if (line.toLower().startsWith("content-length:")) length = line.mid(15).trimmed().toInt();
+                if (bytes.size() < split + 4 + length || socket->property("handled").toBool()) return;
+                socket->setProperty("handled", true);
+                const auto method = bytes.split(' ')[0];
+                const QString path = QUrl(QString::fromUtf8(bytes.split(' ')[1])).path();
+                const auto body = QJsonDocument::fromJson(bytes.mid(split + 4, length)).object();
+                QJsonObject response = snapshot();
+                if (method != "GET") {
+                    writes.append(QJsonObject{{"method", QString::fromUtf8(method)}, {"path", path}, {"body", body}});
+                    if (path.endsWith("/settings"))
+                        response = mode == 2 ? QJsonObject{{"ok", false}} : QJsonObject{{"ok", true}, {"settings", body}};
+                    else {
+                        response = {{"ok", true}, {"result", QJsonObject{{"brightness",
+                            mode == 1 ? 20 : body["params"].toObject()["value"].toInt()}}}};
+                        if (mode == 3) { socket->disconnectFromHost(); return; }
+                    }
+                }
+                const auto output = QJsonDocument(response).toJson();
+                socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: " +
+                    QByteArray::number(output.size()) + "\r\n\r\n" + output);
+                socket->disconnectFromHost();
+            });
+        });
+        w.networkManager.setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", server.serverPort()));
+        connect(&w.networkManager, &QNetworkAccessManager::finished, &w, &MainWindow::handleReply);
+        QSignalSpy finished(&w, &MainWindow::desktopBrightnessFinished);
+        QVERIFY(w.requestDesktopBrightness(72));
+        QVERIFY(!w.requestDesktopBrightness(35)); // no second transaction or early completion
+        QCOMPARE(finished.count(), 0);
+        QTRY_COMPARE(finished.count(), 1); QCOMPARE(writes.size(), 2);
+        QVERIFY(finished.at(0).at(0).toBool()); QCOMPARE(finished.at(0).at(1).toInt(), 184);
+        QCOMPARE(writes.at(0)["method"].toString(), QString("PUT"));
+        QCOMPARE(writes.at(0)["body"].toObject(), QJsonObject({{"brightness", 184}}));
+        QCOMPARE(writes.at(1)["body"].toObject()["confirmed"], QJsonValue(true));
+        QCOMPARE(writes.at(1)["body"].toObject()["params"].toObject()["value"].toInt(), 184);
+        QVERIFY(!w.settingsPending); QVERIFY(!QApplication::activeModalWidget());
+        mode = 1; QVERIFY(w.requestDesktopBrightness(50));
+        QTRY_COMPARE(finished.count(), 2); QCOMPARE(writes.size(), 4);
+        QVERIFY(!finished.at(1).at(0).toBool()); QVERIFY(finished.at(1).at(2).toString().contains("背光应用未确认"));
+        mode = 2; QVERIFY(w.requestDesktopBrightness(65));
+        QTRY_COMPARE(finished.count(), 3); QCOMPARE(writes.size(), 5); // failed save never applies hardware
+        QVERIFY(!finished.at(2).at(0).toBool());
+        mode = 3; QVERIFY(w.requestDesktopBrightness(65));
+        QTRY_COMPARE(finished.count(), 4); QCOMPARE(writes.size(), 7);
+        QVERIFY(!finished.at(3).at(0).toBool()); QTest::qWait(100); QCOMPARE(writes.size(), 7); // no retry
+        mode = 0; QVERIFY(w.requestDesktopBrightness(0));
+        QTRY_COMPARE(finished.count(), 5); QCOMPARE(finished.at(4).at(1).toInt(), 10);
+        QVERIFY(w.requestDesktopBrightness(100));
+        QTRY_COMPARE(finished.count(), 6); QCOMPARE(finished.at(5).at(1).toInt(), 255);
+        w.brightnessSlider->setValue(99); QVERIFY(w.settingsDirty);
+        QVERIFY(!w.requestDesktopBrightness(50)); QCOMPARE(finished.count(), 7);
+        QVERIFY(finished.last().at(2).toString().contains("请先保存"));
+        w.markOffline(); QVERIFY(!w.requestDesktopBrightness(50));
+        QCOMPARE(writes.size(), 11); w.refreshTimer.stop();
+    }
+
+    void desktopBrightnessDragAndReadback()
+    {
+        DesktopV1::DesktopCanvas w(false); w.resize(1024, 600); w.show();
+        auto data = snapshot(); auto settings = data["settings"].toObject();
+        settings["brightness"] = 220; data["settings"] = settings;
+        w.applyHmi(data); w.change(1); QCoreApplication::processEvents();
+        QSignalSpy sent(&w, &DesktopV1::DesktopCanvas::brightnessRequested);
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, QPoint(250, 390));
+        QMouseEvent move(QEvent::MouseMove, QPointF(397, 390), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&w, &move);
+        QCOMPARE(w.brightness, 72); QCOMPARE(sent.count(), 0);
+        w.applyHmi(data); QCOMPARE(w.brightness, 72); // periodic snapshot cannot move the drag thumb
+        QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, QPoint(397, 390));
+        QCOMPARE(sent.count(), 1); QCOMPARE(sent.at(0).at(0).toInt(), 72); QVERIFY(w.brightnessBusy());
+        w.observeBrightness(100,QString());QCOMPARE(w.brightness,72);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, QPoint(460, 390)); QCOMPARE(sent.count(), 1);
+        w.finishBrightness(true, 184, "背光已应用"); QVERIFY(!w.brightnessBusy());
+        w.applyHmi(data); QCOMPARE(w.brightness, 72); // stale snapshot
+        settings["brightness"] = 184; data["settings"] = settings; w.applyHmi(data);
+        w.finishBrightness(false, -1, "显示设置已保存，背光应用未确认");
+        w.applyHmi(data); QCOMPARE(w.brightness, -1); // settings is not a hardware readback
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, QPoint(300, 390));
+        QEvent cancel(QEvent::TouchCancel); QApplication::sendEvent(&w, &cancel);
+        QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, QPoint(400, 390));
+        QCOMPARE(sent.count(), 1); QCOMPARE(w.brightness, -1);
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, QPoint(300, 390));
+        w.change(0); QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, QPoint(400, 390));
+        QCOMPARE(sent.count(), 1);
+        w.applyHmi({}); w.change(1); QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, QPoint(300, 390));
+        QCOMPARE(sent.count(), 1);
+        w.applyHmi(data); w.resize(1280, 720); QCoreApplication::processEvents();
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, QPoint(496, 468));
+        QCOMPARE(sent.count(), 2); QCOMPARE(sent.last().at(0).toInt(), 72);
+        w.finishBrightness(true, 184, "显示设置已保存，背光已应用");
+        QVERIFY(w.grab().save("screenshots/desktop-control-brightness-wide.png"));
+    }
+
     void settingsAndServicesRequestsRemainTruthful()
     {
         MainWindow w; isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();

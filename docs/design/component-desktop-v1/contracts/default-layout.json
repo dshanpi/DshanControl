@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "active_page": "page0",
+  "pages": [
+    {
+      "id": "page0",
+      "slots": [
+        {
+          "id": "p0_trend",
+          "slot_id": "trend",
+          "type": "trend",
+          "binding": {}
+        },
+        {
+          "id": "p0_media",
+          "slot_id": "media",
+          "type": "video",
+          "binding": {}
+        },
+        {
+          "id": "p0_cloud",
+          "slot_id": "cloud",
+          "type": "cloud",
+          "binding": {}
+        },
+        {
+          "id": "p0_bus",
+          "slot_id": "bus",
+          "type": "bus",
+          "binding": {}
+        },
+        {
+          "id": "p0_alarms",
+          "slot_id": "alarms",
+          "type": "alarms",
+          "binding": {}
+        },
+        {
+          "id": "p0_home",
+          "slot_id": "home",
+          "type": "home",
+          "binding": {}
+        },
+        {
+          "id": "p0_voice",
+          "slot_id": "voice",
+          "type": "voice",
+          "binding": {}
+        }
+      ]
+    },
+    {
+      "id": "page1",
+      "slots": [
+        {
+          "id": "p1_trend",
+          "slot_id": "trend",
+          "type": "image",
+          "binding": {}
+        },
+        {
+          "id": "p1_media",
+          "slot_id": "media",
+          "type": "video",
+          "binding": {}
+        },
+        {
+          "id": "p1_cloud",
+          "slot_id": "cloud",
+          "type": "cloud",
+          "binding": {}
+        },
+        {
+          "id": "p1_bus",
+          "slot_id": "bus",
+          "type": "bus",
+          "binding": {}
+        },
+        {
+          "id": "p1_alarms",
+          "slot_id": "alarms",
+          "type": "alarms",
+          "binding": {}
+        },
+        {
+          "id": "p1_home",
+          "slot_id": "home",
+          "type": "home",
+          "binding": {}
+        },
+        {
+          "id": "p1_voice",
+          "slot_id": "voice",
+          "type": "voice",
+          "binding": {}
+        }
+      ]
+    }
+  ]
+}

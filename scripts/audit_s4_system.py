@@ -8,7 +8,7 @@ import re
 import shutil
 import struct
 from pathlib import Path
-from finalize_s4_rootfs import validate_wifi_firmware
+from finalize_s4_rootfs import MDEV_NULL_RULE, validate_wifi_firmware
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -144,6 +144,10 @@ def audit(hardware, buildroot, capacity_bytes=None, rootfs_image=None):
         validate_wifi_firmware(buildroot / 'target', require_alias=True)
     except ValueError as error:
         errors.append(str(error))
+    mdev = buildroot / 'target/etc/mdev.conf'
+    if (mdev.is_symlink() or not mdev.is_file()
+            or not mdev.read_bytes().startswith(MDEV_NULL_RULE)):
+        errors.append('S4 mdev configuration must allow reduced-role /dev/null access')
     fixed = sum(p['size_bytes'] or 0 for p in layout)
     # Conservative engineering reserve, not a measurement of the physical GPT.
     reserve = 32 * 1024**2

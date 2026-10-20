@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "slots": {
+    "trend": [
+      "trend",
+      "image"
+    ],
+    "media": [
+      "video",
+      "image"
+    ],
+    "cloud": [
+      "cloud"
+    ],
+    "bus": [
+      "bus",
+      "alarms",
+      "home",
+      "voice"
+    ],
+    "alarms": [
+      "bus",
+      "alarms",
+      "home",
+      "voice"
+    ],
+    "home": [
+      "bus",
+      "alarms",
+      "home",
+      "voice"
+    ],
+    "voice": [
+      "bus",
+      "alarms",
+      "home",
+      "voice"
+    ]
+  },
+  "empty_type": "empty",
+  "default_bindings": "空binding表示未绑定；生产不得默认绑定fixture设备",
+  "scope": "固定2页7槽，兼容槽交换；没有自由拖动尺寸功能"
+}

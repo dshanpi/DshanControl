@@ -8,7 +8,7 @@ test-bootstrap:
 	$(PYTHON) -m venv .test-venv
 	.test-venv/bin/pip install --disable-pip-version-check -r tests/requirements.txt
 
-test: build-native build-native-fixtures
+test: build-native build-native-fixtures build-desktop
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
 package:
@@ -38,3 +38,17 @@ test-hmi:
 	mkdir -p dist/ui-test
 	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/hmi-ui.pro && $(MAKE)
 	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./hmi-ui-test
+	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/desktop-fixture-isolation.pro && $(MAKE)
+	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./desktop-fixture-isolation-test
+	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/cloud-reporting-boundaries.pro && $(MAKE)
+	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./cloud-reporting-boundaries-test
+
+.PHONY: build-desktop test-desktop
+build-desktop:
+	mkdir -p dist/desktop-native dist/desktop-model-tests dist/media-native
+	cd dist/desktop-native && $(HMI_QMAKE) ../../components/desktop/desktop.pro && $(MAKE)
+	cd dist/desktop-model-tests && $(HMI_QMAKE) ../../tests/desktop/desktop-model.pro && $(MAKE)
+	cd dist/media-native && $(HMI_QMAKE) ../../components/media/media.pro && $(MAKE)
+
+test-desktop: build-desktop
+	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_desktop_service.py' -v

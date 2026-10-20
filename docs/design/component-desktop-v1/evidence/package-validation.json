@@ -1,0 +1,77 @@
+{
+  "time": "2026-10-16T07:03:00.939774+00:00",
+  "host": "192.168.1.199 Ubuntu",
+  "scope": "requirements package and approved reference renderer only",
+  "package_integrity_before_receipt": {
+    "ok": true,
+    "checked_files": 45,
+    "approved_pngs": 10,
+    "errors": []
+  },
+  "reference_build": "PASS Qt5.12.8 on Ubuntu",
+  "reference_interaction_checks": 9,
+  "reference_state_render_cycles": 30,
+  "reference_exact_pixel_comparison": "PASS 10/10, all changed_pixels=0",
+  "sdk_root_pngs": [
+    {
+      "file": "UI新桌面_00设计总览.png",
+      "sha256": "b119611b3fdb33d96a68771b9b2a5e89888cb3907eca50e80a0798fac4f78685",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_01组件桌面.png",
+      "sha256": "16f5856f71999c7dce742178face0308b778eb1bd501505461cf646b478c173c",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_02顶部下拉.png",
+      "sha256": "4e998961707c74ee5b3534ac595ef702fe67a4b4d6bfc3b7151902d883c20af5",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_03全部应用.png",
+      "sha256": "5b85ba1e7471175a5f07f5c445e3679be437bb06fe37140c96e59a15d2db41fd",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_04编辑组件.png",
+      "sha256": "67648b8da0f9a4b770142b92e35a41a3605f48f6dadcba427fb8698603419423",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_05添加组件.png",
+      "sha256": "dfcdf75c9d66097b185738abae78dd270f69f06ae9b41cf484e2a5142f761f3f",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_06组件展开.png",
+      "sha256": "ffa184d1b3fe8b9cf74a9a793d2b743d914af0ea49f912263cc438b6d8cdf846",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_07宽屏1280x720.png",
+      "sha256": "7c07828c8af7b7963491942b1cbbc6a1b820a86574c3d2e36c64274ed9406360",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_08应用搜索.png",
+      "sha256": "4aba8bbb1d732f5e59efb1461ec895e90d85d31165b407e70c404407548cf506",
+      "matches_package": true
+    },
+    {
+      "file": "UI新桌面_09图片组件.png",
+      "sha256": "bf1c24feeaa7fbd76bf8c7a33e2cb221523ba6c1bbd9c347731957479b88a45b",
+      "matches_package": true
+    }
+  ],
+  "source_snapshot_files": 74,
+  "source_changes_after_refreshed_snapshot": [
+    "components/desktop/src/providers.cpp"
+  ],
+  "production_implementation": "NOT_RUN by this requirements task",
+  "target_board_acceptance": "NOT_RUN by this requirements task",
+  "source_production_files_modified_by_this_task": false,
+  "source_drift_review": {
+    "components/desktop/src/providers.cpp": "末次差异仅将transport_failed诊断扩展为transport_failed_<QNetworkReply error number>；请求方法、字段、业务状态合同未变。source-index保留冻结读取版本，后续实施仍需重新核对工作区。"
+  }
+}

@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
+import socket
 import struct
 import subprocess
 import tempfile
@@ -64,6 +66,57 @@ class NativeLaunchTests(unittest.TestCase):
             if len(output)==3:return output
             time.sleep(0.01)
         self.fail('fixture programs did not publish their post-exec observations')
+
+    def test_desktop_provider_is_managed_with_separate_identity_and_stop_record(self):
+        policy=self.f.settings['application_health']
+        policy['desktop_provider']=True
+        service=self.f.root/'desktop-service'
+        shutil.copyfile(str(ROOT/'dist/desktop-native/dshancontrol-desktop-service'),str(service));service.chmod(0o755)
+        directory=self.f.root/'desktop-ipc';directory.mkdir(mode=0o750)
+        if os.geteuid()==0:os.chown(directory,60002,60000)
+        socket_path=directory/'desktop.sock';policy['fixture_desktop_socket']=str(socket_path)
+        policy['fixture_processes']['desktop']=[str(service),'--socket',str(socket_path),'--config',str(self.f.root/'absent-private.json')]
+        self.f.save()
+        launched=self.launch()
+        self.assertEqual(['desktop','web','hmi','supervisor'],launched['launched'])
+        deadline=time.monotonic()+3
+        while not socket_path.exists() and time.monotonic()<deadline:time.sleep(.02)
+        self.assertTrue(socket_path.exists())
+        self.assertEqual({'web','hmi','supervisor','desktop'},set(self.command('application-health')['processes']))
+        receipt=json.loads((self.f.pids/'desktop.launch.json').read_text())
+        self.assertEqual(60002 if os.geteuid()==0 else os.getuid(),receipt['uid'])
+        self.assertFalse(receipt['bind_privileged_port'])
+        status=Path('/proc/%d/status'%receipt['pid']).read_text()
+        fields=dict(line.split(':',1) for line in status.splitlines() if ':' in line)
+        self.assertEqual('1',fields['NoNewPrivs'].strip())
+        self.assertEqual(0,int(fields['CapEff'],16))
+        os.kill(receipt['pid'],signal.SIGSTOP)
+        try:
+            failed=self.command('application-health',expected=1)
+            self.assertEqual('health-desktop',failed['code'])
+        finally:os.kill(receipt['pid'],signal.SIGCONT)
+        self.assertTrue(self.command('application-health')['ok'])
+        preserved=socket_path.with_name('preserved.sock');socket_path.rename(preserved)
+        listener=socket.socket(socket.AF_UNIX)
+        try:
+            listener.bind(str(socket_path));listener.listen(1)
+            self.assertEqual('health-desktop-identity',self.command('application-health',expected=1)['code'])
+        finally:
+            listener.close();socket_path.unlink();preserved.rename(socket_path)
+        self.assertTrue(self.command('application-health')['ok'])
+        stopped=self.command('application-stop');self.original.clear()
+        self.assertEqual(4,stopped['cleared_process_records'])
+        self.assertFalse(list(self.f.pids.glob('*.launch.json')))
+
+    def test_desktop_provider_requires_explicit_managed_policy_and_complete_fixtures(self):
+        policy=self.f.settings['application_health']
+        for value,managed in [('true',True),(True,False),(True,True)]:
+            policy['desktop_provider']=value;policy['launch_receipts_required']=managed
+            self.f.save()
+            failure=self.command('application-start',expected=1)
+            self.assertEqual('start-contract',failure['code'])
+            self.assertFalse(list(self.f.pids.glob('*.launch.json')))
+        policy.pop('desktop_provider');policy['launch_receipts_required']=True;self.f.save()
 
     def test_real_launch_is_recorded_with_reduced_credentials_and_closed_environment_and_fds(self):
         environment=dict(os.environ,DSHANCONTROL_TEST_SECRET='must-not-cross-application-boundary')

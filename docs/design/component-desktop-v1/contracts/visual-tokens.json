@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "unit": "logical_px",
+  "canvas": [
+    1024,
+    600
+  ],
+  "reference_qt": "5.12.8",
+  "target_qt_min": "5.11.3",
+  "device_pixel_ratio": 1,
+  "font": {
+    "family": "Dshan Sans",
+    "files": [
+      "assets/fonts/DshanSans-Regular.otf",
+      "assets/fonts/DshanSans-Bold.otf"
+    ],
+    "normal_weight_qt5": 50,
+    "emphasis_weight_qt5": 63,
+    "pixel_sizes": {
+      "page_title": 25,
+      "drawer_title": 26,
+      "card_title": 15,
+      "body": 14,
+      "caption": 12,
+      "small": 11,
+      "reading": 36,
+      "detail_reading": 42
+    }
+  },
+  "colors": {
+    "ink": "#142C4B",
+    "muted": "#71859D",
+    "blue": "#1468FA",
+    "line": "#E3EBF3",
+    "green": "#159D85",
+    "amber": "#C88525",
+    "card": "#FFFFFF",
+    "edit_border": "#7AA9F9"
+  },
+  "background": {
+    "linear": {
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        1024,
+        600
+      ],
+      "stops": [
+        [
+          0,
+          "#EAF2FD"
+        ],
+        [
+          0.55,
+          "#EEF3F9"
+        ],
+        [
+          1,
+          "#DFE9F8"
+        ]
+      ]
+    },
+    "radial": {
+      "center": [
+        1020,
+        620
+      ],
+      "radius": 680,
+      "rgba_start": [
+        111,
+        163,
+        249,
+        30
+      ],
+      "rgba_end": [
+        111,
+        163,
+        249,
+        0
+      ],
+      "clip": [
+        0,
+        53,
+        1024,
+        547
+      ]
+    }
+  },
+  "card": {
+    "radius": 20,
+    "shadow_rgba": [
+      64,
+      95,
+      134,
+      12
+    ],
+    "shadow_offset": [
+      0,
+      4
+    ],
+    "shadow_blur": 0,
+    "fill_alpha": 255
+  },
+  "overlay": {
+    "mask_rgba": [
+      29,
+      49,
+      76,
+      70
+    ],
+    "mask_rect": [
+      0,
+      53,
+      1024,
+      547
+    ]
+  },
+  "icon": {
+    "base_size": 24,
+    "stroke": 1.65,
+    "cap": "RoundCap",
+    "join": "RoundJoin",
+    "source": "reference/source/desktop-preview.cpp::Desktop::icon"
+  },
+  "gesture": {
+    "direction_lock_px": 12,
+    "long_press_ms": 600,
+    "edge_swipe_px": 55,
+    "page_swipe_px": 100,
+    "min_touch_target": 44
+  },
+  "animation_proposed": {
+    "overlay_ms": 220,
+    "curve": "OutCubic",
+    "drag_return_ms": 160
+  },
+  "wide_reference": {
+    "canvas": [
+      1280,
+      720
+    ],
+    "sx": 1.25,
+    "sy": 1.2,
+    "approved_state": "desktop_default",
+    "note": "其它宽屏状态必须另做截图验收；不要将字体/原生输入控件误缩放。"
+  }
+}

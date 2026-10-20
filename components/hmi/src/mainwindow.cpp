@@ -1,6 +1,15 @@
+#ifdef DSHANCONTROL_HMI_UI_TEST
+#include <QNetworkProxy>
+#endif
+#include "oneshotupload.h"
 #include "mainwindow.h"
+#include "displayprobe.h"
 #include "updatepanel.h"
 #include "visuals.h"
+#include "cloudpanel.h"
+#include "familypanel.h"
+#include "mediapanel.h"
+#include "desktop/desktoptrendpanel.h"
 
 #include <QAbstractItemView>
 #include <QBoxLayout>
@@ -28,6 +37,8 @@
 #include <QResizeEvent>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QScreen>
+#include <QWindow>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QScroller>
@@ -138,6 +149,12 @@ QLineEdit *edit(const QString &value, const QString &placeholder = QString())
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
+#ifdef DSHANCONTROL_HMI_UI_TEST
+    // Qt bypasses an application-wide proxy for loopback destinations. The
+    // UI test executable explicitly binds its rejecting/fixture proxy before
+    // the first request, so running tests beside a live board cannot control it.
+    networkManager.setProxy(QNetworkProxy::applicationProxy());
+#endif
     resize(1024, 600);
     setWindowTitle("DshanControl 工业控制桌面");
     Visuals::initializeFonts();
@@ -184,11 +201,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     nav = new QFrame;
     nav->setObjectName("nav");
     nav->setFixedWidth(140);
-    QVBoxLayout *navLayout = new QVBoxLayout(nav);
-    navLayout->setContentsMargins(5, 11, 5, 12);
-    navLayout->setSpacing(6);
-    const QStringList names = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置"};
-    const QStringList symbols = {"bars", "topology", "globe", "monitor", "bell", "settings"};
+    auto *navShell = new QVBoxLayout(nav);
+    navShell->setContentsMargins(0, 0, 0, 0);
+    auto *navScroll = new QScrollArea;
+    navScroll->setObjectName("desktopNavigation");
+    navScroll->setWidgetResizable(true);
+    navScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto *navSurface = new QWidget;
+    navSurface->setObjectName("navSurface");
+    auto *navLayout = new QVBoxLayout(navSurface);
+    navLayout->setContentsMargins(5, 8, 5, 8);
+    navLayout->setSpacing(3);
+    const QStringList names = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置", "云服务", "家庭与对话", "视频播放"};
+    const QStringList symbols = {"bars", "topology", "globe", "monitor", "bell", "settings", "cloud", "server", "video"};
     for (int i = 0; i < names.size(); ++i) {
         QPushButton *button = new NavigationButton(names[i], symbols[i]);
         button->setObjectName("navButton");
@@ -206,6 +231,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     navModel->setWordWrap(true);
     navLayout->addWidget(navModel);
     navModel->hide();
+    navScroll->setWidget(navSurface);
+    navShell->addWidget(navScroll);
     bodyLayout->addWidget(nav);
     pages = new QStackedWidget;
     pages->setObjectName("pages");
@@ -213,6 +240,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
          {buildOverview(), buildFieldbus(), buildNetwork(), buildDevices(), buildAlarms(), buildSettings()}) {
         pages->addWidget(scrollPage(page));
     }
+    desktopClient = new DesktopClient(this);
+    connect(desktopClient, &DesktopClient::snapshotChanged, this, &MainWindow::desktopSnapshotChanged);
+    cloudPanel = new CloudPanel(desktopClient);
+    familyPanel = new FamilyPanel(desktopClient);
+    mediaPanel = new MediaPanel;
+    for (QWidget *page : {static_cast<QWidget *>(cloudPanel), static_cast<QWidget *>(familyPanel), static_cast<QWidget *>(mediaPanel)})
+        pages->addWidget(scrollPage(page));
+    connect(mediaPanel, &MediaPanel::fullscreenRequested, this, [this, header](bool enabled) {
+        nav->setVisible(!enabled && !desktopEmbedded);
+        header->setVisible(!enabled && !desktopEmbedded);
+        if (auto *footer = findChild<QFrame *>("footer")) footer->setVisible(!enabled && !desktopEmbedded);
+        emit mediaFullscreenChanged(enabled);
+    });
     bodyLayout->addWidget(pages, 1);
     rootLayout->addWidget(body, 1);
 
@@ -261,6 +301,7 @@ void MainWindow::applyTheme()
         QFrame#header, QFrame#footer { background: white; border-bottom: 1px solid #d9e3ef; }
         QFrame#footer { border-top: 1px solid #d9e3ef; }
         QFrame#nav { background: #e8f3ff; border-right: 1px solid #d9e3ef; }
+        QWidget#navSurface { background: #e8f3ff; }
         QLabel#brandMark { color: white; background: #0062ff; border-radius: 5px; font-size: 23px; font-weight: 700; }
         QLabel#brand { font-size: 20px; font-weight: 700; }
         QLabel#brandSubtitle { font-size: 13px; color: #193960; }
@@ -339,12 +380,23 @@ QWidget *MainWindow::scrollPage(QWidget *page)
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
-    screenResolution->setText(QString("%1 × %2（已检测）").arg(width()).arg(height()));
+    // Embedded applications occupy only the area between the desktop bars.
+    // Report the physical display, not this page's smaller content rectangle.
+    const auto *handle = window()->windowHandle();
+    const auto *screen = handle ? handle->screen() : QGuiApplication::primaryScreen();
+    if (screen)
+    {
+        const QSize pixels = screen->size() * screen->devicePixelRatio();
+        screenResolution->setText(QString("%1 × %2（已检测）")
+                                      .arg(pixels.width()).arg(pixels.height()));
+    }
+    else
+        screenResolution->setText("尚未检测到屏幕");
     const bool compact = width() < 900;
     const bool narrow = width() < 700;
     nav->setFixedWidth(compact ? 68 : 140);
-    const QStringList full = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置"};
-    const QStringList shortNames = {"总览", "总线", "网络", "监控", "告警", "设置"};
+    const QStringList full = {"运行总览", "现场总线", "网络通信", "设备监控", "告警记录", "系统设置", "云服务", "家庭与对话", "视频播放"};
+    const QStringList shortNames = {"总览", "总线", "网络", "监控", "告警", "设置", "云端", "家庭", "视频"};
     for (int i = 0; i < navButtons.size(); ++i)
         navButtons[i]->setText(compact ? shortNames[i] : full[i]);
     navModel->setVisible(!compact);
@@ -995,7 +1047,13 @@ QWidget *MainWindow::buildDevices()
     });
     actions->addWidget(settings, 1);
     layout->addLayout(actions);
-    return page;
+    devicePageStack=new QStackedWidget;
+    devicePageStack->addWidget(page);
+    boundTrendPanel=new DesktopV1::DesktopTrendPanel;
+    devicePageStack->addWidget(boundTrendPanel);
+    devicePageStack->layout()->setSizeConstraint(QLayout::SetNoConstraint);
+    devicePageStack->setMinimumSize(0,0);
+    return devicePageStack;
 }
 
 void MainWindow::updatePageMetrics(const QJsonObject &root)
@@ -1326,6 +1384,13 @@ QWidget *MainWindow::buildSettings()
     screenForm->addRow(iconLabel("sun", "屏幕亮度"), brightnessRow);
     screenForm->addRow(iconLabel("type", "界面字体"), new QLabel("标准 · 思源黑体"));
     screenForm->addRow(iconLabel("topology", "布局模式"), new QLabel("根据屏幕自动调整"));
+    auto *displayProbe = new QPushButton("屏幕色彩 / 比例校验");
+    displayProbe->setObjectName("openDisplayProbe");
+    displayProbe->setMinimumHeight(44);
+    connect(displayProbe, &QPushButton::clicked, this, [this]() {
+        auto *probe = new DisplayProbe(this);
+        probe->showFullScreen();
+    });
     screenForm->addRow(iconLabel("globe", "语言"), new QLabel("简体中文"));
     auto *interaction = new QGroupBox("数据与交互");
     auto *form = new QFormLayout(interaction);
@@ -1354,6 +1419,7 @@ QWidget *MainWindow::buildSettings()
     footer->setObjectName("panel");
     auto *footerLayout = new QHBoxLayout(footer);
     footerLayout->addWidget(captionLabel("配置仅影响当前设备，不改变业务数据。"), 1);
+    footerLayout->addWidget(displayProbe);
     QPushButton *save = actionButton("保存设置");
     save->setObjectName("saveSettings");
     save->setMinimumWidth(126);
@@ -1495,9 +1561,68 @@ QWidget *MainWindow::buildSettings()
     connect(auditResult, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             [this]() { updateAuditFilter(); });
     settingsTabs->addTab(scrollPage(audit), "操作日志");
-    settingsTabs->addTab(scrollPage(new UpdatePanel), "应用更新");
+    auto *applicationUpdatePanel = new UpdatePanel;
+    applicationUpdatePanel->setObjectName("applicationUpdatePanel");
+    applicationUpdatePage = scrollPage(applicationUpdatePanel);
+    settingsTabs->addTab(applicationUpdatePage, "应用更新");
     layout->addWidget(settingsTabs, 1);
     return page;
+}
+
+void MainWindow::setDesktopPointSource(DesktopV1::DesktopCanvas *source)
+{
+    boundTrendPanel->setSource(source);
+}
+
+void MainWindow::setDesktopEmbedded(bool embedded)
+{
+    desktopEmbedded = embedded;
+    nav->setVisible(!embedded);
+    if (auto *header = findChild<QFrame *>("header")) header->setVisible(!embedded);
+    if (auto *footer = findChild<QFrame *>("footer")) footer->setVisible(!embedded);
+}
+
+bool MainWindow::openApplication(const QString &id, const QJsonObject &context)
+{
+    const QStringList original = {"overview", "fieldbus", "network", "devices", "alarms", "settings"};
+    const int index = original.indexOf(id);
+    if (index >= 0) {
+        if(id=="devices") {
+            QJsonObject binding;
+            for(const auto &key:{QString("point_id"),QString("secondary_point_id")}) {
+                const auto value=context[key].toString();
+                if(!value.isEmpty()) {
+                    if(!DesktopV1::DesktopPointHistory::validId(value))return false;
+                    binding[key]=value;
+                }
+            }
+            boundTrendPanel->setBinding(binding);
+            devicePageStack->setCurrentIndex(binding.isEmpty()?0:1);
+            devicePageStack->setSizePolicy(QSizePolicy::Expanding,
+                binding.isEmpty()?QSizePolicy::Preferred:QSizePolicy::Ignored);
+            devicePageStack->updateGeometry();
+        }
+        showPage(index); return true;
+    }
+    if (id == "cloud_bind" || id == "reporting") {
+        cloudPanel->selectSection(id == "reporting" ? 1 : 0);
+        showPage(6);
+    } else if (id == "voice" || id == "home") {
+        familyPanel->selectSection(id == "home" ? 1 : 0);
+        showPage(7);
+        if(id=="home" && context["device_id"].isString())familyPanel->selectDeviceById(context["device_id"].toString());
+    } else if (id == "video") {
+        showPage(8);
+        if(context["path"].isString())mediaPanel->selectFile(context["path"].toString());
+    } else if (id == "update") {
+        showPage(5);
+        if (auto *tabs = findChild<QTabWidget *>("settingsTabs")) {
+            // Keep the existing UpdatePanel instance and its original lifecycle.
+            const int updateIndex = tabs->indexOf(applicationUpdatePage);
+            if (updateIndex >= 0) tabs->setCurrentIndex(updateIndex);
+        }
+    } else return false;
+    return true;
 }
 
 void MainWindow::showPage(int index)
@@ -1507,12 +1632,34 @@ void MainWindow::showPage(int index)
     pages->setCurrentIndex(index);
     for (int i = 0; i < navButtons.size(); ++i)
         navButtons[i]->setChecked(i == index);
+    if (auto *scroll = findChild<QScrollArea *>("desktopNavigation"))
+        scroll->ensureWidgetVisible(navButtons[index]);
     if (index == 4 && !alarmRequestActive) {
         alarmRequestActive = true;
         sendJson("GET", "/alarms?limit=500", {}, "alarms");
     }
     if (index == 5)
         sendJson("GET", "/audit", {}, "audit");
+}
+
+bool MainWindow::requestDesktopBrightness(int percent)
+{
+    // Reuse the settings/action transaction; preserve unsaved settings edits.
+    if (settingsPending)
+        return false;
+    if (percent < 0 || percent > 100 || latestSnapshot.isEmpty() || settingsDirty) {
+        emit desktopBrightnessFinished(false, -1, settingsDirty
+            ? QString("请先保存系统设置中的修改，再调节亮度")
+            : QString("数据服务未连接或亮度参数无效"));
+        return false;
+    }
+    const int raw = qBound(10, qRound(percent * 255.0 / 100.0), 255);
+    savedSettingsRevision = settingsRevision;
+    submittedSettings = QJsonObject{{"brightness", raw}};
+    settingsPending = desktopBrightnessRequest = true;
+    updateSettingsControls();
+    sendJson("PUT", "/settings", submittedSettings, "settings");
+    return true;
 }
 
 void MainWindow::requestSnapshot()
@@ -1523,6 +1670,7 @@ void MainWindow::requestSnapshot()
     QNetworkRequest req(QUrl(QString(kBaseUrl) + "/snapshot"));
     QNetworkReply *reply = networkManager.get(req);
     reply->setProperty("kind", "snapshot");
+    reply->setProperty("generation", QVariant::fromValue(snapshotGeneration));
     QTimer::singleShot(4000, reply, [reply]() {
         if (reply->isRunning())
             reply->abort();
@@ -1532,10 +1680,23 @@ void MainWindow::requestSnapshot()
 void MainWindow::sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,
                           const QString &kind)
 {
+    // Reads begun before a settings transaction must not overwrite its outcome.
+    if (kind == "settings")
+        ++snapshotGeneration;
     QNetworkRequest req(QUrl(QString(kBaseUrl) + path));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply *reply =
-        networkManager.sendCustomRequest(req, method, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    const auto bytes = QJsonDocument(body).toJson(QJsonDocument::Compact);
+    QNetworkReply *reply = nullptr;
+    if (method == "GET") {
+        reply = networkManager.get(req);
+    } else {
+        req.setAttribute(QNetworkRequest::DoNotBufferUploadDataAttribute, true);
+        req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+        req.setHeader(QNetworkRequest::ContentLengthHeader, bytes.size());
+        auto *upload = new OneShotUpload(bytes);
+        reply = networkManager.sendCustomRequest(req, method, upload);
+        upload->setParent(reply);
+    }
     reply->setProperty("kind", kind);
     QTimer::singleShot(30000, reply, [reply]() {
         if (reply->isRunning())
@@ -1603,8 +1764,15 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
 void MainWindow::handleReply(QNetworkReply *reply)
 {
     const QString kind = reply->property("kind").toString();
-    if (kind == "snapshot")
+    if (kind == "snapshot") {
         requestActive = false;
+        const auto generation = reply->property("generation");
+        if (generation.isValid() && generation.toULongLong() != snapshotGeneration) {
+            reply->deleteLater();
+            requestSnapshot();
+            return;
+        }
+    }
     if (kind == "alarms")
         alarmRequestActive = false;
     if (kind == "ack")
@@ -1632,13 +1800,21 @@ void MainWindow::handleReply(QNetworkReply *reply)
                 {"params", QJsonObject{{"value", submittedSettings["brightness"]}}},
                 {"confirmed", true}}, "brightness");
         } else {
+            // Also discard reads started while the save/apply transaction was pending.
+            ++snapshotGeneration;
             settingsPending = false;
             updateSettingsControls();
             const QString message = valid ? "显示设置已保存，背光已应用" :
                 (kind == "brightness" ? "显示设置已保存，背光应用未确认。请重试并检查背光设备。" :
                                         "设置保存未确认；保留当前编辑，请重试。");
-            if (valid) QMessageBox::information(this, "操作完成", message);
-            else QMessageBox::warning(this, "操作失败", message);
+            if (desktopBrightnessRequest) {
+                desktopBrightnessRequest = false;
+                emit desktopBrightnessFinished(valid,
+                    valid ? submittedSettings["brightness"].toInt() : -1, message);
+            } else {
+                if (valid) QMessageBox::information(this, "操作完成", message);
+                else QMessageBox::warning(this, "操作失败", message);
+            }
             requestSnapshot();
         }
         reply->deleteLater();
@@ -1788,6 +1964,7 @@ void MainWindow::updateSettingsControls()
 
 void MainWindow::markOffline()
 {
+    emit hmiSnapshotChanged({});
     alarmsAvailable = false;
     updateAlarmSelection();
     connectionLabel->setText("● 数据服务离线");
@@ -1852,6 +2029,7 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
     clockLabel->setText(QDateTime::fromSecsSinceEpoch(timestamp).toString("MM-dd  hh:mm:ss"));
     dashboard->setSnapshot(root);
     latestSnapshot = root;
+    emit hmiSnapshotChanged(root);
     updateAlarmSelection();
     updatePageMetrics(root);
     updateSettingsControls();
@@ -1960,7 +2138,7 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
 
     const QJsonObject settings = root.value("settings").toObject();
     loadingSettings = true;
-    if (!settingsDirty) {
+    if (!settingsDirty && !settingsPending) {
         brightnessSlider->setValue(settings.value("brightness").toInt(220));
         demoCheck->setChecked(settings.value("demo_mode").toBool(false));
     }
@@ -1968,11 +2146,11 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
     connectionLabel->setText(settings.value("demo_mode").toBool(false) ? "● 样例数据" : "● 数据在线");
     int refresh = settings.value("refresh_ms").toInt(1000);
     int combo = refreshCombo->findData(refresh);
-    if (combo < 0 && refresh >= 500 && refresh <= 10000 && !settingsDirty) {
+    if (combo < 0 && refresh >= 500 && refresh <= 10000 && !settingsDirty && !settingsPending) {
         refreshCombo->addItem(QString("%1 秒").arg(refresh / 1000.0), refresh);
         combo = refreshCombo->count() - 1;
     }
-    if (combo >= 0 && !settingsDirty)
+    if (combo >= 0 && !settingsDirty && !settingsPending)
         refreshCombo->setCurrentIndex(combo);
     loadingSettings = false;
     refreshTimer.setInterval(qBound(500, refresh, 10000));

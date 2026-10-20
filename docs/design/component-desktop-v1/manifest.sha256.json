@@ -1,0 +1,238 @@
+{
+  "algorithm": "SHA-256",
+  "excludes": [
+    "manifest.sha256.json"
+  ],
+  "files": [
+    {
+      "path": "acceptance.csv",
+      "bytes": 11880,
+      "sha256": "255f40be96e38288e386188d0b755e7076000f0199f1d1c90c52a7277382c497"
+    },
+    {
+      "path": "assets/fonts/DshanSans-Bold.otf",
+      "bytes": 3718544,
+      "sha256": "0f466ad22488712ae736976ed26e0c948aa14176b386620567b178e8e7d66847"
+    },
+    {
+      "path": "assets/fonts/DshanSans-Regular.otf",
+      "bytes": 3610436,
+      "sha256": "f84e71f4c74e2e3a3468f22a95af7a5143434f95dec6d50a515971f54568f5bc"
+    },
+    {
+      "path": "assets/fonts/manifest.json",
+      "bytes": 822,
+      "sha256": "24ffc9360906d473bafb56e293fabadf118be1c9f88e43b04305e32ba6a12901"
+    },
+    {
+      "path": "assets/fonts/OFL.txt",
+      "bytes": 4362,
+      "sha256": "e9553faa88c1412e0eaf84cc67ef3f5051ddbf9daa2a733ff3db0ff2b1aadcdf"
+    },
+    {
+      "path": "assets/media/UI播放器1280x720.png",
+      "bytes": 128974,
+      "sha256": "a4bd84fb3baebce51644e046a3adb5e1a622af01ec67e8c77b580f2dc8cc4105"
+    },
+    {
+      "path": "contracts/app-registry.json",
+      "bytes": 4427,
+      "sha256": "6df63bccef3361a983873ae11bb81f16554b891b7b3afb6700348c0071cc17ab"
+    },
+    {
+      "path": "contracts/default-layout.json",
+      "bytes": 2111,
+      "sha256": "b9d48ff428eea31a7ab8406efc58c1f4fe72cef9b5f7b84005b006a0aae010d3"
+    },
+    {
+      "path": "contracts/fixture-profile.json",
+      "bytes": 2153,
+      "sha256": "02593eaa7c7901ee7fd1feed82c7023e0e44326e883cd379766abbac5e8f37f0"
+    },
+    {
+      "path": "contracts/geometry.json",
+      "bytes": 5216,
+      "sha256": "84a688964446b01c293d2d03c5c1ab76fbac7c1427c543fcaf9b0f4e23ebe536"
+    },
+    {
+      "path": "contracts/interface-examples.json",
+      "bytes": 5564,
+      "sha256": "5697c288885f2371f8a0ca72f0820d2911ef4b032661abaeab65d92671c58d68"
+    },
+    {
+      "path": "contracts/layout-schema.json",
+      "bytes": 3452,
+      "sha256": "3c172d9dcf13e81f7905068b38da99ea83ae2af331c9118171dce4eeaac1410c"
+    },
+    {
+      "path": "contracts/proposed-interfaces.h",
+      "bytes": 3219,
+      "sha256": "ef2106ad0aa2c71c72e9b014d69850a6e55dd674aa88bb9714719be0d51561af"
+    },
+    {
+      "path": "contracts/visual-tokens.json",
+      "bytes": 2629,
+      "sha256": "1dd01aa3ce8505c112390d1942df9e1ad753a44b72f59b94b09c98a19f4adb71"
+    },
+    {
+      "path": "contracts/widget-compatibility.json",
+      "bytes": 727,
+      "sha256": "c051292b8a64aec1df71d6c3075550b7d1873678be2124f1277c3fafb53a0465"
+    },
+    {
+      "path": "docs/01-范围与一比一约束.md",
+      "bytes": 4657,
+      "sha256": "aee44b648c9aa19ecef1507bf7972847002437619555b7adf5de995f754f73e3"
+    },
+    {
+      "path": "docs/02-视觉尺寸与控件规范.md",
+      "bytes": 8559,
+      "sha256": "d80f54abaffdb0fa364ec1ea2c57a4544ec8b7dd75279f4b0e02a1e0aaf8e2a6"
+    },
+    {
+      "path": "docs/03-页面状态与操作流程.md",
+      "bytes": 8552,
+      "sha256": "359671411a13c36ddc35f9eff75309a505ccadd975b1977f55354a769bdbfc2f"
+    },
+    {
+      "path": "docs/04-数据与业务规则.md",
+      "bytes": 7076,
+      "sha256": "46756fd028348c2f8591cf094f8d776ff356537fc59b16df5132b69ca6628e61"
+    },
+    {
+      "path": "docs/05-真实接口和调用链.md",
+      "bytes": 13593,
+      "sha256": "46dd56d25ebb95619edc112d336792d4071e09366cfdd1916743983c76ee31ce"
+    },
+    {
+      "path": "docs/06-Qt5架构与开发任务.md",
+      "bytes": 6384,
+      "sha256": "643e44abac598f82869f49aa236e1a0b358afc47680d2c3c7087934628fcedd5"
+    },
+    {
+      "path": "docs/07-验收与交付.md",
+      "bytes": 4037,
+      "sha256": "f39273e9c301b943ef280f77ce9dd0ab36a452139927e68b63fef8e35692cea6"
+    },
+    {
+      "path": "docs/08-需求追溯与风险关闭.md",
+      "bytes": 3106,
+      "sha256": "fd3512b4872b60920aae5dc4c69074bfa2b8d44c645f45073806a78222cc459c"
+    },
+    {
+      "path": "evidence/package-validation.json",
+      "bytes": 2961,
+      "sha256": "3b1d84882612abea9af808cea1b0046147f530f135bf2ed38e1e80ee5f5ee364"
+    },
+    {
+      "path": "evidence/reference-pixel-comparison.json",
+      "bytes": 1979,
+      "sha256": "0d518c591fe458b78e114eeaa6ea3a5559cbe2fea7b87ba718ae1c6a2417bc64"
+    },
+    {
+      "path": "evidence/reference-render-environment.json",
+      "bytes": 158,
+      "sha256": "fa9aa42c9e3191d893bbb8d857812599a30dd3fd3ab8926d0eac5fd2bfa34332"
+    },
+    {
+      "path": "evidence/repository-state-at-read.txt",
+      "bytes": 1183,
+      "sha256": "a21492f01fe4a6bc7ab0f2e4965e332e9c613fec8b22693a3b86faf683736f1b"
+    },
+    {
+      "path": "evidence/requirements-trace.json",
+      "bytes": 2047,
+      "sha256": "11940058e8fde4331311ea133291440ff36dc29208a3ad24514dd1652cf532ec"
+    },
+    {
+      "path": "evidence/source-drift-at-delivery.json",
+      "bytes": 5427,
+      "sha256": "878e9f47ffe48397f1e7292368399a6ad149c949d0334ede1472a96f44aa352e"
+    },
+    {
+      "path": "evidence/source-index.json",
+      "bytes": 37812,
+      "sha256": "0f54678797c81808c34567bf7ddaba658724c3eafa3c47a5173c3a02ca1b04e9"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3111,
+      "sha256": "e5a78591906c60993c7d0f80456c0923256c72c8ea15a3e65ce8766dd5df6c5a"
+    },
+    {
+      "path": "reference/screens/UI新桌面_00设计总览.png",
+      "bytes": 695969,
+      "sha256": "b119611b3fdb33d96a68771b9b2a5e89888cb3907eca50e80a0798fac4f78685"
+    },
+    {
+      "path": "reference/screens/UI新桌面_01组件桌面.png",
+      "bytes": 146112,
+      "sha256": "16f5856f71999c7dce742178face0308b778eb1bd501505461cf646b478c173c"
+    },
+    {
+      "path": "reference/screens/UI新桌面_02顶部下拉.png",
+      "bytes": 101864,
+      "sha256": "4e998961707c74ee5b3534ac595ef702fe67a4b4d6bfc3b7151902d883c20af5"
+    },
+    {
+      "path": "reference/screens/UI新桌面_03全部应用.png",
+      "bytes": 108272,
+      "sha256": "5b85ba1e7471175a5f07f5c445e3679be437bb06fe37140c96e59a15d2db41fd"
+    },
+    {
+      "path": "reference/screens/UI新桌面_04编辑组件.png",
+      "bytes": 160635,
+      "sha256": "67648b8da0f9a4b770142b92e35a41a3605f48f6dadcba427fb8698603419423"
+    },
+    {
+      "path": "reference/screens/UI新桌面_05添加组件.png",
+      "bytes": 147109,
+      "sha256": "dfcdf75c9d66097b185738abae78dd270f69f06ae9b41cf484e2a5142f761f3f"
+    },
+    {
+      "path": "reference/screens/UI新桌面_06组件展开.png",
+      "bytes": 96483,
+      "sha256": "ffa184d1b3fe8b9cf74a9a793d2b743d914af0ea49f912263cc438b6d8cdf846"
+    },
+    {
+      "path": "reference/screens/UI新桌面_07宽屏1280x720.png",
+      "bytes": 193707,
+      "sha256": "7c07828c8af7b7963491942b1cbbc6a1b820a86574c3d2e36c64274ed9406360"
+    },
+    {
+      "path": "reference/screens/UI新桌面_08应用搜索.png",
+      "bytes": 59748,
+      "sha256": "4aba8bbb1d732f5e59efb1461ec895e90d85d31165b407e70c404407548cf506"
+    },
+    {
+      "path": "reference/screens/UI新桌面_09图片组件.png",
+      "bytes": 145855,
+      "sha256": "bf1c24feeaa7fbd76bf8c7a33e2cb221523ba6c1bbd9c347731957479b88a45b"
+    },
+    {
+      "path": "reference/source/desktop-preview.cpp",
+      "bytes": 25740,
+      "sha256": "4b81b43b61d0b818df4ccc6704a379d7efda9fcf4e6d4cb8167a1e7ce82778e8"
+    },
+    {
+      "path": "reference/source/desktop-preview.pro",
+      "bytes": 118,
+      "sha256": "4887c61a215b07107b8946319fc5bab7eb4b97a35e19b4f28749fe9bb969f91c"
+    },
+    {
+      "path": "tools/compare_render.py",
+      "bytes": 1741,
+      "sha256": "2ad7a5c04478419879413768927ee8b42d3d72590572f6f40ed063b53d5fab81"
+    },
+    {
+      "path": "tools/render_reference.py",
+      "bytes": 2411,
+      "sha256": "ebfa5db4c9c3c618e92d82f993fe8d411e116056ae5a8605f3cbb945b4adc9ea"
+    },
+    {
+      "path": "tools/verify_package.py",
+      "bytes": 2132,
+      "sha256": "e2fcdd13d680a8caa4d65fe7936da8537d94193588bf5d2730c991e88bdf6ff6"
+    }
+  ]
+}

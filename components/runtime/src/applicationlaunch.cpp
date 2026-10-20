@@ -93,18 +93,23 @@ ApplicationCredentials credentials(const QString &name,
     launchRequire(::geteuid() == 0,
                   "Production launcher requires the system owner",
                   "launch-owner");
-    value.uid = name == "web" ? 400 : 401;
+    value.uid = name == "web" ? 400 : (name == "desktop" ? 402 : 401);
     value.gid = 400;
     value.groupCount = 1;
     value.groups[0] = 400;
     value.bindPrivilegedPort = name == "web";
-    const auto account = ::getpwnam(name == "web" ? "dshan-web" : "dshan-hmi");
+    const auto account = ::getpwnam(
+        name == "web" ? "dshan-web"
+                      : (name == "desktop" ? "dshan-desktop" : "dshan-hmi"));
     launchRequire(account && account->pw_uid == value.uid &&
                       account->pw_gid == value.gid,
                   "Dedicated application account is missing or mismatched",
                   "launch-account");
   } else {
-    value.uid = ::geteuid() == 0 ? (name == "hmi" ? 60001 : 60000) : ::getuid();
+    value.uid =
+        ::geteuid() == 0
+            ? (name == "hmi" ? 60001 : (name == "desktop" ? 60002 : 60000))
+            : ::getuid();
     value.gid = ::geteuid() == 0 ? 60000 : ::getgid();
     if (::geteuid() == 0) {
       value.groupCount = 1;
@@ -170,6 +175,8 @@ QProcessEnvironment environment(const QJsonObject &config,
       {"OMNIGATE_EDGE_DB", data + "/edge.db"},
       {"OMNIGATE_HMI_DB", data + "/hmi.db"},
       {"OMNIGATE_HMI_SETTINGS", data + "/hmi.json"},
+      {"DSHANCONTROL_DESKTOP_STATE_DIR",
+       QFileInfo(data).absolutePath() + "/desktop"},
       {"OMNIGATE_EDS_DIR", data + "/eds"},
       {"OMNIGATE_LISTEN_PORT", "80"},
       {"HEALTH_URL", "http://127.0.0.1/api/health"},
@@ -427,10 +434,14 @@ QJsonObject startApplication(const QJsonObject &config) {
           .toInt(&valid);
   launchRequire(valid && last >= 10 && last <= 63,
                 "Kernel capability limit unavailable", "launch-profile");
-  const auto values = environment(config, commit, pidRoot);
+  auto values = environment(config, commit, pidRoot);
+  if (commands.contains("desktop"))
+    values.insert(
+        "DSHANCONTROL_DESKTOP_UID",
+        QString::number(credentials("desktop", policy, dev, last).uid));
   std::vector<std::unique_ptr<Role>> roles;
-  for (const auto &name :
-       {QString("web"), QString("hmi"), QString("supervisor")})
+  for (const auto &name : {QString("desktop"), QString("web"), QString("hmi"),
+                           QString("supervisor")})
     if (commands.contains(name)) {
       std::unique_ptr<Role> role(new Role);
       role->name = name;

@@ -1,0 +1,35 @@
+0ee33ca863562e0f4e3c2c955964411339510770
+ M AGENTS.md
+ M Makefile
+ M boards/t113s4-sdnand/platform.json
+ M components/hmi/src/mainwindow.cpp
+ M components/hmi/src/mainwindow.h
+ M components/hmi/src/omnigate-hmi.pro
+ M components/hmi/src/visuals.cpp
+ M docs/S4-COMPLETION-AUDIT-20261016.md
+ M platform/release-status.json
+ M scripts/audit_s4_system.py
+ M scripts/finalize_s4_rootfs.py
+ M tests/hmi/hmi-ui.pro
+ M tests/hmi/hmi_ui_test.cpp
+ M tests/test_s4_integration.py
+ M tests/test_s4_system.py
+?? components/desktop/
+?? components/hmi/src/cloudpanel.cpp
+?? components/hmi/src/cloudpanel.h
+?? components/hmi/src/desktopclient.cpp
+?? components/hmi/src/desktopclient.h
+?? components/hmi/src/familypanel.cpp
+?? components/hmi/src/familypanel.h
+?? components/hmi/src/mediapanel.cpp
+?? components/hmi/src/mediapanel.h
+?? components/hmi/src/mediasession.cpp
+?? components/hmi/src/mediasession.h
+?? components/media/
+?? docs/design/cloud-home-integration-v1/
+?? docs/design/video-player-v1/
+?? docs/validation/2026-10-16-mcp-relay-recovery.json
+?? docs/validation/2026-10-16-wifi-status.json
+?? tests/desktop/
+?? tests/test_desktop_service.py
+?? tools/

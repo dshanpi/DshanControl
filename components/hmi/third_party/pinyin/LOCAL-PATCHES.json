@@ -1,0 +1,7 @@
+{
+  "reason": "Fix upstream UTF-16 element-count bounds in unused user dictionary sync; keyboard disables user dictionary persistence.",
+  "modified_files": {
+    "share/userdict.cpp": "225a5739584a0e83305f1fa827762f8ce0eb222bdd49bde7834d8080e2dbde1f"
+  },
+  "upstream_manifest": "SOURCE.json"
+}
