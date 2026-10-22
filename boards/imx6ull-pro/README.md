@@ -5,7 +5,7 @@
 ## 获取本分支
 
 ```sh
-git clone --branch 6ull https://github.com/dshanpi/DshanControl.git
+git clone --branch feat/imx6ull-pro-lite-port https://github.com/dshanpi/DshanControl.git
 cd DshanControl
 ```
 

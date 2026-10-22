@@ -12,7 +12,7 @@
 之后按实际可用硬件逐板接入。具体接口/型号/容量未知时保持待确认，拒绝发布支持声明。
 
 
-2026-10-22：IMX6ULL-PRO 已在独立 `6ull` 分支完成 Lite 开发移植和屏幕、触摸、
+2026-10-22：IMX6ULL-PRO 已在独立 `feat/imx6ull-pro-lite-port` 分支完成 Lite 开发移植和屏幕、触摸、
 Wi-Fi、本地软件视频的实板功能验证，见 [开发验收](IMX6ULL-DEVELOPMENT-20261022.md)。
 PCB 修订、权限隔离、签名更新、维护互锁、升级中断/回退与长期运行仍未资格验收；
 中央板型登记为 `candidate_profiles: [lite]`，`supported_profiles` 保持空数组。

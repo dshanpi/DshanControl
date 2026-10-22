@@ -21,7 +21,7 @@ SDK 固定为 `100askTeam/aibsp-imx6ull-pro_linux5.4.47` 的
 Qt 版本见板目录 `source-identity.json`。完整 SDK、构建缓存、厂商固件、测试视频、
 镜像、Wi-Fi 凭据、私钥和设备用户数据不进入应用 Git。
 
-从 `6ull` 分支构建无需再次应用历史补丁。`build.sh` 生成实际 HEAD/dirty 来源记录，
+从 `feat/imx6ull-pro-lite-port` 分支构建无需再次应用历史补丁。`build.sh` 生成实际 HEAD/dirty 来源记录，
 将其传给 Buildroot 和安装器。历史模板的基础提交及补丁哈希与新构建的提交身份分别
 保存，不能将旧镜像的实板结果当成本分支后续构建的验收。
 
