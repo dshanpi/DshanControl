@@ -1,17 +1,74 @@
 {
   "schema": 1,
   "scope": "Qt5 application framework source preview; Ubuntu host only",
-  "state": "publication-copy-validation-pending",
-  "primary_host_qt": {
-    "registry": 7,
-    "main_hmi": 97,
-    "fixture_isolation": 6,
-    "cloud_reporting": 15,
-    "failures": 0
+  "state": "host-review-complete; remote CI recorded separately after push",
+  "recorded_at_utc": "2026-10-22T14:10:24.973804Z",
+  "tested_code_trees": {
+    "components": "65e9116b744572b60933300930d7f55cb65a6356",
+    "scripts": "1810c9fafa5aca75414573640e23764ef27e1088",
+    "tests": "dfd6c09ebb37dde5a7524a7c0921f599a77efc96"
   },
-  "packaging_tests": {
-    "passed": 5,
-    "failed": 0
+  "primary_host": {
+    "core": {
+      "run": 5,
+      "failed": 0
+    },
+    "repository": {
+      "run": 324,
+      "failed": 0,
+      "skipped": 11
+    },
+    "skipped_cases": [
+      "test_kernel_peer_credentials_separate_hmi_web_and_unknown_user (test_desktop_service.DesktopServiceTests)",
+      "test_root_health_remains_read_only_after_provider_drops_root (test_desktop_service.NonRootDesktopHealthRoleTests)",
+      "test_hmi_has_zero_capabilities_and_cannot_read_root_private_files (test_native_credentials.NativeCredentialTests)",
+      "test_web_retains_only_low_port_binding_capability_after_exec (test_native_credentials.NativeCredentialTests)",
+      "test_active_pid_record_and_busy_update_refuse_before_metadata_changes (test_native_permissions.NativePermissionsTests)",
+      "test_apply_is_idempotent_preserves_data_and_enforces_separate_role_access (test_native_permissions.NativePermissionsTests)",
+      "test_nonroot_public_identity_and_status_cannot_manage_daemon_or_read_private_config (test_native_public_peer.NativePublicPeerTests)",
+      "test_web_and_hmi_have_distinct_method_authority_with_real_peer_uids (test_native_role_peers.NativeRolePeerTests)",
+      "test_wrong_group_extra_uid_or_invalid_policy_refuse_before_socket (test_native_role_peers.NativeRolePeerTests)",
+      "test_existing_system_supervisor_is_bound_through_real_run_directory_without_fixture_override (test_native_startup.NativeStartupTests)",
+      "test_initialize_permissions_then_only_web_and_hmi_launch_with_configured_heartbeat (test_native_startup.NativeStartupTests)"
+    ]
+  },
+  "publication_copy": {
+    "initial_parallel_repository_run": {
+      "run": 324,
+      "failures": 1,
+      "skipped": 11,
+      "failure": "Toolchain selector test inherited a closed GNU make jobserver; warning polluted stdout"
+    },
+    "resolution": "Independent make fixture removes inherited MAKEFLAGS, MFLAGS and MAKELEVEL",
+    "s4_integration_retest_with_stale_jobserver_environment": {
+      "run": 12,
+      "failed": 0
+    },
+    "qt": {
+      "registry": 7,
+      "main_hmi": 97,
+      "fixture_isolation": 6,
+      "cloud_reporting": 15,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "native_update_integration": {
+    "rpc_failure_projections": 3,
+    "private_download_flow_modes": 2,
+    "passed": true,
+    "scope": "Private synthetic host tasks, not production download or install"
+  },
+  "packaging": {
+    "unit_tests": 5,
+    "failed": 0,
+    "committed_tree_export_verified": true,
+    "installable": false
+  },
+  "visual": {
+    "approved_pngs": 10,
+    "changed_pixels": 0,
+    "comparison": "exact full RGBA; no masks or tolerance"
   },
   "original_requirements": {
     "verified_members": 48,
@@ -28,5 +85,13 @@
   "new_framework_arm_validation": false,
   "physical_and_external_business_acceptance": false,
   "independent_86400_seconds": false,
-  "remaining": "Real site maintenance interlock and all existing unverified requirements remain required"
+  "raw_host_evidence_sha256": {
+    "host-tests.log": "db6f42ea73d14bf41f123e54110157a67612a140dd6a99a32418e06aa39db5f9",
+    "hmi-tests.log": "41bf98efa99af45f229c6e875be6344942b7b72dde586fb50f315d317db416f8",
+    "publication-host-tests.log": "7e0e760a1bf50493e4c55fa9881082f2ede3a04ffff8f18802d19c4cc974a1e6",
+    "publication-s4-retest.log": "0632d94c4a06c95eabd59e210161423c2b92a9d8bde2b7f101b65ea4e4fedd65",
+    "publication-hmi-tests.log": "b5d220d94ce3e59c6196c1421dd84bf0d053167308c19b94afcd2bbdd9845b1f",
+    "final-pixels.json": "0d518c591fe458b78e114eeaa6ea3a5559cbe2fea7b87ba718ae1c6a2417bc64"
+  },
+  "remaining": "Real site maintenance interlock and existing unverified requirements remain required"
 }

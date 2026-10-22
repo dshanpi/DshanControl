@@ -6,6 +6,10 @@
 
 原始73项验收目前25 PASS、48 PARTIAL、0 RUNNING；持久安装、现场维护互锁、物理交互、真实外部业务及独立24小时仍待完成。下方整机附件与 T153 界面是历史交付记录，不代表本次新版已刷写。
 
+下面是批准的组件桌面参考图；本次主机固定场景渲染与其逐像素一致，**不是当前板端截图**。
+
+![Qt5组件桌面批准参考图](docs/design/component-desktop-v1/reference/screens/UI新桌面_01组件桌面.png)
+
 ## T113s4 SD NAND 开发交付
 
 [压缩镜像与 SDK 差异草稿附件](https://github.com/dshanpi/DshanControl/releases/tag/untagged-ec6ef64420bc69140037)
