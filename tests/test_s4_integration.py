@@ -221,9 +221,14 @@ class S4IntegrationTests(unittest.TestCase):
                       'BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC': 'y'}
 
             def invoke(values):
+                # This is an independent fixture make, not a recursive jobserver child.
+                # Python closes the parent's jobserver FDs; do not inherit stale flags.
+                environment = {k: v for k, v in os.environ.items()
+                               if k not in ('MAKEFLAGS', 'MFLAGS', 'MAKELEVEL')}
                 return subprocess.run(['make', '--no-print-directory', '-C', str(base), 'report']
                                       + [k + '=' + v for k, v in values.items()],
-                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                      env=environment)
 
             self.assertEqual(0, invoke(fields).returncode)
             for key, value in [('BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX', '"arm-linux-gnueabihf"'),
