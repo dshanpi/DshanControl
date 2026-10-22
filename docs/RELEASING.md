@@ -20,6 +20,12 @@ A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 尚未接入，不能�
 
 参考规范：https://github.com/dshanpi/EinkOS/blob/main/standards/linux-board-release/v1.1.0/SPEC.md
 
+## 独立源码预览（2026-10-22）
+
+源码预览使用 source-* 标签，只交付干净已提交 Git 树、校验值和明确边界的主机验证记录。GitHub 可标为 prerelease，但它不是上表 application/system 发布，不交付安装清单、签名应用包或固件，不设置 Latest，也不得交给板端更新器。其发布不会改变现场系统、维护许可、签名信任、安装身份或硬件资格。生产/应用/系统的完整门禁仍保留。
+
+make package 仅从已提交 Git 对象导出，不包含工作目录未跟踪文件；已有输出不覆盖。发布前检查公开内容、测试跳过和未验收项，上传后逐附件下载核验。需求原件和批准图保留，主机渲染与板端/物理验收分别声明。
+
 ## 两条发布线
 
 | 类型 | 内容 | 必须记录 |

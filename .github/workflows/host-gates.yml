@@ -10,8 +10,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
-      - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev libqt5charts5-dev libssl-dev zlib1g-dev libsqlite3-dev
+      - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev libqt5charts5-dev libssl-dev zlib1g-dev libsqlite3-dev mosquitto mosquitto-clients python3-pil
       - run: make test-bootstrap
       - run: make test
       - run: make test-hmi
+      - run: /usr/bin/python3 docs/design/component-desktop-v1/tools/verify_package.py docs/design/component-desktop-v1
       - run: git diff --check
