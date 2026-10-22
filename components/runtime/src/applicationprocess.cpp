@@ -8,6 +8,9 @@
 #include <QRegularExpression>
 #include <errno.h>
 #include <fcntl.h>
+#include <functional>
+#include <sys/file.h>
+#include <QThread>
 #include <memory>
 #include <poll.h>
 #include <signal.h>
@@ -168,9 +171,12 @@ public:
                    "Cannot inspect application process handle");
     return result > 0 && (item.revents & (POLLIN | POLLHUP));
   }
-  void stop(int seconds) {
-    if (absent)
+  bool isHmi() const { return name == "hmi.pid"; }
+  void stop(int seconds, const std::function<void()> &afterExit = {}) {
+    if (absent) {
+      if (afterExit) afterExit();
       return;
+    }
     if (!exited && !isExited()) {
       const auto result = ::syscall(PidfdSignal, handle, SIGTERM, nullptr, 0);
       const auto signalError = errno;
@@ -194,6 +200,7 @@ public:
                      "retained; no force kill",
                      "process-timeout");
     }
+    if (afterExit) afterExit();
     if (launchRecord) {
       // Receipt is primary authority. Clear the compatibility PID first so an
       // interrupted cleanup still leaves a complete trusted receipt.
@@ -219,6 +226,95 @@ public:
         stage, "Cannot clear stopped application PID file");
   }
 };
+// An HMI pidfd becoming ready is not proof its decoder guardian has finished.
+// Hold this lease through the remaining stop transaction; unknown owners are
+// never signalled. A timeout preserves the HMI launch receipt for retry/review.
+class MediaRetirementLease {
+  int directory = -1, file = -1;
+public:
+  ~MediaRetirementLease() {
+    if (file >= 0) ::close(file);
+    if (directory >= 0) ::close(directory);
+  }
+  void wait(const QJsonObject &configuration, const QString &pidRoot,
+            const QString &stage) {
+    const auto policy = configuration["application_health"].toObject();
+    if (!policy["media_devices"].toBool(false)) return;
+    const auto heartbeat = policy["hmi_heartbeat"].toString(pidRoot + "/hmi/heartbeat.json");
+    const auto path = QFileInfo(heartbeat).absolutePath();
+    processRequire(QDir::isAbsolutePath(heartbeat) && QDir::cleanPath(heartbeat) == heartbeat &&
+                       path != "/", stage, "Invalid media runtime path", "media-ownership");
+    uid_t owner = 401;
+    if (configuration["development_mode"].toBool(false)) {
+      const auto profile = policy["fixture_credentials"].toObject()["hmi"].toObject();
+      const auto value = profile["uid"];
+      if (profile.isEmpty()) owner = ::geteuid() == 0 ? 60001 : ::geteuid();
+      else {
+        processRequire(positiveInteger(value) && value.toDouble() <= 2147483647,
+                       stage, "Invalid media owner profile", "media-ownership");
+        owner = uid_t(value.toDouble());
+      }
+    }
+    directory = ::open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    processRequire(directory >= 0, stage, "Cannot inspect media runtime", "media-ownership");
+    const auto parts = path.mid(1).split('/');
+    for (const auto &part : parts) {
+      const int next = ::openat(directory, QFile::encodeName(part).constData(),
+                               O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+      if (next < 0 && errno == ENOENT) return; // No old/new media owner.
+      processRequire(next >= 0, stage, "Unsafe media runtime directory", "media-ownership");
+      ::close(directory); directory = next;
+    }
+    struct stat parent{}, original{}, current{};
+    processRequire(::fstat(directory, &parent) == 0 && parent.st_uid == owner &&
+                       !(parent.st_mode & 0077), stage,
+                   "Media runtime is not private to HMI", "media-ownership");
+    file = ::openat(directory, "media-surface.lock", O_RDWR | O_NOFOLLOW | O_CLOEXEC);
+    if (file < 0 && errno == ENOENT) return; // Compatibility with old worker.
+    processRequire(file >= 0 && ::fstat(file, &original) == 0 &&
+                       S_ISREG(original.st_mode) && original.st_uid == owner &&
+                       original.st_nlink == 1 && (original.st_mode & 0777) == 0600,
+                   stage, "Unsafe media surface ownership file", "media-ownership");
+    QElapsedTimer timer; timer.start();
+    while (::flock(file, LOCK_EX | LOCK_NB)) {
+      processRequire((errno == EWOULDBLOCK || errno == EAGAIN) && timer.elapsed() < 4000,
+                     stage, "Owned media surface is still retiring; no force kill",
+                     "media-retirement-timeout");
+      QThread::msleep(20);
+    }
+    processRequire(::fstatat(directory, "media-surface.lock", &current, AT_SYMLINK_NOFOLLOW) == 0 &&
+                       current.st_dev == original.st_dev && current.st_ino == original.st_ino &&
+                       current.st_nlink == 1 && current.st_uid == owner &&
+                       (current.st_mode & 0777) == 0600,
+                   stage, "Media ownership file changed; replacement preserved", "media-ownership");
+    const int report = ::openat(directory, "media-surface-last.json",
+                                O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    struct stat reportInfo{};
+    const bool safe = report >= 0 && ::fstat(report, &reportInfo) == 0 &&
+        S_ISREG(reportInfo.st_mode) && reportInfo.st_uid == owner &&
+        reportInfo.st_nlink == 1 && (reportInfo.st_mode & 0777) == 0600 &&
+        reportInfo.st_size > 0 && reportInfo.st_size <= 512;
+    QByteArray bytes;
+    if (safe && reportInfo.st_size) {
+      char raw[513]; const auto count = ::read(report, raw, sizeof(raw));
+      if (count == reportInfo.st_size) bytes = QByteArray(raw, int(count));
+    }
+    if (report >= 0) ::close(report);
+    processRequire(safe && bytes.size() == reportInfo.st_size,
+                   stage, "Media retirement report unavailable or unsafe", "media-ownership");
+    if (!bytes.isEmpty()) {
+      const auto object = strictJson(bytes);
+      const auto result = object.toObject();
+      processRequire(object.isObject() && result["schema"] == 1 &&
+                         result["surface_retired"] == true &&
+                         result["paired_worker_force_stopped"].isBool() &&
+                         result["CMA_reclamation_proven"] == false &&
+                         result["cause"].isString() && result["cause"].toString().size() <= 64,
+                     stage, "Owned media surface retirement failed; original report preserved",
+                     "media-retirement-failed");
+    }
+  }
+};
 } // namespace
 ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
                                            const QString &phase)
@@ -239,7 +335,7 @@ ApplicationProcesses::ApplicationProcesses(const QJsonObject &config,
   const auto policy = config["application_health"].toObject();
   for (const auto &name :
        {QString("launch_receipts_required"), QString("native_supervisor"),
-        QString("desktop_provider")})
+        QString("desktop_provider"), QString("media_devices")})
     processRequire(!policy.contains(name) || policy[name].isBool(), stage,
                    "Invalid native process policy", "contract");
   processRequire(!policy.contains("fixture_desktop_socket") ||
@@ -352,8 +448,11 @@ QJsonObject ApplicationProcesses::stop(const QString &role) const {
                                          true, receiptsRequired));
   // Verify every live identity before signalling the first process.
   int count = 0, pids = 0;
+  MediaRetirementLease media;
   for (const auto &process : processes) {
-    process->stop(10);
+    process->stop(10, process->isHmi() ? std::function<void()>([&]() {
+      media.wait(configuration, pidRoot, stage);
+    }) : std::function<void()>());
     if (!process->absent) {
       ++count;
       if (process->hasPidRecord())

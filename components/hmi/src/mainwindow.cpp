@@ -1584,44 +1584,31 @@ void MainWindow::setDesktopEmbedded(bool embedded)
 
 bool MainWindow::openApplication(const QString &id, const QJsonObject &context)
 {
-    const QStringList original = {"overview", "fieldbus", "network", "devices", "alarms", "settings"};
-    const int index = original.indexOf(id);
-    if (index >= 0) {
-        if(id=="devices") {
-            QJsonObject binding;
-            for(const auto &key:{QString("point_id"),QString("secondary_point_id")}) {
-                const auto value=context[key].toString();
-                if(!value.isEmpty()) {
-                    if(!DesktopV1::DesktopPointHistory::validId(value))return false;
-                    binding[key]=value;
-                }
-            }
-            boundTrendPanel->setBinding(binding);
-            devicePageStack->setCurrentIndex(binding.isEmpty()?0:1);
-            devicePageStack->setSizePolicy(QSizePolicy::Expanding,
-                binding.isEmpty()?QSizePolicy::Preferred:QSizePolicy::Ignored);
-            devicePageStack->updateGeometry();
-        }
-        showPage(index); return true;
+    DesktopV1::ApplicationRoute route;
+    if (!DesktopV1::ApplicationRegistry::resolve(id, context, &route))
+        return false;
+    if (route.page == DesktopV1::ApplicationRoute::Devices) {
+        boundTrendPanel->setBinding(route.context);
+        devicePageStack->setCurrentIndex(route.context.isEmpty() ? 0 : 1);
+        devicePageStack->setSizePolicy(QSizePolicy::Expanding,
+            route.context.isEmpty() ? QSizePolicy::Preferred : QSizePolicy::Ignored);
+        devicePageStack->updateGeometry();
+    } else if (route.page == DesktopV1::ApplicationRoute::Cloud) {
+        cloudPanel->selectSection(route.section);
+    } else if (route.page == DesktopV1::ApplicationRoute::Family) {
+        familyPanel->selectSection(route.section);
+        if (route.context.contains("device_id"))
+            familyPanel->selectDeviceById(route.context["device_id"].toString());
     }
-    if (id == "cloud_bind" || id == "reporting") {
-        cloudPanel->selectSection(id == "reporting" ? 1 : 0);
-        showPage(6);
-    } else if (id == "voice" || id == "home") {
-        familyPanel->selectSection(id == "home" ? 1 : 0);
-        showPage(7);
-        if(id=="home" && context["device_id"].isString())familyPanel->selectDeviceById(context["device_id"].toString());
-    } else if (id == "video") {
-        showPage(8);
-        if(context["path"].isString())mediaPanel->selectFile(context["path"].toString());
-    } else if (id == "update") {
-        showPage(5);
+    showPage(route.page);
+    if (route.page == DesktopV1::ApplicationRoute::Video && route.context.contains("path"))
+        mediaPanel->selectFile(route.context["path"].toString());
+    if (id == "update") {
         if (auto *tabs = findChild<QTabWidget *>("settingsTabs")) {
-            // Keep the existing UpdatePanel instance and its original lifecycle.
             const int updateIndex = tabs->indexOf(applicationUpdatePage);
             if (updateIndex >= 0) tabs->setCurrentIndex(updateIndex);
         }
-    } else return false;
+    }
     return true;
 }
 
@@ -1823,9 +1810,13 @@ void MainWindow::handleReply(QNetworkReply *reply)
     if (reply->error() != QNetworkReply::NoError || !doc.isObject()) {
         if (kind == "snapshot")
             markOffline();
-        if (kind != "snapshot")
-            QMessageBox::critical(this, "操作失败",
-                                  QString::fromUtf8(raw.isEmpty() ? reply->errorString().toUtf8() : raw));
+        if (kind != "snapshot") {
+            const QJsonValue backendError = doc.isObject() ? doc.object().value("error") : QJsonValue();
+            const QString message = backendError.isString() && !backendError.toString().trimmed().isEmpty()
+                                        ? backendError.toString()
+                                        : QString::fromUtf8(raw.isEmpty() ? reply->errorString().toUtf8() : raw);
+            QMessageBox::critical(this, "操作失败", message);
+        }
         reply->deleteLater();
         return;
     }

@@ -1,1 +1,1 @@
-<RCC><qresource prefix="/hmi"><file>icons/down.xpm</file><file>icons/up.xpm</file><file>fonts/OFL.txt</file><file>fonts/manifest.json</file><file>fonts/DshanSans-Regular.otf</file><file>fonts/DshanSans-Bold.otf</file></qresource></RCC>
+<RCC><qresource prefix="/hmi"><file>icons/down.xpm</file><file>icons/up.xpm</file><file>fonts/OFL.txt</file><file>fonts/manifest.json</file><file>fonts/DshanSans-Regular.otf</file><file>fonts/DshanSans-Bold.otf</file><file>fonts/DshanSearch-Regular.otf</file><file>fonts/search-font.conf</file></qresource></RCC>

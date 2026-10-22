@@ -109,8 +109,8 @@ class DesktopServiceTests(unittest.TestCase):
                     now = int(time.time())
                     bound = outer.events['bound']
                     self.respond({'success': True, 'data': {'deviceId': 'unit-s4', 'bound': bound,
-                        'bindToken': '' if bound else '482719', 'serverTime': now,
-                        'bindTokenExpiresAt': 0 if bound else now + (601 if outer.events['bad_ttl'] else 300)}})
+                        'bindToken': '' if bound else outer.events.get('pairing_code', '482719'), 'serverTime': now,
+                        'bindTokenExpiresAt': 0 if bound else now + (601 if outer.events['bad_ttl'] else outer.events.get('pairing_ttl', 300))}})
                 elif self.path == '/v1/devices/lamp/commands':
                     outer.events['posts'] += 1
                     outer.key_received = self.headers.get('Idempotency-Key')
@@ -222,6 +222,65 @@ class DesktopServiceTests(unittest.TestCase):
         eventually(lambda: self.state()['cloud']['pairing_error'])
         self.assertEqual(self.state()['cloud']['pairing']['ownership'], 'unknown')
         self.assertEqual(self.state()['cloud']['pairing']['code'], '')
+
+    def test_pairing_natural_expiry_same_code_cannot_extend_or_revive(self):
+        # The private server issues a real three-second token; production clocks are unchanged.
+        self.events['pairing_ttl'] = 3
+
+        def refresh():
+            self.assertTrue(rpc(self.sock, 'cloud.refresh')['ok'])
+            eventually(lambda: not self.state()['cloud']['busy'])
+            self.assertFalse(self.state()['cloud']['pairing_error'])
+            return self.state()['cloud']['pairing']
+
+        started = time.monotonic()
+        first = refresh()
+        self.assertEqual(first['code'], '482719')
+        self.assertGreater(first['expires_in'], 0)
+        # A later server reply claiming a longer TTL cannot extend an existing token.
+        self.events['pairing_ttl'] = 300
+        repeated = refresh()
+        self.assertEqual(repeated['code'], first['code'])
+        self.assertLessEqual(repeated['expires_in'], first['expires_in'])
+        eventually(lambda: self.state()['cloud']['pairing']['code'] == '', timeout=5)
+        hidden_elapsed = time.monotonic() - started
+        self.assertEqual(self.state()['cloud']['pairing']['expires_in'], 0)
+        # Display uses whole remaining seconds; also wait beyond the actual original deadline.
+        eventually(lambda: time.monotonic() - started >= 3.2, timeout=4)
+        expired = refresh()
+        self.assertEqual(expired['code'], '')
+        self.assertEqual(expired['expires_in'], 0)
+        self.events['pairing_code'] = '593820'
+        renewed = refresh()
+        self.assertEqual(renewed['code'], '593820')
+        self.assertGreater(renewed['expires_in'], 290)
+        self.events['bound'] = True
+        bound = refresh()
+        self.assertEqual(bound['ownership'], 'bound')
+        self.assertEqual(bound['code'], '')
+        self.assertEqual(bound['expires_in'], 0)
+        print('PAIRING_TTL3 hidden_after=%.6fs; same_code_no_extension_or_revival=true; new_code_and_bound=true'
+              % hidden_elapsed, flush=True)
+
+    def test_pairing_does_not_persist_code_or_log_registration_secrets(self):
+        state_dir = self.base / 'state'
+        before = {str(p.relative_to(state_dir)): p.read_bytes()
+                  for p in state_dir.rglob('*') if p.is_file()}
+        self.assertTrue(rpc(self.sock, 'cloud.refresh')['ok'])
+        eventually(lambda: not self.state()['cloud']['busy'])
+        self.assertEqual(self.state()['cloud']['pairing']['code'], '482719')
+        self.assertEqual(self.received_secret, self.secret)
+        self.assertNotIn(self.secret, json.dumps(self.state()))
+        self.assertNotIn(self.token, json.dumps(self.state()))
+        after = {str(p.relative_to(state_dir)): p.read_bytes()
+                 for p in state_dir.rglob('*') if p.is_file()}
+        self.assertEqual(after, before)
+        self.log.flush()
+        log = (self.base / 'fixture.log').read_text()
+        for sensitive in [self.secret, self.token, '482719',
+                          urllib.parse.quote(self.secret, safe='')]:
+            self.assertNotIn(sensitive, log)
+        print('PAIRING_PRIVACY fixture_log_no_code_or_credentials=true; state_bytes_unchanged=true', flush=True)
 
     def test_home_accepted_is_not_device_confirmation_and_no_duplicate_control(self):
         self.loaded_home()
@@ -574,7 +633,79 @@ class DesktopServiceTests(unittest.TestCase):
         self.assertEqual(caller(65534, 'desktop.snapshot')['error']['code'], 'peer-denied')
 
 
+@unittest.skipUnless(os.geteuid() == 0 and BINARY.exists(),
+                     'Non-root provider peer-role regression needs a root fixture')
+class NonRootDesktopHealthRoleTests(unittest.TestCase):
+    def test_root_health_remains_read_only_after_provider_drops_root(self):
+        # A root-owned provider masks a missing root health ACL, because UID0 is
+        # also the provider owner. Exercise a genuinely different kernel UID.
+        with tempfile.TemporaryDirectory(prefix='dshan-nonroot-health-') as folder:
+            base = Path(folder)
+            base.chmod(0o755)
+            run = base / 'ipc'
+            run.mkdir(mode=0o750)
+            os.chown(run, 65534, 400)
+            config = base / 'private.json'
+            config.write_text('{}\n')
+            config.chmod(0o600)
+            os.chown(config, 65534, 400)
+            path = run / 'desktop.sock'
+
+            def drop_to_provider():
+                os.setgroups([400])
+                os.setgid(400)
+                os.setuid(65534)
+
+            with (base / 'helper.log').open('wb') as log:
+                provider = subprocess.Popen([str(BINARY), '--socket', str(path),
+                    '--config', str(config)], stdout=log, stderr=log,
+                    preexec_fn=drop_to_provider)
+                try:
+                    eventually(lambda: path.exists() or provider.poll() is not None)
+                    self.assertIsNone(provider.poll(), (base / 'helper.log').read_text())
+                    with socket.socket(socket.AF_UNIX) as peer:
+                        import struct
+                        peer.connect(str(path))
+                        pid, uid, gid = struct.unpack('3i', peer.getsockopt(
+                            socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                        self.assertEqual((pid, uid, gid), (provider.pid, 65534, 400))
+                    self.assertTrue(rpc(path)['ok'])
+                    mutation = rpc(path, 'reporting.configure',
+                                   {'enabled': True, 'period_seconds': 60})
+                    self.assertFalse(mutation['ok'])
+                    self.assertEqual(mutation['error']['code'], 'method-denied')
+                    self.assertTrue(rpc(path)['ok'])
+                    self.assertEqual(config.read_text(), '{}\n')
+                    self.assertFalse((base / 'reporting.json').exists())
+                finally:
+                    if provider.poll() is None:
+                        provider.terminate()
+                    try:
+                        provider.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        provider.kill()
+                        provider.wait(timeout=3)
+
+
 class MediaProtocolTests(unittest.TestCase):
+    def test_media_worker_sigterm_closes_protocol_without_default_signal_death(self):
+        binary = ROOT / 'dist/media-native/dshancontrol-media-worker'
+        if not binary.exists():
+            self.skipTest('Run make build-desktop first')
+        child = subprocess.Popen([str(binary)], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            import select
+            self.assertTrue(select.select([child.stdout], [], [], 3)[0])
+            initial = json.loads(child.stdout.readline())
+            self.assertEqual(initial['state'], 'idle')
+            child.terminate()
+            self.assertEqual(child.wait(timeout=3), 0)
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate(timeout=3)
+
     def test_host_media_worker_never_claims_hardware_decode(self):
         binary = ROOT / 'dist/media-native/dshancontrol-media-worker'
         if not binary.exists():

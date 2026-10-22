@@ -326,7 +326,7 @@ void DesktopCanvas::apps(QPainter &p)
     hit(QRectF(24, 98, 976, 482), []() {});
     rr(p, QRectF(488, 109, 48, 4), QColor("#C5D2E3"), 2);
     txt(p, 51, 126, 230, 38, "所有应用", 26, Ink, true);
-    txt(p, 190, 133, 160, 26, "12 个功能入口", 12, Muted);
+    txt(p, 190, 133, 160, 26, QString("%1 个功能入口").arg(catalog().size()), 12, Muted);
     icon(p, "down", 947, 133, 24, Muted);
     hit(QRectF(930, 117, 55, 50), [this]() { change(0); });
     QStringList cats = {"全部", "工业控制", "网络与云", "系统与媒体"};
@@ -349,11 +349,7 @@ void DesktopCanvas::apps(QPainter &p)
     for (int i = 0; i < list.size(); i++)
     {
         auto a = list[i];
-        if (group == 1 && !(i == 0 || i == 1 || i == 3 || i == 4))
-            continue;
-        if (group == 2 && !(i == 2 || i == 6 || i == 7 || i == 8 || i == 9))
-            continue;
-        if (group == 3 && !(i == 5 || i == 10 || i == 11))
+        if (!ApplicationRegistry::matchesCategory(a, group))
             continue;
         if (!query.isEmpty() && !(a.name + a.sub).contains(query, Qt::CaseInsensitive))
             continue;

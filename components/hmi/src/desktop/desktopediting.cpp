@@ -798,10 +798,11 @@ void DesktopCanvas::openWidget(int slot)
         emit appContextRequested(type, binding);
         return;
     }
-    const QMap<QString, int> routes = {{"trend", 3},  {"video", 10}, {"cloud", 7}, {"bus", 1},
-                                       {"alarms", 4}, {"home", 9},   {"voice", 8}};
+    const QMap<QString, QString> routes = {{"trend", "devices"}, {"video", "video"},
+        {"cloud", "reporting"}, {"bus", "fieldbus"}, {"alarms", "alarms"},
+        {"home", "home"}, {"voice", "voice"}};
     if (routes.contains(type))
-        openApp(routes.value(type));
+        openApp(ApplicationRegistry::indexForId(routes.value(type)));
 }
 } // namespace DesktopV1
 

@@ -43,6 +43,23 @@ test-hmi:
 	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/cloud-reporting-boundaries.pro && $(MAKE)
 	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./cloud-reporting-boundaries-test
 
+.PHONY: test-hmi-native-update-bridge
+test-hmi-native-update-bridge: build-native
+	mkdir -p dist/native-update-bridge
+	cd dist/native-update-bridge && $(HMI_QMAKE) ../../tests/hmi/native-update-bridge.pro && $(MAKE)
+	$(TEST_PYTHON) tests/hmi/run_native_update_bridge.py --qt-binary dist/native-update-bridge/native-update-bridge-test --native-binary dist/native-runtime/dshancontrol-runtime --output "dist/native-update-bridge/evidence-$$(date -u +%Y%m%dT%H%M%S)-$$$$"
+
+test-hmi: test-hmi-native-update-bridge
+
+.PHONY: test-hmi-native-update-flow
+test-hmi-native-update-flow: build-native
+	mkdir -p dist/native-update-service-test dist/native-update-flow-test
+	cd dist/native-update-service-test && $(HMI_QMAKE) ../../tests/native/native-update-service-test.pro && $(MAKE)
+	cd dist/native-update-flow-test && $(HMI_QMAKE) ../../tests/hmi/native-update-flow.pro && $(MAKE)
+	$(TEST_PYTHON) tests/hmi/run_native_update_flow.py --qt dist/native-update-flow-test/native-update-flow-test --cli dist/native-runtime/dshancontrol-runtime --service dist/native-update-service-test/native-update-service-test-driver --output "dist/native-update-flow-test/evidence-$$(date -u +%Y%m%dT%H%M%S)-$$$$"
+
+test-hmi: test-hmi-native-update-flow
+
 .PHONY: build-desktop test-desktop
 build-desktop:
 	mkdir -p dist/desktop-native dist/desktop-model-tests dist/media-native
@@ -52,3 +69,11 @@ build-desktop:
 
 test-desktop: build-desktop
 	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_desktop_service.py' -v
+
+.PHONY: test-application-registry
+test-application-registry:
+	mkdir -p dist/application-registry-tests
+	cd dist/application-registry-tests && $(HMI_QMAKE) ../../tests/hmi/application-registry-test.pro && $(MAKE)
+	cd dist/application-registry-tests && ./application-registry-test
+
+test-hmi: test-application-registry

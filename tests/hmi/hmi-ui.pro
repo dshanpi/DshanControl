@@ -50,3 +50,5 @@ HEADERS += ../../components/hmi/src/desktop/desktopshell.h
 
 # This override is confined to the test executable, never the production HMI.
 DEFINES += DSHANCONTROL_HMI_UI_TEST
+
+HEADERS += ../../components/hmi/src/desktop/applicationregistry.h

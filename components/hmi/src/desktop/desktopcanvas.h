@@ -1,4 +1,5 @@
 #pragma once
+#include "applicationregistry.h"
 #include "desktopimages.h"
 #include "desktopkeyboard.h"
 #include "desktoplayout.h"
@@ -9,12 +10,6 @@
 #include <tuple>
 namespace DesktopV1
 {
-struct AppItem
-{
-    QString id, name, icon, sub;
-    QColor color;
-    bool planned;
-};
 QList<AppItem> catalog();
 struct DisplayModel
 {

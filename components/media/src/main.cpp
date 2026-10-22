@@ -1,6 +1,9 @@
 // The vendor player runs in a child process; its blocking calls and stdout never
 // share the Qt GUI event loop or the structured protocol output.
 #include "../../runtime/src/storage.h"
+#include "surfaceguardian.h"
+#include <QFileInfo>
+#include <stdexcept>
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonArray>
@@ -24,6 +27,8 @@
 
 namespace
 {
+volatile sig_atomic_t terminationRequested = 0;
+void requestTermination(int) { terminationRequested = 1; }
 void exact(const QJsonObject &object, QStringList keys)
 {
     auto actual = object.keys();
@@ -44,6 +49,8 @@ class MediaWorker : public QObject
     int preparingTicks = 0;
     bool autostart = false, prepared = false;
 #ifdef DSHAN_CEDAR_PLAYER
+    MediaSurfaceGuardian *surface;
+    bool surfaceArmed = false;
     TPlayer *handle = nullptr;
     struct Callback
     {
@@ -67,8 +74,10 @@ class MediaWorker : public QObject
                 }
                 catch (const Failure &error)
                 {
-                    self->fail(error.code);
+                    try { self->fail(error.code); }
+                    catch (const std::exception &) { self->surfaceFailure(); }
                 }
+                catch (const std::exception &) { self->surfaceFailure(); }
             },
             Qt::QueuedConnection);
         return 0;
@@ -112,6 +121,7 @@ class MediaWorker : public QObject
         }
         else if (event == TPLAYER_NOTIFY_PLAYBACK_COMPLETE)
         {
+            LayerCtrlHideVideo(handle->mLayerCtrl);
             status["state"] = "completed";
         }
         else if (event == TPLAYER_NOTIFY_SEEK_COMPLETE)
@@ -147,8 +157,14 @@ class MediaWorker : public QObject
     }
 #endif
   public:
-    explicit MediaWorker(int fd)
+    explicit MediaWorker(int fd, MediaSurfaceGuardian *guardian)
+#ifdef DSHAN_CEDAR_PLAYER
+        : surface(guardian)
+#endif
     {
+#ifndef DSHAN_CEDAR_PLAYER
+        Q_UNUSED(guardian);
+#endif
         require(fd >= 0 && output.open(fd, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle),
                 "Cannot open media protocol output");
         status = {{"backend",
@@ -180,6 +196,7 @@ class MediaWorker : public QObject
         connect(notifier, &QSocketNotifier::activated, this, [this](int) { read(); });
         poll.setInterval(500);
         connect(&poll, &QTimer::timeout, this, [this]() {
+            try {
 #ifdef DSHAN_CEDAR_PLAYER
             if (handle && prepared)
             {
@@ -202,11 +219,29 @@ class MediaWorker : public QObject
             else if (handle && ++preparingTicks > 30)
                 fail("prepare-timeout");
 #endif
+            }
+            catch (const std::exception &) { surfaceFailure(); }
         });
         poll.start();
         emitStatus();
     }
-    ~MediaWorker() override { close(); }
+    ~MediaWorker() override
+    {
+        try { close(); }
+        catch (...) { /* The guardian still holds the worker pidfd and lease. */ }
+    }
+    void surfaceFailure()
+    {
+        // No new decoder is allowed after an ownership-channel failure.
+        // The independent process observes our exit and finishes retirement.
+        ++generation;
+        autostart = false;
+        status["state"] = "error";
+        status["error"] = "surface-cleanup-failed";
+        status["first_frame"] = false;
+        emitStatus();
+        QCoreApplication::exit(1);
+    }
     void send(QJsonObject value)
     {
         value["protocol"] = 1;
@@ -225,12 +260,22 @@ class MediaWorker : public QObject
         prepared = false;
         autostart = false;
 #ifdef DSHAN_CEDAR_PLAYER
+        if (handle || surfaceArmed)
+            surface->beginClose();
         if (handle)
         {
-            LayerCtrlHideVideo(handle->mLayerCtrl);
             TPlayerStop(handle);
+            // Hide after rendering stops: an in-flight frame must not restore
+            // a plane hidden before Stop. The independent guardian drains its
+            // deferred DMA references after Destroy, even on SIGKILL.
+            LayerCtrlHideVideo(handle->mLayerCtrl);
             TPlayerDestroy(handle);
             handle = nullptr;
+        }
+        if (surfaceArmed)
+        {
+            surface->retired();
+            surfaceArmed = false;
         }
         delete callback;
         callback = nullptr;
@@ -285,6 +330,7 @@ class MediaWorker : public QObject
             // public hide operation commits that rectangle and resets isPlaying;
             // the next video frame re-enables the plane at the new dimensions.
             // Pause first so an in-flight frame cannot restore the old plane.
+            surface->arm(next.x(), next.y(), next.width(), next.height());
             TPlayerSetDisplayRect(handle, next.x(), next.y(), unsigned(next.width()),
                                   unsigned(next.height()));
             LayerCtrlHideVideo(handle->mLayerCtrl);
@@ -349,6 +395,8 @@ class MediaWorker : public QObject
                               "Readable nonempty regular media file required");
             }
             heldFile = fd;
+            surface->arm(region.x(), region.y(), region.width(), region.height());
+            surfaceArmed = true;
             handle = TPlayerCreate(CEDARX_PLAYER);
             if (!handle)
             {
@@ -435,6 +483,7 @@ class MediaWorker : public QObject
         {
             exact(params, {});
             require(TPlayerPause(handle) == 0, "Pause failed", "media");
+            LayerCtrlHideVideo(handle->mLayerCtrl);
             status["state"] = "paused";
         }
         else if (name == "play")
@@ -486,6 +535,11 @@ class MediaWorker : public QObject
 #endif
     }
     void read()
+    {
+        try { readRequests(); }
+        catch (const std::exception &) { surfaceFailure(); }
+    }
+    void readRequests()
     {
         char bytes[8192];
         ssize_t n = ::read(STDIN_FILENO, bytes, sizeof(bytes));
@@ -546,16 +600,42 @@ int main(int argc, char **argv)
     const pid_t parent = ::getppid();
     if (parent == 1)
         return 2;
-    if (::prctl(PR_SET_PDEATHSIG, SIGTERM) || ::getppid() != parent)
+    struct sigaction action{};
+    action.sa_handler = requestTermination;
+    ::sigemptyset(&action.sa_mask);
+    if (::sigaction(SIGTERM, &action, nullptr) || ::sigaction(SIGINT, &action, nullptr) ||
+        ::prctl(PR_SET_PDEATHSIG, SIGTERM) || ::getppid() != parent)
         return 2;
-    QCoreApplication app(argc, argv);
     try
     {
-        MediaWorker player(protocol);
+        std::unique_ptr<MediaSurfaceGuardian> surface;
+#ifdef DSHAN_CEDAR_PLAYER
+        const auto heartbeat = qEnvironmentVariable("DSHANCONTROL_HMI_HEARTBEAT");
+        const auto runtime = heartbeat.isEmpty() ? QString("/run/dshancontrol/hmi")
+                                                : QFileInfo(heartbeat).absolutePath();
+        // Must fork before QCoreApplication or TPlayer creates any threads.
+        surface.reset(new MediaSurfaceGuardian(QFile::encodeName(runtime).constData(),
+                                                cedarSurfaceBackend()));
+#endif
+        QCoreApplication app(argc, argv);
+        MediaWorker player(protocol, surface.get());
+        QTimer termination;
+        termination.setInterval(50);
+        QObject::connect(&termination, &QTimer::timeout, &app, [&]() {
+            if (terminationRequested)
+            {
+                try { player.close(); app.quit(); }
+                catch (const std::exception &) { player.surfaceFailure(); }
+            }
+        });
+        termination.start();
         return app.exec();
     }
-    catch (const Failure &)
+    catch (const Failure &) { return 1; }
+    catch (const std::exception &error)
     {
+        // Diagnostics remain on stderr; never contaminate the structured pipe.
+        ::dprintf(STDERR_FILENO, "Media ownership failure: %s\n", error.what());
         return 1;
     }
 }

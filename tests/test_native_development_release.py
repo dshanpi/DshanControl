@@ -62,7 +62,11 @@ class NativeDevelopmentReleaseTests(unittest.TestCase):
                     if authorization!='Bearer '+TOKEN:self.reply(401);return
                     if self.path=='/repos/dshanpi/DshanControl/releases/73':
                         if test.mode=='metadata-redirect':self.reply(302,location='https://release-assets.githubusercontent.com/metadata');return
-                        self.reply(200,json.dumps(test.release).encode());return
+                        release=test.release
+                        if test.mode=='replace-on-download' and sum(r['path']==self.path for r in test.requests)>1:
+                            release=copy.deepcopy(release)
+                            release['assets'][2]['id']=104
+                        self.reply(200,json.dumps(release).encode());return
                     prefix='/repos/dshanpi/DshanControl/releases/assets/'
                     if not self.path.startswith(prefix):self.reply(404);return
                     identifier=int(self.path[len(prefix):])
@@ -78,13 +82,15 @@ class NativeDevelopmentReleaseTests(unittest.TestCase):
         class Proxy(http.server.BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def do_CONNECT(self):
+                if self.client_address[0] not in getattr(test,'proxy_clients',{'127.0.0.1'}):
+                    self.send_error(403);return
                 if self.path not in ['api.github.com:443','release-assets.githubusercontent.com:443']:
                     self.send_error(403);return
                 self.send_response(200);self.end_headers();self.wfile.flush();self.close_connection=True
                 try:
                     with context.wrap_socket(self.connection,server_side=True) as encrypted:Payload(encrypted,self.client_address,self.server)
                 except (ssl.SSLError,OSError):pass
-        self.server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Proxy)
+        self.server=http.server.ThreadingHTTPServer((getattr(self,'proxy_bind','127.0.0.1'),0),Proxy)
         self.thread=threading.Thread(target=self.server.serve_forever,daemon=True);self.thread.start();self.addCleanup(self.close_proxy)
 
     def close_proxy(self):self.server.shutdown();self.server.server_close();self.thread.join(timeout=3)

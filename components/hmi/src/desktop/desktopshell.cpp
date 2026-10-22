@@ -87,14 +87,15 @@ bool DesktopShell::openApplication(const QString &id, const QJsonObject &context
 {
     if (!applications->openApplication(id,context))
         return false;
-    for (const auto &app : catalog())
-        if (app.id == id)
-            applicationTitle->setText(app.name);
+    applicationTitle->setText(catalog()[ApplicationRegistry::indexForId(id)].name);
+    const bool changed = activeId != id;
+    activeId = id;
     surface->change(0);
     surface->appActive = true;
     surface->update();
     applicationFrame->setVisible(!surface->overlayTransitionActive());
     if(!surface->overlayTransitionActive())applicationFrame->raise();
+    if (changed) emit activeApplicationChanged(activeId);
     return true;
 }
 
@@ -104,6 +105,10 @@ void DesktopShell::backToDesktop()
     surface->appActive = false;
     surface->change(0);
     surface->setFocus();
+    if (!activeId.isEmpty()) {
+        activeId.clear();
+        emit activeApplicationChanged(activeId);
+    }
 }
 
 void DesktopShell::positionContent()

@@ -43,6 +43,29 @@ class StabilityEvidenceReviewTest(unittest.TestCase):
         self.assertEqual(r['soak']['rss_regression_kib_per_hour'], 0)
         self.assertEqual(r['soak']['cpu_average_one_core_percent'], 3)
 
+    def test_r23_probe_still_requires_manual_review(self):
+        self.report['probe_revision'] = 'r23-fast-identity-full-hash-every-10-cycles-or-10-soak-samples'
+        result = self.result()
+        self.assertEqual(result['issues'], [])
+        self.assertEqual(result['evidence_integrity'], 'REVIEW_REQUIRED')
+        self.assertEqual(result['performance_acceptance'], 'PENDING_MANUAL_REVIEW')
+        self.assertEqual(result['physical_lcd_acceptance'], 'NOT_ASSESSED')
+        self.assertEqual(result['candidate_acceptance'], 'NOT_ASSESSED')
+        self.assertEqual(result['probe_revision'], self.report['probe_revision'])
+
+    def test_unknown_probe_is_not_accepted_by_prefix(self):
+        self.report['probe_revision'] = 'r99-fast-identity-full-hash-every-10-cycles-or-10-soak-samples'
+        self.assertIn('probe revision differs; review measurement scope', self.result()['issues'])
+
+    def test_r23_cannot_bypass_duration_and_candidate_guards(self):
+        self.report['probe_revision'] = 'r23-fast-identity-full-hash-every-10-cycles-or-10-soak-samples'
+        self.report['hmi_sha256'] = 'wrong'
+        self.soak = self.soak[:18]
+        self.report['soak_samples'] = 18
+        issues = self.result()['issues']
+        self.assertIn('candidate SHA mismatch', issues)
+        self.assertIn('raw soak does not reach 86400 seconds', issues)
+
     def test_completed_flag_cannot_replace_actual_time(self):
         self.soak=self.soak[:18];self.report['soak_samples']=18
         self.assertIn('raw soak does not reach 86400 seconds', self.result()['issues'])

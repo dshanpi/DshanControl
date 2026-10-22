@@ -18,5 +18,30 @@
       "output": "DshanSans-Bold.otf",
       "sha256": "0f466ad22488712ae736976ed26e0c948aa14176b386620567b178e8e7d66847"
     }
-  ]
+  ],
+  "search_font": {
+    "purpose": "Portable search CJK face matching original approved QtWidgets fallback; same7548 codepoint coverage as existing Dshan design font, not screenshot-only subset",
+    "source": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "source_sha256": "5dcd1c336cc9344cb77c03a0cd8982ca8a7dc97d620fd6c9c434e02dcb1ceeb3",
+    "source_face_index": 0,
+    "source_family": "Noto Sans CJK JP",
+    "source_version": "Version 2.001;hotconv 1.0.107;makeotfexe 2.5.65593",
+    "coverage_basis": "components/hmi/src/fonts/DshanSans-Regular.otf",
+    "coverage_basis_sha256": "f84e71f4c74e2e3a3468f22a95af7a5143434f95dec6d50a515971f54568f5bc",
+    "codepoint_count": 7548,
+    "coverage_sha256": "fabb083d4463043b9c5c96b19352036cca77a9c21927e9d6eeb35b2446bbb306",
+    "fonttools_version": "4.5.0",
+    "family": "Dshan Search",
+    "output": "DshanSearch-Regular.otf",
+    "sha256": "931e97c94b0ebd9b388343e1d18c1e44dd5217d5f240fe24d7ff954ea1d8634a",
+    "bytes": 3836336,
+    "license": "SIL Open Font License1.1",
+    "license_sha256": "e9553faa88c1412e0eaf84cc67ef3f5051ddbf9daa2a733ff3db0ff2b1aadcdf",
+    "glyph_count": 14500,
+    "policy": "search-font.conf",
+    "policy_sha256": "e240194a286b3fe79494e06409fc6fbb75dc4ff7c2bb7e4e1a4fb66acae31097",
+    "primary_family": "DejaVu Sans",
+    "primary_hintstyle": "hintslight",
+    "fallback_hintstyle": "hintnone"
+  }
 }

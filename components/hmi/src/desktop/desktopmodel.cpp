@@ -5,19 +5,7 @@ namespace DesktopV1
 {
 QList<AppItem> catalog()
 {
-    QFile file(":/desktop/assets/app-registry.json");
-    if (!file.open(QIODevice::ReadOnly))
-        qFatal("Desktop application registry is missing");
-    const auto entries = QJsonDocument::fromJson(file.readAll()).object()["apps"].toArray();
-    QList<AppItem> result;
-    for (const auto &entry : entries)
-    {
-        const auto item = entry.toObject();
-        result.append({item["id"].toString(), item["title"].toString(), item["icon"].toString(),
-                       item["subtitle"].toString(), QColor(item["color"].toString()),
-                       item["implementation_status"] != "existing"});
-    }
-    return result;
+    return ApplicationRegistry::apps();
 }
 
 DisplayModel DisplayModel::example()

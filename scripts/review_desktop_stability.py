@@ -15,6 +15,12 @@ APPS = ['overview', 'fieldbus', 'network', 'devices', 'alarms', 'settings',
         'cloud_bind', 'reporting', 'voice', 'home', 'video', 'update']
 
 
+# Exact reviewed schemas only; a future revision requires source/provenance review.
+REVIEWED_PROBE_REVISIONS = frozenset({
+    'r21-fast-identity-full-hash-every-10-cycles-or-10-soak-samples',
+    'r23-fast-identity-full-hash-every-10-cycles-or-10-soak-samples',
+})
+
 def review(report, switches, soak, observation, expected_sha, expected_boot):
     issues = set()
 
@@ -37,7 +43,7 @@ def review(report, switches, soak, observation, expected_sha, expected_boot):
     check(observation.get('runner_alive') is False, 'runner termination not proven')
     check(observation.get('state') == report.get('state'), 'export/report terminal state mismatch')
     check(bool(report.get('hmi_start')), 'HMI start identity missing')
-    check(report.get('probe_revision') == 'r21-fast-identity-full-hash-every-10-cycles-or-10-soak-samples', 'probe revision differs; review measurement scope')
+    check(report.get('probe_revision') in REVIEWED_PROBE_REVISIONS, 'probe revision differs; review measurement scope')
     check(report.get('layout_sha256') == report.get('layout_sha256_after_soak') and bool(report.get('layout_sha256')), 'layout preservation not proven')
     check(len(switches) == report.get('switches_completed') == report.get('switches_required') == 1000, 'not exactly 1000 raw transitions')
     check(report.get('switch_result') == 'completed', 'switching not completed')
@@ -127,7 +133,7 @@ def review(report, switches, soak, observation, expected_sha, expected_boot):
             'issues': sorted(issues), 'switches': metrics(switches), 'soak': metrics(soak),
             'performance_acceptance': 'PENDING_MANUAL_REVIEW', 'physical_lcd_acceptance': 'NOT_ASSESSED',
             'scope': 'Title-region transitions and sampled process health only; no full-frame FPS, physical touch latency or external business proof. Process continuity relies on the archived runner guards and its provenance.',
-            'r22_acceptance': 'NOT_ASSESSED'}
+            'candidate_acceptance': 'NOT_ASSESSED', 'probe_revision': report.get('probe_revision')}
 
 
 def main():

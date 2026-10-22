@@ -42,6 +42,11 @@ def main():
                 # Application/updater identities have their own records.
                 if relative.startswith(('usr/lib/dshancontrol-update/', 'usr/lib/omnigate')):
                     continue
+                # Fontconfig 2.13 creates per-directory random cache UUIDs on
+                # first scan. They identify caches, not fonts or runtime ABI.
+                # Keep every other file (including other hidden files) pinned.
+                if relative.startswith('usr/share/fonts/') and file.name == '.uuid':
+                    continue
                 files[relative] = digest(file)
     require(files and any('libQt5Core' in name for name in files), 'Qt runtime missing')
     runtime_hash = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()

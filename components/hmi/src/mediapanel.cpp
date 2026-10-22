@@ -455,17 +455,24 @@ void MediaPanel::apply(const QJsonObject &status)
         surface->message = "播放器组件尚未安装";
         surface->description = "请安装匹配的桌面应用组件";
     }
+    else if (name == "starting_service")
+    {
+        surface->message = "正在启动播放器";
+        surface->description = "等待播放组件就绪";
+    }
+    else if (name == "error" && (available || status["backend"] != "unavailable"))
+    {
+        surface->message = available ? "这个视频暂时无法播放" : "播放服务暂不可用";
+        surface->description = available
+                                   ? "解码或显示未完成，请检查文件与播放状态"
+                                   : "请重新选择视频后重试，不会自动重试";
+    }
     else if (!available)
     {
         surface->message = "播放组件尚未就绪";
         surface->description = "当前构建或运行环境未提供解码能力";
     }
-    else if (name == "error")
-    {
-        surface->message = "这个视频暂时无法播放";
-        surface->description = "解码或显示未完成，请检查文件与播放状态";
-    }
-    else if (name == "preparing" || name == "starting" || name == "starting_service")
+    else if (name == "preparing" || name == "starting")
     {
         surface->message = "正在准备视频";
         surface->description = "等待解码器返回画面";

@@ -1,7 +1,37 @@
 #include "desktopcanvas.h"
+#include <QLibrary>
 
 namespace DesktopV1
 {
+namespace
+{
+bool configureSearchFontRendering(QString *error)
+{
+    static bool configured = false;
+    if (configured) return true;
+    // Keep the approved Latin/CJK hinting rules local to this process.
+    static QLibrary fontconfig(QStringLiteral("libfontconfig.so.1"));
+    fontconfig.setLoadHints(QLibrary::PreventUnloadHint);
+    using CurrentConfig = void *(*)();
+    using ParseMemory = int (*)(void *, const unsigned char *, int);
+    const auto current = reinterpret_cast<CurrentConfig>(fontconfig.resolve("FcConfigGetCurrent"));
+    const auto parse = reinterpret_cast<ParseMemory>(fontconfig.resolve("FcConfigParseAndLoadFromMemory"));
+    QFile policy(QStringLiteral(":/hmi/fonts/search-font.conf"));
+    if (!current || !parse || !policy.open(QIODevice::ReadOnly)) {
+        if (error) *error = QStringLiteral("无法初始化搜索框字体渲染配置");
+        return false;
+    }
+    const auto bytes = policy.readAll();
+    void *config = current();
+    if (!config || !parse(config, reinterpret_cast<const unsigned char *>(bytes.constData()), 1)) {
+        if (error) *error = QStringLiteral("搜索框字体渲染配置无效");
+        return false;
+    }
+    configured = true;
+    return true;
+}
+} // namespace
+
 DesktopCanvas::DesktopCanvas(bool fixture, QWidget *parent)
     : QWidget(parent), model(fixture ? DisplayModel::example() : DisplayModel::unavailable())
 {
@@ -36,6 +66,10 @@ DesktopCanvas::DesktopCanvas(bool fixture, QWidget *parent)
         brightness = -1;
     search = new QLineEdit(this);
     search->setObjectName("applicationSearch");
+    QFont searchFont(QStringLiteral("DejaVu Sans, Dshan Search"));
+    searchFont.setStyleStrategy(QFont::PreferDefault);
+    searchFont.setHintingPreference(QFont::PreferDefaultHinting);
+    search->setFont(searchFont);
     search->setPlaceholderText("搜索应用");
     search->setStyleSheet("QLineEdit{border:1px solid #e2e9f3;border-radius:12px;"
                           "background:#f3f6fb;padding:8px 16px;color:#203958;font-size:14px;}");
@@ -97,7 +131,12 @@ bool DesktopCanvas::loadFonts(QString *error)
             return false;
         }
     }
-    return true;
+    const int searchId = QFontDatabase::addApplicationFont(QStringLiteral(":/hmi/fonts/DshanSearch-Regular.otf"));
+    if (searchId < 0 || !QFontDatabase::applicationFontFamilies(searchId).contains(QStringLiteral("Dshan Search"))) {
+        if (error) *error = QStringLiteral("无法加载要求的搜索框字体：Dshan Search");
+        return false;
+    }
+    return configureSearchFontRendering(error);
 }
 
 void DesktopCanvas::change(int next)

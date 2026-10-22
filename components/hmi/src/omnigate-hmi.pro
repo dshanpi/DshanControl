@@ -42,3 +42,5 @@ SOURCES += desktop/desktopkeyboard.cpp
 include(../third_party/pinyin/pinyin.pri)
 
 HEADERS += desktop/desktoptrendpanel.h
+
+HEADERS += desktop/applicationregistry.h

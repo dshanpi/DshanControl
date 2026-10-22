@@ -5,6 +5,11 @@
   ],
   "files": [
     {
+      "path": "README.md",
+      "bytes": 3647,
+      "sha256": "13f7f518de36bd9e33b276955f164393f1d438a14bd08eb28e8fd42846adcd63"
+    },
+    {
       "path": "acceptance.csv",
       "bytes": 11880,
       "sha256": "255f40be96e38288e386188d0b755e7076000f0199f1d1c90c52a7277382c497"
@@ -20,14 +25,14 @@
       "sha256": "f84e71f4c74e2e3a3468f22a95af7a5143434f95dec6d50a515971f54568f5bc"
     },
     {
-      "path": "assets/fonts/manifest.json",
-      "bytes": 822,
-      "sha256": "24ffc9360906d473bafb56e293fabadf118be1c9f88e43b04305e32ba6a12901"
-    },
-    {
       "path": "assets/fonts/OFL.txt",
       "bytes": 4362,
       "sha256": "e9553faa88c1412e0eaf84cc67ef3f5051ddbf9daa2a733ff3db0ff2b1aadcdf"
+    },
+    {
+      "path": "assets/fonts/manifest.json",
+      "bytes": 822,
+      "sha256": "24ffc9360906d473bafb56e293fabadf118be1c9f88e43b04305e32ba6a12901"
     },
     {
       "path": "assets/media/UI播放器1280x720.png",
@@ -120,6 +125,16 @@
       "sha256": "fd3512b4872b60920aae5dc4c69074bfa2b8d44c645f45073806a78222cc459c"
     },
     {
+      "path": "docs/13-持久交付与旧系统迁移门禁.md",
+      "bytes": 6920,
+      "sha256": "3d3616c737fa881927807de555f9b595f3eb529bcbccf5e888f0d20e221599e4"
+    },
+    {
+      "path": "docs/14-播放器状态与异常恢复调用链.md",
+      "bytes": 4795,
+      "sha256": "84f47011f95eac70eeb17afc1b5cdf0b47e667c256dabedbd662f3c0ef18bb11"
+    },
+    {
       "path": "evidence/package-validation.json",
       "bytes": 2961,
       "sha256": "3b1d84882612abea9af808cea1b0046147f530f135bf2ed38e1e80ee5f5ee364"
@@ -153,11 +168,6 @@
       "path": "evidence/source-index.json",
       "bytes": 37812,
       "sha256": "0f54678797c81808c34567bf7ddaba658724c3eafa3c47a5173c3a02ca1b04e9"
-    },
-    {
-      "path": "README.md",
-      "bytes": 3111,
-      "sha256": "e5a78591906c60993c7d0f80456c0923256c72c8ea15a3e65ce8766dd5df6c5a"
     },
     {
       "path": "reference/screens/UI新桌面_00设计总览.png",

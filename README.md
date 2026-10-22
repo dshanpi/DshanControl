@@ -1,6 +1,10 @@
-> **Qt5组件桌面测试版**：本分支尚未全部验收。请先阅读 [版本说明与未验收项](PREVIEW.md) 和 [一比一设计需求包](docs/design/component-desktop-v1/README.md)。
-
 # DshanControl
+
+## Qt5 组件桌面与应用框架源码测试版（2026-10-22）
+
+当前开发入口见 [源码测试版说明](PREVIEW.md) 与 [应用框架](components/hmi/src/desktop/README.md)。包含组件桌面、应用抽屉、统一注册和路由、业务面板、后台 IPC 与媒体生命周期管理。源码发布不表示板子已经安装新版。
+
+原始73项验收目前25 PASS、48 PARTIAL、0 RUNNING；持久安装、现场维护互锁、物理交互、真实外部业务及独立24小时仍待完成。下方整机附件与 T153 界面是历史交付记录，不代表本次新版已刷写。
 
 ## T113s4 SD NAND 开发交付
 

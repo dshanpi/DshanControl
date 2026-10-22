@@ -1,3 +1,4 @@
+#include <QScopedPointer>
 #include "../../components/hmi/src/mainwindow.h"
 #include "../../components/hmi/src/visuals.h"
 #include "../../components/hmi/src/updatepanel.h"
@@ -132,6 +133,50 @@ class HmiUiTest : public QObject
             r->abort();
     }
   private slots:
+    void applicationFrameworkRejectsContextBeforeNavigation()
+    {
+        MainWindow w;
+        isolate(w);
+        QVERIFY(w.openApplication("overview"));
+        const auto before = w.pages->currentIndex();
+        const QList<QPair<QString, QJsonObject>> requests = {
+            {"devices", {{"point_id", 12}}},
+            {"devices", {{"point_id", "bad point"}}},
+            {"home", {{"device_id", "target\n"}}},
+            {"video", {{"path", "/media/../unsafe.mp4"}}},
+            {"settings", {{"action", "system_reboot"}}},
+            {"not-registered", {}}
+        };
+        for (const auto &request : requests) {
+            QVERIFY(!w.openApplication(request.first, request.second));
+            QCOMPARE(w.pages->currentIndex(), before);
+        }
+    }
+    void applicationFrameworkPublishesOnlySuccessfulNavigationState()
+    {
+        DesktopV1::DesktopShell shell;
+        auto *application = shell.findChild<MainWindow *>();
+        QVERIFY(application);
+        isolate(*application);
+        QSignalSpy changed(&shell, &DesktopV1::DesktopShell::activeApplicationChanged);
+        QVERIFY(shell.activeApplication().isEmpty());
+        QVERIFY(shell.openApplication("overview"));
+        QCOMPARE(shell.activeApplication(), QString("overview"));
+        QCOMPARE(changed.size(), 1);
+        QVERIFY(!shell.openApplication("home", {{"device_id", false}}));
+        QCOMPARE(shell.activeApplication(), QString("overview"));
+        QCOMPARE(changed.size(), 1);
+        QVERIFY(shell.openApplication("overview"));
+        QCOMPARE(changed.size(), 1);
+        shell.canvas()->change(2);
+        QCOMPARE(shell.activeApplication(), QString("overview"));
+        shell.backToDesktop();
+        QVERIFY(shell.activeApplication().isEmpty());
+        QCOMPARE(changed.size(), 2);
+        QVERIFY(changed.last()[0].toString().isEmpty());
+        shell.backToDesktop();
+        QCOMPARE(changed.size(), 2);
+    }
     void mediaWorkerFailuresAreBoundedAndDoNotRestart()
     {
         QTemporaryDir dir;
@@ -204,10 +249,15 @@ class HmiUiTest : public QObject
         f.write("#!/usr/bin/python3\nimport signal,time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\nprint('{\"protocol\":1,\"event\":\"status\",\"available\":true,\"capabilities\":[\"suspend-during-prepare\",\"visibility-state\"],\"state\":\"idle\"}',flush=True)\ntime.sleep(30)\n");
         f.close();
         QVERIFY(f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
-        auto *session = new MediaSession;
+        QScopedPointer<MediaSession> session(new MediaSession);
         session->executable = path;
         session->start();
-        QTRY_VERIFY(session->snapshot()["available"] == true);
+        QTRY_VERIFY2(session->snapshot()["available"] == true,
+                     qPrintable(QString("media startup did not become ready: snapshot=%1 process_state=%2 error=%3 pid=%4")
+                                    .arg(QString::fromUtf8(QJsonDocument(session->snapshot()).toJson(QJsonDocument::Compact)))
+                                    .arg(int(session->process->state()))
+                                    .arg(session->process->errorString())
+                                    .arg(session->process->processId())));
         QPointer<QProcess> worker(session->process);
         int ticks = 0;
         QTimer heartbeat;
@@ -215,7 +265,7 @@ class HmiUiTest : public QObject
         heartbeat.start(20);
         QElapsedTimer elapsed;
         elapsed.start();
-        delete session;
+        session.reset();
         QVERIFY2(elapsed.elapsed() < 150, "GUI destructor waited for media child");
         QTRY_VERIFY_WITH_TIMEOUT(worker.isNull(), 4500);
         QVERIFY(ticks >= 40);
@@ -628,6 +678,8 @@ class HmiUiTest : public QObject
         qputenv("DSHANCONTROL_UPDATER_CONFIG", isolatedState.filePath("absent-updater.json").toUtf8());
         qputenv("DSHANCONTROL_UPDATER_EXECUTABLE", isolatedState.filePath("absent-runtime").toUtf8());
         qputenv("DSHANCONTROL_DESKTOP_ANIMATIONS","0");
+        QString fontError;
+        QVERIFY2(DesktopV1::DesktopCanvas::loadFonts(&fontError), qPrintable(fontError));
         // Each clean test run, including a single selected test, owns its output.
         // Do not depend on a later layout test to create this directory.
         QVERIFY(QDir().mkpath("screenshots"));
@@ -1325,6 +1377,19 @@ class HmiUiTest : public QObject
             QCOMPARE(QString(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()),
                      record["sha256"].toString());
         }
+        const auto searchRecord = metadata["search_font"].toObject();
+        QFile searchFile(":/hmi/fonts/" + searchRecord["output"].toString());
+        QVERIFY(searchFile.open(QIODevice::ReadOnly));
+        const auto searchBytes = searchFile.readAll();
+        QRawFont searchRaw(searchBytes, 16, QFont::PreferDefaultHinting);
+        QVERIFY(searchRaw.isValid());
+        QCOMPARE(searchRaw.familyName(), QString("Dshan Search"));
+        QCOMPARE(QString(QCryptographicHash::hash(searchBytes, QCryptographicHash::Sha256).toHex()),
+                 searchRecord["sha256"].toString());
+        QFile searchPolicy(":/hmi/fonts/" + searchRecord["policy"].toString());
+        QVERIFY(searchPolicy.open(QIODevice::ReadOnly));
+        QCOMPARE(QString(QCryptographicHash::hash(searchPolicy.readAll(), QCryptographicHash::Sha256).toHex()),
+                 searchRecord["policy_sha256"].toString());
         QFile license(":/hmi/fonts/OFL.txt");
         QVERIFY(license.open(QIODevice::ReadOnly));
         const auto licenseBytes = license.readAll();
@@ -1876,8 +1941,20 @@ class HmiUiTest : public QObject
         w.auditResult->setCurrentIndex(0); QTest::qWait(30);
         QVERIFY(w.grab().save("screenshots/audit-unknown-results.png"));
     }
+    void alarmAckUsesSelectedIdAndRecoversFromFailure_data()
+    {
+        QTest::addColumn<int>("httpStatus");
+        QTest::addColumn<QString>("backendError");
+        QTest::newRow("not-found") << 404 << QString("告警不存在或不可见");
+        QTest::newRow("conflict") << 409 << QString("告警状态不允许确认");
+        QTest::newRow("server-error") << 500 << QString("告警存储暂时不可用");
+        QTest::newRow("business-error") << 200 << QString("告警确认未被接受");
+    }
+
     void alarmAckUsesSelectedIdAndRecoversFromFailure()
     {
+        QFETCH(int, httpStatus);
+        QFETCH(QString, backendError);
         MainWindow w; isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
         QStringList paths;
@@ -1894,8 +1971,8 @@ class HmiUiTest : public QObject
                 socket->setProperty("handled", true);
                 QVERIFY(bytes.startsWith("POST "));
                 paths << QUrl(QString::fromUtf8(bytes.split(' ')[1])).path();
-                const QByteArray body = "{\"ok\":false,\"error\":\"fixture failure\"}";
-                socket->write("HTTP/1.1 409 Conflict\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: " +
+                const QByteArray body = QJsonDocument(QJsonObject{{"ok", false}, {"error", backendError}}).toJson(QJsonDocument::Compact);
+                socket->write("HTTP/1.1 " + QByteArray::number(httpStatus) + " Fixture\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: " +
                               QByteArray::number(body.size()) + "\r\n\r\n" + body);
                 socket->disconnectFromHost();
             });
@@ -1914,10 +1991,10 @@ class HmiUiTest : public QObject
         w.markOffline(); w.alarmAck->click(); QTest::qWait(30); QCOMPARE(paths.size(), 0);
         load(); QVERIFY(!w.alarmAck->isEnabled());
         w.updateSnapshot(snapshot()); w.refreshTimer.stop(); QVERIFY(w.alarmAck->isEnabled());
-        QStringList dialogs;
+        QStringList dialogs, dialogTexts;
         QTimer timer; connect(&timer, &QTimer::timeout, &w, [&]() {
             if (auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
-                dialogs << box->windowTitle(); box->accept();
+                dialogs << box->windowTitle(); dialogTexts << box->text(); box->accept();
             }
         }); timer.start(10);
         w.alarmAck->click(); QVERIFY(!w.alarmAck->isEnabled()); w.alarmAck->click();
@@ -1927,6 +2004,7 @@ class HmiUiTest : public QObject
         QTRY_COMPARE(paths.size(), 2); QTRY_COMPARE(dialogs.size(), 2); timer.stop();
         QCOMPARE(paths, (QStringList{"/api/hmi/v1/alarms/2147483655/ack", "/api/hmi/v1/alarms/2147483655/ack"}));
         QCOMPARE(dialogs, (QStringList{"操作失败", "操作失败"}));
+        QCOMPARE(dialogTexts, (QStringList{backendError, backendError}));
         const QString output = qEnvironmentVariable("HMI_ALARM_REQUESTS_OUT");
         if (!output.isEmpty()) {
             QFile file(output); QVERIFY(file.open(QIODevice::WriteOnly));
@@ -1940,7 +2018,7 @@ class HmiUiTest : public QObject
         QVERIFY(!w.alarmAck->isEnabled());
         load(); QVERIFY(w.alarmAck->isEnabled());
         const int port = qEnvironmentVariableIntValue("HMI_ALARM_HTTP_PORT");
-        if (port > 0) {
+        if (port > 0 && httpStatus == 409) {
             w.networkManager.setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", port));
             w.alarmTable->setRowCount(0);
             w.sendJson("GET", "/alarms?limit=500", {}, "alarms");
@@ -1986,6 +2064,49 @@ class HmiUiTest : public QObject
         QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,2);QVERIFY(keyboard->composition().isEmpty());QVERIFY(keyboard->isVisible());
         QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,2);QVERIFY(!keyboard->isVisible());
         QTest::keyClick(&canvas,Qt::Key_Escape);QCOMPARE(canvas.state,0);
+    }
+
+    void desktopSearchRendersConsistentlyAcrossFontContexts_data()
+    {
+        QTest::addColumn<QString>("query");
+        QTest::newRow("placeholder") << QString();
+        QTest::newRow("chinese") << QString::fromUtf8("网络");
+        QTest::newRow("latin") << QString("network");
+        QTest::newRow("protocol") << QString("CAN / RS485");
+        QTest::newRow("mixed") << QString::fromUtf8("网络 CAN");
+    }
+    void desktopSearchRendersConsistentlyAcrossFontContexts()
+    {
+        QFETCH(QString, query);
+        struct RestoreFont {
+            QFont saved = QApplication::font();
+            ~RestoreFont() { QApplication::setFont(saved); }
+        } restore;
+        QTemporaryDir state;
+        QVERIFY(state.isValid());
+        const auto capture = [&](bool example, const QFont &applicationFont) {
+            QApplication::setFont(applicationFont);
+            DesktopV1::DesktopCanvas canvas(example);
+            if (!example) canvas.configureLayoutStorage(state.filePath("layout.json"));
+            canvas.resize(1024, 600);
+            canvas.show(); canvas.change(2);
+            canvas.search->setText(query);
+            canvas.search->clearFocus(); canvas.setFocus();
+            QApplication::processEvents();
+            QImage image(canvas.search->size(), QImage::Format_ARGB32);
+            image.fill(Qt::white);
+            canvas.search->render(&image);
+            return image.convertToFormat(QImage::Format_RGBA8888);
+        };
+        const auto preview = capture(true, QFont("DejaVu Sans", 9));
+        QFont productionFont("Dshan Sans", 12);
+        productionFont.setStyleStrategy(QFont::PreferAntialias);
+        const auto live = capture(false, productionFont);
+        if (preview != live) {
+            preview.save("screenshots/search-context-preview-" + QString::fromLatin1(QTest::currentDataTag()) + ".png");
+            live.save("screenshots/search-context-live-" + QString::fromLatin1(QTest::currentDataTag()) + ".png");
+        }
+        QVERIFY2(preview == live, "Search rendering changes with the enclosing application font");
     }
 
     void desktopKeyboardAcceptsChineseAndRespectsOverlayLifecycle()
