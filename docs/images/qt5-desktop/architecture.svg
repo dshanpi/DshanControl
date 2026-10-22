@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="950" viewBox="0 0 1120 950" role="img" aria-label="DshanControl Qt5应用框架代码结构与调用边界">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8298b5"/></marker></defs>
+<rect width="1120" height="950" rx="20" fill="#fff" stroke="none"/>
+<g font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif">
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="28" y="42" font-size="26" font-weight="700" fill="#17345c">DshanControl</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="224" y="42" font-size="21" font-weight="600" fill="#17345c">Qt5 应用框架</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="28" y="70" font-size="13" font-weight="400" fill="#67819f">代码结构与调用边界 · Source architecture</text>
+<rect x="837" y="22" width="255" height="48" rx="12" fill="#eef4ff" stroke="#dce7fa"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="852" y="51" font-size="14" font-weight="600" fill="#3569b3">源码能力 ≠ 当前板端部署</text>
+<rect x="24" y="103" width="790" height="177" rx="14" fill="#f5f9ff" stroke="#dce7fa"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="133" font-size="15" font-weight="600" fill="#2c64bc">01  交互与应用框架</text>
+<rect x="44" y="151" width="232" height="105" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="180" font-size="16" font-weight="600" fill="#17345c">DesktopShell</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="208" font-size="13" font-weight="400" fill="#56708e">组件桌面 / 遮罩 / 应用容器</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="232" font-size="13" font-weight="400" fill="#56708e">编辑、布局与输入状态</text>
+<rect x="302" y="151" width="232" height="105" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="180" font-size="16" font-weight="600" fill="#17345c">ApplicationRegistry</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="208" font-size="13" font-weight="400" fill="#56708e">12 个稳定应用 ID</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="232" font-size="13" font-weight="400" fill="#56708e">上下文先校验，再导航</text>
+<rect x="560" y="151" width="232" height="105" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="180" font-size="16" font-weight="600" fill="#17345c">业务页面</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="208" font-size="13" font-weight="400" fill="#56708e">工业监控 / 网络 / 系统设置</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="232" font-size="13" font-weight="400" fill="#56708e">云与上报 / 家庭语音 / 媒体</text>
+<path d="M277 204H300" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="300.0,204.0 293.0,207.5 293.0,200.5" fill="#8298b5"/>
+<path d="M535 204H558" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="558.0,204.0 551.0,207.5 551.0,200.5" fill="#8298b5"/>
+<path d="M419 281V333" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="419.0,333.0 415.5,326.0 422.5,326.0" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="438" y="310" font-size="13" font-weight="400" fill="#67819f">本机 HTTP / JSON · IPC</text>
+<rect x="24" y="337" width="790" height="173" rx="14" fill="#f3fbf8" stroke="#d8ebe3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="367" font-size="15" font-weight="600" fill="#267f6b">02  本机业务服务</text>
+<rect x="44" y="385" width="232" height="103" rx="12" fill="#fff" stroke="#cfe5dc"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="414" font-size="16" font-weight="600" fill="#17345c">Web / HMI API</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="442" font-size="13" font-weight="400" fill="#56708e">统一设备模型</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="466" font-size="13" font-weight="400" fill="#56708e">点位、告警与受控操作</text>
+<rect x="302" y="385" width="232" height="103" rx="12" fill="#fff" stroke="#cfe5dc"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="414" font-size="16" font-weight="600" fill="#17345c">Desktop Service</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="442" font-size="13" font-weight="400" fill="#56708e">云 / 上报 / 家庭 / 语音</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="466" font-size="13" font-weight="400" fill="#56708e">IPC、授权与会话边界</text>
+<rect x="560" y="385" width="232" height="103" rx="12" fill="#fff" stroke="#cfe5dc"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="414" font-size="16" font-weight="600" fill="#17345c">Media Worker</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="442" font-size="13" font-weight="400" fill="#56708e">会话、表面租约与显式重试</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="466" font-size="13" font-weight="400" fill="#56708e">解码 / 显示 / 音频适配</text>
+<path d="M160 511V568" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="160.0,568.0 156.5,561.0 163.5,561.0" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="170" y="546" font-size="12" font-weight="400" fill="#67819f">工业适配</text>
+<path d="M418 511V568" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="418.0,568.0 414.5,561.0 421.5,561.0" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="428" y="546" font-size="12" font-weight="400" fill="#67819f">远端协议</text>
+<path d="M676 511V568" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="676.0,568.0 672.5,561.0 679.5,561.0" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="686" y="546" font-size="12" font-weight="400" fill="#67819f">设备适配</text>
+<rect x="24" y="572" width="790" height="136" rx="14" fill="#f7f9fc" stroke="#e0e6ef"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="602" font-size="15" font-weight="600" fill="#526b8a">03  板级与外部接口</text>
+<rect x="44" y="618" width="232" height="70" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="647" font-size="16" font-weight="600" fill="#17345c">工业接口与设备</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="60" y="675" font-size="13" font-weight="400" fill="#56708e">CAN / RS485 / 其他适配</text>
+<rect x="302" y="618" width="232" height="70" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="647" font-size="16" font-weight="600" fill="#17345c">外部业务服务</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="318" y="675" font-size="13" font-weight="400" fill="#56708e">云 / MQTT / 家庭 / 语音</text>
+<rect x="560" y="618" width="232" height="70" rx="12" fill="#fff" stroke="#d8e4f3"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="647" font-size="16" font-weight="600" fill="#17345c">显示与媒体设备</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="576" y="675" font-size="13" font-weight="400" fill="#56708e">LCD / 触摸 / 解码 / 音频</text>
+<rect x="842" y="103" width="254" height="605" rx="14" fill="#faf8ff" stroke="#e6dff4"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="860" y="133" font-size="15" font-weight="600" fill="#785c9f">系统拥有的治理边界</text>
+<rect x="860" y="153" width="218" height="192" rx="12" fill="#fff" stroke="#ded4ee"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="182" font-size="16" font-weight="600" fill="#17345c">Native Runtime</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="210" font-size="13" font-weight="400" fill="#56708e">进程所有权与角色权限</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="234" font-size="13" font-weight="400" fill="#56708e">能力白名单与健康心跳</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="258" font-size="13" font-weight="400" fill="#56708e">更新事务与失败隔离</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="282" font-size="13" font-weight="400" fill="#56708e">受控停止与回退</text>
+<path d="M841 422H817" fill="none" stroke="#8298b5" stroke-width="1.6" stroke-dasharray="5 5"/><polygon points="817.0,422.0 824.0,418.5 824.0,425.5" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="858" y="376" font-size="12" font-weight="400" fill="#785c9f">管理服务进程与健康</text>
+<rect x="860" y="444" width="218" height="159" rx="12" fill="#fff8ed" stroke="#e8c98e"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="473" font-size="16" font-weight="600" fill="#17345c">系统契约与维护许可</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="501" font-size="13" font-weight="400" fill="#56708e">匹配 ABI / 合法受信签名</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="525" font-size="13" font-weight="400" fill="#56708e">安装、停启前核验真实互锁</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="876" y="549" font-size="13" font-weight="400" fill="#56708e">实验室钩子不能替代现场许可</text>
+<path d="M969 444V348" fill="none" stroke="#8298b5" stroke-width="1.6" /><polygon points="969.0,348.0 972.5,355.0 965.5,355.0" fill="#8298b5"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="982" y="410" font-size="12" font-weight="400" fill="#9b7740">先核验</text>
+<rect x="24" y="744" width="1072" height="106" rx="14" fill="#f8faff" stroke="#dce5f1"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="778" font-size="16" font-weight="600" fill="#17345c">独立用户数据边界</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="809" font-size="14" font-weight="400" fill="#56708e">桌面布局 · 私密配置 · 业务数据独立保存；不随源码包交付，不因更新覆盖。</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="44" y="833" font-size="12" font-weight="400" fill="#7890ad">界面状态、业务能力、维护许可与安装资格分别核验。</text>
+<rect x="24" y="875" width="1072" height="53" rx="10" fill="#fff8ed" stroke="#efdbb7"/>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="42" y="897" font-size="13" font-weight="600" fill="#896b35">验收边界：这是源码架构示意，不是当前板端部署图。</text>
+<text stroke="none" font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" x="42" y="918" font-size="12" font-weight="400" fill="#896b35">现场互锁、UID 402 跨启动、真实业务、物理交互和独立 24 小时测试仍待完成。</text>
+</g>
+</svg>
