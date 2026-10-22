@@ -6,9 +6,15 @@
 #include <QPointer>
 #include <QTimer>
 #include <QUuid>
+#include <QProcessEnvironment>
+#include <QSaveFile>
+#include <QtEndian>
+#include <sys/socket.h>
+#include <unistd.h>
 
 MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProcess(this))
 {
+    connect(&frameServer, &QLocalServer::newConnection, this, &MediaSession::acceptFrames);
     executable = QCoreApplication::applicationDirPath() + "/dshancontrol-media-worker";
     state = {{"available", false}, {"state", "not_installed"}};
     startupDeadline.setSingleShot(true);
@@ -25,6 +31,7 @@ MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProc
         if (state["state"] != "error")
             state = {{"available", false}, {"state", "error"}, {"error", "worker-unavailable"}};
         queue.clear();
+        resetFrames();
         emit changed(state);
     });
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
@@ -33,6 +40,7 @@ MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProc
                 if (state["state"] != "error")
                     state = {{"available", false}, {"state", "error"}, {"error", "worker-exited"}};
                 queue.clear();
+                resetFrames();
                 emit changed(state);
             });
 }
@@ -66,6 +74,7 @@ void MediaSession::abortWorker(const QString &reason)
     failedRun = true;
     queue.clear();
     received.clear();
+    resetFrames();
     state = {{"available", false}, {"state", "error"}, {"error", reason}};
     emit changed(state);
     // Capture this specific process/run; never kill a later explicit restart.
@@ -91,6 +100,17 @@ void MediaSession::start(bool explicitRequest)
         emit changed(state);
         return;
     }
+    resetFrames();
+    frameDirectory.reset(new QTemporaryDir("/tmp/dshancontrol-media-XXXXXX"));
+    if (!frameDirectory->isValid() || !frameServer.listen(frameDirectory->filePath("frames.sock")))
+    {
+        state = {{"available", false}, {"state", "error"}, {"error", "frame-channel-failed"}};
+        emit changed(state); return;
+    }
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.insert("DSHANCONTROL_MEDIA_FRAME_SOCKET", frameServer.fullServerName());
+    process->setProcessEnvironment(environment);
+    startupDeadline.setInterval(qEnvironmentVariable("DSHANCONTROL_MEDIA_BACKEND") == "gstreamer-software" ? 20000 : 4000);
     state = {{"available", false}, {"state", "starting_service"}};
     emit changed(state);
     process->setProgram(executable);
@@ -169,6 +189,20 @@ void MediaSession::read()
             }
             startupDeadline.stop();
             state = root;
+            const auto diagnostics=qEnvironmentVariable("DSHANCONTROL_MEDIA_STATUS_FILE");
+            if(!diagnostics.isEmpty())
+            {
+                QSaveFile file(diagnostics);
+                if(file.open(QIODevice::WriteOnly))
+                {
+                    file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner);
+                    auto record=state;
+                    record["worker_pid"]=double(process->processId());
+                    record["hmi_pid"]=double(QCoreApplication::applicationPid());
+                    record["frames_received"]=double(framesReceived);
+                    file.write(QJsonDocument(record).toJson(QJsonDocument::Compact));file.commit();
+                }
+            }
             emit changed(state);
             if (root["available"] == false && !queue.isEmpty())
             {
@@ -179,5 +213,54 @@ void MediaSession::read()
         }
         else if (root["event"] == "reply" && root["accepted"] == false)
             emit feedback("播放操作未完成，请查看播放器状态。");
+    }
+}
+
+void MediaSession::resetFrames()
+{
+    if (frameSocket) { frameSocket->disconnect(this); frameSocket->abort(); frameSocket->deleteLater(); frameSocket = nullptr; }
+    frameServer.close(); frameInput.clear(); frameDirectory.reset(); framesReceived=0;
+    emit frameReady(QImage());
+}
+void MediaSession::acceptFrames()
+{
+    while (frameServer.hasPendingConnections())
+    {
+        auto *connection = frameServer.nextPendingConnection();
+        struct ucred peer{}; socklen_t size=sizeof(peer);
+        if (frameSocket || process->processId()<=0 ||
+            ::getsockopt(int(connection->socketDescriptor()),SOL_SOCKET,SO_PEERCRED,&peer,&size)!=0 ||
+            peer.pid!=process->processId() || peer.uid!=::geteuid())
+        { connection->abort(); connection->deleteLater(); continue; }
+        frameSocket=connection; frameInput.clear();
+        connection->setReadBufferSize(2*(20+640*480*2));
+        connect(connection,&QLocalSocket::readyRead,this,&MediaSession::readFrames);
+        connect(connection,&QLocalSocket::disconnected,this,[this,connection]() {
+            if(frameSocket==connection) {
+                frameSocket=nullptr; frameInput.clear(); emit frameReady(QImage());
+                if(!failedRun && process->state()==QProcess::Running && state["capabilities"].toArray().contains("qt-rgb565-frames-v1"))
+                    abortWorker("worker-frame-disconnected");
+            }
+            connection->deleteLater();
+        });
+        readFrames();
+    }
+}
+void MediaSession::readFrames()
+{
+    if(!frameSocket)return;
+    frameInput+=frameSocket->readAll();
+    if(frameInput.size()>2*(20+640*480*2)) { abortWorker("worker-frame-too-large"); return; }
+    while(frameInput.size()>=20)
+    {
+        const auto *h=reinterpret_cast<const uchar *>(frameInput.constData());
+        const quint32 magic=qFromLittleEndian<quint32>(h),w=qFromLittleEndian<quint32>(h+4),
+                      height=qFromLittleEndian<quint32>(h+8),bytes=qFromLittleEndian<quint32>(h+12), generation=qFromLittleEndian<quint32>(h+16);
+        if(magic!=0x31465244 || !w || w>640 || !height || height>480 || bytes!=w*height*2)
+        { abortWorker("worker-invalid-frame"); return; }
+        if(frameInput.size()<int(20+bytes))return;
+        const QImage image(reinterpret_cast<const uchar *>(frameInput.constData()+20),int(w),int(height),int(w*2),QImage::Format_RGB16);
+        const QImage copy=image.copy(); frameInput.remove(0,int(20+bytes));
+        if (state["available"]==true && state["frame_generation"].toDouble()==generation) { ++framesReceived; emit frameReady(copy); }
     }
 }

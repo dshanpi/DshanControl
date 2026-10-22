@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "timezone": "Asia/Shanghai",
+  "scope": "historical full development video image before source branch submission; not production qualification or a flash of subsequent branch metadata/tool changes",
+  "target": {
+    "board_id": "100ask-imx6ull-pro",
+    "hardware_revision": "pending",
+    "ram_mib": 512,
+    "display": "RGB 1024x600",
+    "storage": "eMMC"
+  },
+  "source_identity": {
+    "application_commit": "0584604f5c038fb21040a1cd6c90ab2f5b5e847a",
+    "application_branch": "feat/qt5-component-desktop-preview",
+    "sdk_commit": "e00afed02481332d2de44a498518b596651dcdef",
+    "kernel_commit": "05967a3aaba135f40eee6eaf14ced11c090d32c1",
+    "uboot_commit": "65baaf3fb37946b98d7c85ad5e014f9389d580a4",
+    "profile": "lite",
+    "display": {
+      "width": 1024,
+      "height": 600,
+      "interface": "rgb"
+    },
+    "toolchain": {
+      "gcc": "14.3.0",
+      "libc": "glibc-2.41",
+      "qt": "5.15.14",
+      "float_abi": "hard"
+    },
+    "application_patch_sha256": "8e4504b20eb6d0d054987bdd64a543a031ce4e0b690049686054ea4279dedf0d",
+    "application_patch_file": "boards/imx6ull-pro/components-imx6ull-video.patch",
+    "application_patch_paths": [
+      "components/hmi/src/visuals.cpp",
+      "components/hmi/src/visuals.h",
+      "components/hmi/src/mediasession.cpp",
+      "components/hmi/src/mediasession.h",
+      "components/hmi/src/mediapanel.cpp",
+      "components/media/media.pro",
+      "components/media/src/main.cpp",
+      "tests/hmi/hmi_ui_test.cpp",
+      "components/media/src/gstworker.h"
+    ],
+    "media_backend": "gstreamer-software-video-only"
+  },
+  "system_image_sha256": "c617cc9e42487c72d2eb7f68db4331eb2937e3697f0a802366af7a21a9be6bfe",
+  "firmware_zip_sha256": "afd26164d511171a57f2e8a7b8c83d987182506a74f11a3d2b631317f37b18e4",
+  "image_binary_sha256": {
+    "omnigate-hmi": "6cbeb0ee622748f27a3055af603684ad29078bba594511f3f35d9e891b783892",
+    "dshancontrol-desktop-service": "cf5c9079fcb04011f987c7c382a700b464d9b54083eaa09e4285bb6b2e09187a",
+    "dshancontrol-media-worker": "ff710ac6dfd1b8ea43a9fd7513703e0db5490164cfb2b31aa0f9bc992776d1b6",
+    "dshancontrol-runtime": "c5bcebc4242b5bf09968b847b5c2c35d3b013f4e3ee084e63c28d54cfedbdbc5"
+  },
+  "flash": {
+    "taskId": "flash-1792645539895559700",
+    "state": "success",
+    "exitCode": 0,
+    "deviceId": 14,
+    "verifyState": "pending"
+  },
+  "vendor_media_verify_supported": false,
+  "readback": {
+    "checks_passed": 25,
+    "scope": "readback of bootloader, boot FAT and installed application files; not full mutated root/data filesystem comparison"
+  },
+  "first_boot_id": "7a82ef12-e962-4d54-9852-a162298515fd",
+  "normal_reboot_boot_id": "1892f135-8e8d-470c-8244-98f94352a862",
+  "physical_confirmation": "屏幕和视频正常，暂停/继续触摸准确",
+  "passive_touch_events_recorded": 0,
+  "network": {
+    "automatic_wifi_after_normal_reboot": "passed",
+    "gateway_ping": "passed",
+    "dns_checks_passed": 2,
+    "verified_https_checks_passed": 2,
+    "existing_account_lan_checks_passed": 7,
+    "credentials_in_record": false
+  },
+  "data": {
+    "database_copy_integrity_checks": 2,
+    "restored_non_shm_hash_checks": 12,
+    "static_configuration_hash_checks_after_reboot": 5,
+    "media_file_hash_checks_after_reboot": 2,
+    "brightness_preserved": 156
+  },
+  "video_gui_checks_passed": 11,
+  "video_profile": {
+    "decode": "software",
+    "max_frame_output": [
+      320,
+      240
+    ],
+    "audio_enabled": false,
+    "generated_local_clips": [
+      "320x240 15fps H.264 MP4",
+      "640x360 15fps H.264 MP4"
+    ],
+    "performance": [
+      {
+        "mode": "640-window",
+        "duration_seconds": 8.533123625999991,
+        "frame_delivery_rate": 14.531607115380158,
+        "hmi_cpu_percent": 25.195931691989788,
+        "decoder_cpu_percent": 45.821438565432594
+      },
+      {
+        "mode": "640-fullscreen",
+        "duration_seconds": 8.568454083999995,
+        "frame_delivery_rate": 13.654738515606436,
+        "hmi_cpu_percent": 42.13128721481986,
+        "decoder_cpu_percent": 39.91385104561881
+      },
+      {
+        "mode": "320-fullscreen",
+        "duration_seconds": 8.551145418000004,
+        "frame_delivery_rate": 14.267094527850297,
+        "hmi_cpu_percent": 47.245132698782946,
+        "decoder_cpu_percent": 30.40528342000883
+      }
+    ]
+  },
+  "historical_tests": {
+    "host_main_suite_total": 289,
+    "host_main_suite_passed": 279,
+    "host_main_suite_skipped": 10,
+    "hmi_ui_suite_passed": 90,
+    "host_and_arm_software_worker": "passed",
+    "scope": "adaptation-stage evidence; not CI results for subsequent branch commits"
+  },
+  "automatic_updates_qualified": false,
+  "production_qualified": false,
+  "remaining": [
+    "actual PCB revision",
+    "production signing trust",
+    "least privilege and supervised application roles",
+    "6ULL maintenance/lifecycle/health hooks",
+    "signed application packaging for standard Qt plugins",
+    "target mismatch and tamper refusal",
+    "update-stage power interruption and rollback/data matrix",
+    "GitHub signed update and first-baseline closure",
+    "clean system reproduction and complete SDK/license delivery",
+    "long-running and claimed industrial peripheral qualification"
+  ],
+  "branch_submission_tests": {
+    "scope": "local pre-commit source and build-tool review; not a new full image/flash or production qualification",
+    "host_core_suite_passed": 5,
+    "host_main_suite_total": 299,
+    "host_main_suite_passed": 289,
+    "host_main_suite_skipped": 10,
+    "qt_suites_passed": [
+      90,
+      6,
+      15
+    ],
+    "software_worker_received_frames": 60,
+    "software_worker_distinct_frame_hashes": 34,
+    "source_and_image_rejection_tests_passed": 10,
+    "staged_whitespace_gate": "passed",
+    "credentials_binary_and_existing_board_scope_review": "passed"
+  }
+}

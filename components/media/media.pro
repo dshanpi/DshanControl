@@ -10,3 +10,11 @@ contains(CONFIG, cedar) {
     INCLUDEPATH += $$[QT_SYSROOT]/usr/include/libcedarx $$[QT_SYSROOT]/usr/include/libcedarc
     LIBS += -ltplayer -lcdx_base -lrt
 }
+
+contains(CONFIG, gstsoftware) {
+    QT += network
+    CONFIG += link_pkgconfig
+    PKGCONFIG += gstreamer-app-1.0 gstreamer-video-1.0
+    DEFINES += DSHAN_GSTREAMER_PLAYER
+    HEADERS += src/gstworker.h
+}

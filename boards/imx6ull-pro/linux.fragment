@@ -1,0 +1,25 @@
+# i.MX6ULL does not use AHCI/SATA; disabling avoids gcc-14 build failure
+CONFIG_ATA=n
+CONFIG_SATA_AHCI=n
+CONFIG_SATA_AHCI_PLATFORM=n
+CONFIG_MXC_GPU_VIV=n
+
+CONFIG_USB_GADGET=y
+CONFIG_USB_CONFIGFS=y
+CONFIG_USB_CONFIGFS_F_FS=y
+CONFIG_USB_FUNCTIONFS=n
+CONFIG_USB_F_FS=y
+CONFIG_USB_LIBCOMPOSITE=y
+CONFIG_USB_CHIPIDEA=y
+CONFIG_USB_CHIPIDEA_UDC=y
+CONFIG_USB_CHIPIDEA_HOST=y
+CONFIG_INPUT_EVDEV=y
+CONFIG_FB=y
+CONFIG_EXT4_FS=y
+
+# Qt linuxfb uses the primary plane; avoid an unused additional 32 MiB allocation.
+CONFIG_FB_MXC_OVERLAY=n
+# Load the radio stack after the root filesystem provides the signed regdb.
+CONFIG_CFG80211=m
+CONFIG_MAC80211=m
+CONFIG_RTL8XXXU=m

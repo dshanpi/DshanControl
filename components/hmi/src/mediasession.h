@@ -1,5 +1,10 @@
 #pragma once
 #include <QJsonObject>
+#include <QImage>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QTemporaryDir>
+#include <memory>
 #include <QObject>
 #include <QProcess>
 #include <QQueue>
@@ -16,6 +21,7 @@ class MediaSession : public QObject
   signals:
     void changed(const QJsonObject &state);
     void feedback(const QString &message);
+    void frameReady(const QImage &frame);
 
   private:
     friend class HmiUiTest;
@@ -29,4 +35,12 @@ class MediaSession : public QObject
     QString executable;
     void read();
     void flush();
+    QLocalServer frameServer;
+    QLocalSocket *frameSocket = nullptr;
+    std::unique_ptr<QTemporaryDir> frameDirectory;
+    QByteArray frameInput;
+    quint64 framesReceived = 0;
+    void acceptFrames();
+    void readFrames();
+    void resetFrames();
 };

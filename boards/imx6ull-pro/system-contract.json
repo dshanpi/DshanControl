@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "app_id": "dshancontrol",
+  "repository": "dshanpi/DshanControl",
+  "board_id": "100ask-imx6ull-pro",
+  "hardware_revision": "pending",
+  "architecture": "armv7-a",
+  "float_abi": "hard",
+  "libc": "glibc-2.41",
+  "runtime_id": "imx6ull-qt5.15.14-glibc2.41-armhf-v1",
+  "contract_id": "dshancontrol-imx6ull-lite-1",
+  "updater_protocol": 1,
+  "data_schema": 1,
+  "allowed_channels": [
+    "stable"
+  ],
+  "validation": "not-run",
+  "updater_version": "0.1.0",
+  "application_root": "/data/dshancontrol/apps",
+  "data_root": "/data/dshancontrol/data",
+  "storage": {
+    "mount_point": "/data",
+    "device": "/dev/mmcblk1p3",
+    "filesystem": "ext4"
+  }
+}

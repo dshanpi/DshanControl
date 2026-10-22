@@ -132,6 +132,45 @@ class HmiUiTest : public QObject
             r->abort();
     }
   private slots:
+    void softwareFramesAreAuthenticatedBoundedAndRejectOldGenerations()
+    {
+        QTemporaryDir dir;
+        QFile worker(dir.filePath("frames.py"));
+        QVERIFY(worker.open(QIODevice::WriteOnly));
+        worker.write("#!/usr/bin/python3\nimport os,socket,json,sys,struct,time\ns={'protocol':1,'event':'status','available':True,'state':'playing','capabilities':['suspend-during-prepare','visibility-state','qt-rgb565-frames-v1'],'frame_generation':7}\nprint(json.dumps(s),flush=True)\nc=socket.socket(socket.AF_UNIX);c.connect(os.environ['DSHANCONTROL_MEDIA_FRAME_SOCKET'])\nfor line in sys.stdin:\n r=json.loads(line);cmd=r['command']\n if cmd=='valid':\n  b=struct.pack('<5I',0x31465244,4,2,16,7)+b'\\x00\\xf8'*8\n  for x in b:c.sendall(bytes([x]));time.sleep(.001)\n elif cmd=='old':c.sendall(struct.pack('<5I',0x31465244,4,2,16,6)+b'\\xe0\\x07'*8)\n elif cmd=='invalid':c.sendall(struct.pack('<5I',0x31465244,4096,2,16,7))\n elif cmd=='disconnect':c.close();time.sleep(5)\n");
+        worker.close(); worker.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
+        MediaSession session;
+        session.executable=worker.fileName();
+        QSignalSpy spy(&session,&MediaSession::frameReady);
+        session.start();
+        QTRY_VERIFY(session.snapshot()["available"]==true);
+        QTRY_VERIFY(session.frameSocket!=nullptr);
+        spy.clear();session.command("valid");
+        QTRY_COMPARE(spy.count(),1);
+        const QImage image=qvariant_cast<QImage>(spy.at(0).at(0));
+        QCOMPARE(image.size(),QSize(4,2));QCOMPARE(image.pixelColor(1,1),QColor(Qt::red));
+        session.command("old");QTest::qWait(80);QCOMPARE(spy.count(),1);
+        session.command("invalid");
+        QTRY_COMPARE(session.snapshot()["error"].toString(),QString("worker-invalid-frame"));
+        QTRY_COMPARE(session.process->state(),QProcess::NotRunning);
+        session.start(true);
+        QTRY_VERIFY(session.snapshot()["available"]==true);
+        QTRY_VERIFY(session.frameSocket!=nullptr);
+        session.command("disconnect");
+        QTRY_COMPARE(session.snapshot()["error"].toString(),QString("worker-frame-disconnected"));
+        QTRY_COMPARE(session.process->state(),QProcess::NotRunning);
+    }
+    void softwareFrameSocketRejectsOtherProcesses()
+    {
+        QTemporaryDir dir;QFile worker(dir.filePath("idle.py"));QVERIFY(worker.open(QIODevice::WriteOnly));
+        worker.write("#!/usr/bin/python3\nimport json,time\nprint(json.dumps({'protocol':1,'event':'status','available':True,'state':'idle','capabilities':['suspend-during-prepare','visibility-state']}),flush=True)\ntime.sleep(20)\n");
+        worker.close();worker.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
+        MediaSession session;session.executable=worker.fileName();session.start();
+        QTRY_VERIFY(session.snapshot()["available"]==true);
+        QLocalSocket impostor;impostor.connectToServer(session.frameServer.fullServerName());
+        QTRY_COMPARE(impostor.state(),QLocalSocket::UnconnectedState);
+        QVERIFY(session.frameSocket==nullptr);QVERIFY(session.snapshot()["available"]==true);
+    }
     void mediaWorkerFailuresAreBoundedAndDoNotRestart()
     {
         QTemporaryDir dir;
@@ -3489,6 +3528,33 @@ class HmiUiTest : public QObject
         w.updateSnapshot(data); w.refreshTimer.stop();
         QCOMPARE(w.refreshCombo->currentData().toInt(), 1500);
         QCOMPARE(w.refreshCombo->currentText(), QString("1.5 秒"));
+    }
+    void overviewTopologyMatchesNetworkKindsInsteadOfArrayPositions()
+    {
+        OverviewDashboard dashboard;
+        const QJsonObject eth0{{"name", "eth0"}, {"kind", "ethernet"}, {"online", false}};
+        const QJsonObject eth1{{"name", "eth1"}, {"kind", "ethernet"}, {"online", false}};
+        const QJsonObject wifi{{"name", "wlan0"}, {"kind", "wifi"}, {"online", true},
+                              {"address", "192.168.1.26/24"}};
+        QJsonObject value{{"timestamp", 1000}, {"networks", QJsonArray{eth0, eth1, wifi}}};
+        dashboard.setSnapshot(value);
+        QCOMPARE(dashboard.topologyNetwork("wifi")["name"].toString(), QString("wlan0"));
+        QVERIFY(dashboard.topologyNetwork("wifi")["online"].toBool());
+        QVERIFY(!dashboard.topologyNetwork("ethernet")["online"].toBool());
+        value["networks"] = QJsonArray{wifi, eth1, eth0};
+        dashboard.setSnapshot(value);
+        QCOMPARE(dashboard.topologyNetwork("wifi"), wifi);
+        auto connectedEthernet = eth1;
+        connectedEthernet["online"] = true;
+        value["networks"] = QJsonArray{eth0, connectedEthernet, wifi};
+        dashboard.setSnapshot(value);
+        QCOMPARE(dashboard.topologyNetwork("ethernet")["name"].toString(), QString("eth1"));
+        value["networks"] = QJsonArray{eth0, eth1};
+        dashboard.setSnapshot(value);
+        QVERIFY(dashboard.topologyNetwork("wifi").isEmpty());
+        value["networks"] = QJsonArray{QJsonObject{{"name", "wlan0"}, {"online", true}}};
+        dashboard.setSnapshot(value);
+        QVERIFY(dashboard.topologyNetwork("wifi").isEmpty());
     }
     void unavailableAndOfflineClearTelemetry()
     {

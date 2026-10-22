@@ -71,6 +71,8 @@ class VideoStage : public QWidget
     QString message = "选择一个视频开始播放", description = "从本地存储打开视频";
     QRectF videoRect;
     bool playingLayer = false;
+    QImage softwareFrame;
+    bool softwareOutput = false;
     VideoStage()
     {
         setMinimumSize(160, 130);
@@ -82,7 +84,12 @@ class VideoStage : public QWidget
     {
         QPainter p(this);
         p.fillRect(rect(), QColor("#172535"));
-        if (playingLayer && !videoRect.isEmpty())
+        if (softwareOutput && !softwareFrame.isNull() && playingLayer && !videoRect.isEmpty())
+        {
+            p.drawImage(videoRect, softwareFrame);
+            return;
+        }
+        if (!softwareOutput && playingLayer && !videoRect.isEmpty())
         {
             // Linuxfb preserves ARGB32 alpha. The Cedar layer is below the Qt
             // plane: clear only its clipped viewport, retaining opaque controls
@@ -291,6 +298,12 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     geometryTimer->setInterval(75);
     connect(geometryTimer, &QTimer::timeout, this, &MediaPanel::geometry);
     connect(&session, &MediaSession::changed, this, &MediaPanel::apply);
+    connect(&session, &MediaSession::frameReady, this, [this](const QImage &frame) {
+        auto *surface=static_cast<VideoStage *>(stage);
+        // Convert once per frame so Qt's RGB32 raster scaling path is used.
+        // The wire remains RGB565 to bound transport bandwidth on small boards.
+        surface->softwareFrame=frame.convertToFormat(QImage::Format_RGB32); surface->update();
+    });
     connect(&session, &MediaSession::feedback, this,
             [this](const QString &message) { note->setText(message); });
     connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState value) {
@@ -433,21 +446,25 @@ void MediaPanel::apply(const QJsonObject &status)
     mute->setToolTip(status["muted"] == true ? "恢复声音" : "静音");
     currentTime->setText(active ? timeText(qint64(status["position_ms"].toDouble())) : "--:--");
     duration->setText(active ? timeText(qint64(status["duration_ms"].toDouble())) : "--:--");
-    decoder->setText(available ? "CedarX / TPlayer" : "播放组件未就绪");
-    format->setText(status["codec_id"].isDouble()
+    decoder->setText(!available ? "播放组件未就绪" : status["backend"]=="gstreamer-software" ? "GStreamer / 软件解码" : "CedarX / TPlayer");
+    format->setText(!status["codec_name"].toString().isEmpty() ? "编码："+status["codec_name"].toString() : status["codec_id"].isDouble()
                         ? "编码标识：" + QString::number(status["codec_id"].toInt())
                         : "编码：--");
     dimensions->setText(
         status["width"].toInt() > 0
             ? QString("画面：%1 × %2").arg(status["width"].toInt()).arg(status["height"].toInt())
             : "画面：--");
-    fps->setText(QString("当前解码器：%1\n显示帧率：%2\n硬件解码：待板端验证")
-                     .arg(available ? "CedarX / TPlayer" : "未运行")
-                     .arg(Visuals::numberText(status["display_fps"], 1)));
+    fps->setText(QString("当前解码器：%1\n显示帧率：%2\n解码方式：%3")
+                     .arg(!available ? "未运行" : status["backend"]=="gstreamer-software" ? "GStreamer" : "CedarX / TPlayer")
+                     .arg(Visuals::numberText(status["display_fps"], 1))
+                     .arg(status["backend"]=="gstreamer-software" ? "软件解码（无 VPU）" : "待板端验证"));
     auto *surface = static_cast<VideoStage *>(stage);
-    surface->playingLayer = available && status["backend"] == "cedar-tplayer" &&
-                            name == "playing" && status["first_frame"] == true &&
-                            status["visible"] == true;
+    surface->softwareOutput=status["video_output"]=="qt-rgb565";
+    surface->setAttribute(Qt::WA_OpaquePaintEvent,surface->softwareOutput);
+    if (!available || name=="idle" || name=="error" || name=="preparing") surface->softwareFrame=QImage();
+    surface->playingLayer = available && status["first_frame"] == true && status["visible"] == true &&
+        ((status["backend"] == "cedar-tplayer" && name == "playing") ||
+         (surface->softwareOutput && (name == "playing" || name == "paused" || name == "completed" || name == "prepared")));
     surface->message.clear();
     surface->description.clear();
     if (name == "not_installed")

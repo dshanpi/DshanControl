@@ -40,4 +40,10 @@ for item in record['files']:
         ast.parse(path.read_text(), filename=str(path), feature_version=7)
 for path in (ROOT / 'components').rglob('*.py'):
     ast.parse(path.read_text(), filename=str(path), feature_version=7)
-print('DshanControl repository gates passed (S4 remains unqualified).')
+imx = json.loads((ROOT / 'platform/boards/imx6ull-pro.json').read_text())
+assert imx['supported_profiles'] == [] and imx['candidate_profiles'] == ['lite'], '6ULL remains a development candidate'
+imx_update = json.loads((ROOT / 'boards/imx6ull-pro/updater.json').read_text())
+assert imx_update['development_mode'] is False and imx_update['automatic_install'] is False
+imx_status = json.loads((ROOT / 'platform/release-status.json').read_text())['development_targets']['imx6ull-pro']
+assert imx_status['automatic_updates_qualified'] is False
+print('DshanControl repository gates passed (S4 and 6ULL remain unqualified).')

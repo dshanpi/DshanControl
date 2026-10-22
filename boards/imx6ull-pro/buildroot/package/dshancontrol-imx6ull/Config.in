@@ -1,0 +1,9 @@
+config BR2_PACKAGE_DSHANCONTROL_IMX6ULL
+    bool "DshanControl i.MX6ULL Pro Lite component desktop"
+    depends on BR2_PACKAGE_QT5BASE_WIDGETS
+    depends on BR2_PACKAGE_PYTHON3
+    select BR2_PACKAGE_PYTHON3_SQLITE
+    select BR2_PACKAGE_PYTHON_FLASK
+    select BR2_PACKAGE_SQLITE
+    select BR2_PACKAGE_OPENSSL
+    select BR2_PACKAGE_ZLIB

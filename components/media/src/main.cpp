@@ -22,6 +22,10 @@
 #include <tplayer.h>
 #endif
 
+#ifdef DSHAN_GSTREAMER_PLAYER
+#include "gstworker.h"
+#endif
+
 namespace
 {
 void exact(const QJsonObject &object, QStringList keys)
@@ -551,7 +555,11 @@ int main(int argc, char **argv)
     QCoreApplication app(argc, argv);
     try
     {
+#ifdef DSHAN_GSTREAMER_PLAYER
+        GstMediaWorker player(protocol);
+#else
         MediaWorker player(protocol);
+#endif
         return app.exec();
     }
     catch (const Failure &)

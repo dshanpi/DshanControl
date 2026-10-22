@@ -1,0 +1,14 @@
+{
+  "socket": "/run/dshancontrol/platform.sock",
+  "updater_config": "/etc/dshancontrol/updater.json",
+  "task_root": "/data/dshancontrol/update-tasks",
+  "client_gid": 0,
+  "allowed_uids": [
+    0
+  ],
+  "platform_manifest": "/etc/omnigate/platform.json",
+  "display": {
+    "channel": "display0",
+    "backlight": "backlight"
+  }
+}

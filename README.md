@@ -1,5 +1,10 @@
 > **Qt5组件桌面测试版**：本分支尚未全部验收。请先阅读 [版本说明与未验收项](PREVIEW.md) 和 [一比一设计需求包](docs/design/component-desktop-v1/README.md)。
 
+6ULL Pro 开发分支：[`boards/imx6ull-pro`](boards/imx6ull-pro/README.md)，基于 Qt5
+组件桌面预览，包含 Buildroot、7 寸 RGB LCD、Wi-Fi 和本地软件视频接入。
+[实板验收及发布限制](docs/IMX6ULL-DEVELOPMENT-20261022.md)；仍为开发候选，未取得生产 OTA 资格。
+
+
 # DshanControl
 
 ## T113s4 SD NAND 开发交付

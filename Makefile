@@ -52,3 +52,10 @@ build-desktop:
 
 test-desktop: build-desktop
 	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_desktop_service.py' -v
+
+.PHONY: test-media-software
+test-media-software:
+	mkdir -p dist/media-software-tests
+	cd dist/media-software-tests && $(HMI_QMAKE) ../../components/media/media.pro CONFIG+=gstsoftware && $(MAKE)
+	ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=640x360:rate=15 -t 20 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420p dist/media-software-tests/local-motion.mp4
+	timeout 120s $(TEST_PYTHON) boards/imx6ull-pro/test-software-worker.py $(CURDIR)/dist/media-software-tests/dshancontrol-media-worker $(CURDIR)/dist/media-software-tests/local-motion.mp4

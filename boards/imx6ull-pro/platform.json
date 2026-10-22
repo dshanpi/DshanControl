@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "board_id": "100ask-imx6ull-pro",
+  "soc": "nxp-imx6ull",
+  "architecture": "armv7-a",
+  "runtime_profile": "lite",
+  "capabilities": [
+    "display",
+    "touch",
+    "ethernet",
+    "wifi"
+  ],
+  "channels": {
+    "management0": {
+      "kind": "ethernet",
+      "device": "eth0",
+      "role": "management"
+    },
+    "management1": {
+      "kind": "ethernet",
+      "device": "eth1",
+      "role": "management"
+    },
+    "display0": {
+      "kind": "display",
+      "device": "/dev/fb0",
+      "role": "local-hmi"
+    },
+    "wireless0": {
+      "kind": "wifi",
+      "device": "wlan0",
+      "role": "management"
+    }
+  },
+  "validation": "development-full-flash-display-touch-wifi-video-validated-not-qualified"
+}

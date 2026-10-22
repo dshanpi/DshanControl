@@ -1,0 +1,9 @@
+{
+  "application_root": "/data/dshancontrol/apps",
+  "system_contract": "/etc/dshancontrol/system-release.json",
+  "public_key": "/etc/dshancontrol/update-public.pem",
+  "service_hook": "/usr/libexec/dshancontrol-imx6ull-maintenance-unavailable",
+  "development_mode": false,
+  "automatic_install": false,
+  "task_service": true
+}

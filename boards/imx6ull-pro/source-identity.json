@@ -1,0 +1,33 @@
+{
+  "application_commit": "0584604f5c038fb21040a1cd6c90ab2f5b5e847a",
+  "application_branch": "feat/qt5-component-desktop-preview",
+  "sdk_commit": "e00afed02481332d2de44a498518b596651dcdef",
+  "kernel_commit": "05967a3aaba135f40eee6eaf14ced11c090d32c1",
+  "uboot_commit": "65baaf3fb37946b98d7c85ad5e014f9389d580a4",
+  "profile": "lite",
+  "display": {
+    "width": 1024,
+    "height": 600,
+    "interface": "rgb"
+  },
+  "toolchain": {
+    "gcc": "14.3.0",
+    "libc": "glibc-2.41",
+    "qt": "5.15.14",
+    "float_abi": "hard"
+  },
+  "application_patch_sha256": "8e4504b20eb6d0d054987bdd64a543a031ce4e0b690049686054ea4279dedf0d",
+  "application_patch_file": "boards/imx6ull-pro/components-imx6ull-video.patch",
+  "application_patch_paths": [
+    "components/hmi/src/visuals.cpp",
+    "components/hmi/src/visuals.h",
+    "components/hmi/src/mediasession.cpp",
+    "components/hmi/src/mediasession.h",
+    "components/hmi/src/mediapanel.cpp",
+    "components/media/media.pro",
+    "components/media/src/main.cpp",
+    "tests/hmi/hmi_ui_test.cpp",
+    "components/media/src/gstworker.h"
+  ],
+  "media_backend": "gstreamer-software-video-only"
+}

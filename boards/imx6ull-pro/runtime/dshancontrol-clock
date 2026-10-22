@@ -1,0 +1,37 @@
+#!/bin/sh
+set -eu
+STATE=/data/dshancontrol/data/last-clock-utc
+valid_epoch() {
+    case "$1" in ''|*[!0-9]*) return 1 ;; esac
+    [ "${#1}" -le 10 ] && [ "$1" -ge 1577836800 ] && [ "$1" -le 4102444800 ]
+}
+data_mounted() { grep -q ' /data ext4 rw' /proc/mounts; }
+case "${1:-}" in
+start)
+    floor=$(cat /etc/dshancontrol/build-clock-utc)
+    valid_epoch "$floor" || { echo 'Invalid build clock floor'; exit 1; }
+    if data_mounted && [ -f "$STATE" ] && [ ! -L "$STATE" ]; then
+        saved=$(cat "$STATE")
+        if valid_epoch "$saved" && [ "$saved" -gt "$floor" ]; then floor=$saved; fi
+    fi
+    now=$(date -u +%s)
+    if [ "$now" -lt "$floor" ]; then
+        date -u -s "@$floor" >/dev/null
+        echo 'Clock restored from build/last-known time; NTP or valid RTC needed for accuracy'
+    fi
+    ;;
+save|stop)
+    data_mounted || exit 0
+    now=$(date -u +%s)
+    valid_epoch "$now" || exit 0
+    umask 077
+    temporary=$(mktemp /data/dshancontrol/data/.clock.XXXXXX)
+    trap 'rm -f "$temporary"' EXIT HUP INT TERM
+    printf '%s\n' "$now" > "$temporary"
+    chmod 600 "$temporary"
+    mv -f "$temporary" "$STATE"
+    sync
+    hwclock -w -u >/dev/null 2>&1 || true
+    ;;
+*) echo "Usage: $0 {start|save|stop}" >&2; exit 1 ;;
+esac

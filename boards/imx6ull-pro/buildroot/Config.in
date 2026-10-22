@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_DSHAN6ULL_PATH/package/dshancontrol-imx6ull/Config.in"

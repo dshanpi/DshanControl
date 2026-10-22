@@ -113,6 +113,16 @@
         "lite",
         "enhanced"
       ]
+    },
+    {
+      "id": "imx6ull-pro-adapter",
+      "kind": "board-adapter-example",
+      "path": "boards/imx6ull-pro",
+      "version": "0.1.0-dev",
+      "license": "GPL-3.0-only",
+      "profiles": [
+        "lite"
+      ]
     }
   ]
 }

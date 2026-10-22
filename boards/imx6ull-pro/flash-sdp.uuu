@@ -1,0 +1,8 @@
+uuu_version 1.4.193
+# Board-matched SDK UUU flow. Writes bootloader and full eMMC user image.
+SDP: boot -f u-boot-dtb.imx
+FB: ucmd setenv fastboot_dev mmc
+FB: ucmd mmc dev 1
+FB: flash -raw2sparse all sdcard.img
+FB: flash bootloader u-boot-dtb.imx
+FB: done

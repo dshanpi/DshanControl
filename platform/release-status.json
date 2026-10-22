@@ -123,6 +123,33 @@
         "production_qualified": false,
         "application_update_stage_relay_matrix": "not-run-on-current-full-image"
       }
+    },
+    "imx6ull-pro": {
+      "application_port": "development-preview",
+      "buildroot_configuration": "generated",
+      "application_cross_build": "passed-development-source",
+      "system_image": "full-development-image-flashed",
+      "board_test": "display-touch-wifi-local-video-passed-with-limitations",
+      "automatic_updates_qualified": false,
+      "current_iteration_acceptance": "docs/IMX6ULL-DEVELOPMENT-20261022.md",
+      "development_evidence": {
+        "record": "docs/validation/2026-10-22-imx6ull-development.json",
+        "application_base_commit": "0584604f5c038fb21040a1cd6c90ab2f5b5e847a",
+        "application_patch_sha256": "8e4504b20eb6d0d054987bdd64a543a031ce4e0b690049686054ea4279dedf0d",
+        "system_image_sha256": "c617cc9e42487c72d2eb7f68db4331eb2937e3697f0a802366af7a21a9be6bfe",
+        "flash_task_id": "flash-1792645539895559700",
+        "touch_input": "onsite-user-confirmed",
+        "wifi": "normal-reboot-association-dns-verified-https-passed",
+        "video": "local-h264-software-video-only-approximately-14fps"
+      },
+      "remaining_qualification": {
+        "actual_pcb_revision": "not-provided-or-verified",
+        "production_signing_trust": "not-provisioned",
+        "site_approved_industrial_maintenance": "not-qualified",
+        "application_update_stage_relay_matrix": "not-run",
+        "least_privilege": "not-integrated-root-development-services",
+        "production_qualified": false
+      }
     }
   }
 }

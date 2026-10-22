@@ -1,0 +1,749 @@
+diff --git a/components/hmi/src/mediapanel.cpp b/components/hmi/src/mediapanel.cpp
+index b464ed3..ff4f19f 100644
+--- a/components/hmi/src/mediapanel.cpp
++++ b/components/hmi/src/mediapanel.cpp
+@@ -71,6 +71,8 @@ class VideoStage : public QWidget
+     QString message = "选择一个视频开始播放", description = "从本地存储打开视频";
+     QRectF videoRect;
+     bool playingLayer = false;
++    QImage softwareFrame;
++    bool softwareOutput = false;
+     VideoStage()
+     {
+         setMinimumSize(160, 130);
+@@ -82,7 +84,12 @@ class VideoStage : public QWidget
+     {
+         QPainter p(this);
+         p.fillRect(rect(), QColor("#172535"));
+-        if (playingLayer && !videoRect.isEmpty())
++        if (softwareOutput && !softwareFrame.isNull() && playingLayer && !videoRect.isEmpty())
++        {
++            p.drawImage(videoRect, softwareFrame);
++            return;
++        }
++        if (!softwareOutput && playingLayer && !videoRect.isEmpty())
+         {
+             // Linuxfb preserves ARGB32 alpha. The Cedar layer is below the Qt
+             // plane: clear only its clipped viewport, retaining opaque controls
+@@ -291,6 +298,12 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
+     geometryTimer->setInterval(75);
+     connect(geometryTimer, &QTimer::timeout, this, &MediaPanel::geometry);
+     connect(&session, &MediaSession::changed, this, &MediaPanel::apply);
++    connect(&session, &MediaSession::frameReady, this, [this](const QImage &frame) {
++        auto *surface=static_cast<VideoStage *>(stage);
++        // Convert once per frame so Qt's RGB32 raster scaling path is used.
++        // The wire remains RGB565 to bound transport bandwidth on small boards.
++        surface->softwareFrame=frame.convertToFormat(QImage::Format_RGB32); surface->update();
++    });
+     connect(&session, &MediaSession::feedback, this,
+             [this](const QString &message) { note->setText(message); });
+     connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState value) {
+@@ -433,21 +446,25 @@ void MediaPanel::apply(const QJsonObject &status)
+     mute->setToolTip(status["muted"] == true ? "恢复声音" : "静音");
+     currentTime->setText(active ? timeText(qint64(status["position_ms"].toDouble())) : "--:--");
+     duration->setText(active ? timeText(qint64(status["duration_ms"].toDouble())) : "--:--");
+-    decoder->setText(available ? "CedarX / TPlayer" : "播放组件未就绪");
+-    format->setText(status["codec_id"].isDouble()
++    decoder->setText(!available ? "播放组件未就绪" : status["backend"]=="gstreamer-software" ? "GStreamer / 软件解码" : "CedarX / TPlayer");
++    format->setText(!status["codec_name"].toString().isEmpty() ? "编码："+status["codec_name"].toString() : status["codec_id"].isDouble()
+                         ? "编码标识：" + QString::number(status["codec_id"].toInt())
+                         : "编码：--");
+     dimensions->setText(
+         status["width"].toInt() > 0
+             ? QString("画面：%1 × %2").arg(status["width"].toInt()).arg(status["height"].toInt())
+             : "画面：--");
+-    fps->setText(QString("当前解码器：%1\n显示帧率：%2\n硬件解码：待板端验证")
+-                     .arg(available ? "CedarX / TPlayer" : "未运行")
+-                     .arg(Visuals::numberText(status["display_fps"], 1)));
++    fps->setText(QString("当前解码器：%1\n显示帧率：%2\n解码方式：%3")
++                     .arg(!available ? "未运行" : status["backend"]=="gstreamer-software" ? "GStreamer" : "CedarX / TPlayer")
++                     .arg(Visuals::numberText(status["display_fps"], 1))
++                     .arg(status["backend"]=="gstreamer-software" ? "软件解码（无 VPU）" : "待板端验证"));
+     auto *surface = static_cast<VideoStage *>(stage);
+-    surface->playingLayer = available && status["backend"] == "cedar-tplayer" &&
+-                            name == "playing" && status["first_frame"] == true &&
+-                            status["visible"] == true;
++    surface->softwareOutput=status["video_output"]=="qt-rgb565";
++    surface->setAttribute(Qt::WA_OpaquePaintEvent,surface->softwareOutput);
++    if (!available || name=="idle" || name=="error" || name=="preparing") surface->softwareFrame=QImage();
++    surface->playingLayer = available && status["first_frame"] == true && status["visible"] == true &&
++        ((status["backend"] == "cedar-tplayer" && name == "playing") ||
++         (surface->softwareOutput && (name == "playing" || name == "paused" || name == "completed" || name == "prepared")));
+     surface->message.clear();
+     surface->description.clear();
+     if (name == "not_installed")
+diff --git a/components/hmi/src/mediasession.cpp b/components/hmi/src/mediasession.cpp
+index ccfed6a..59fdfcd 100644
+--- a/components/hmi/src/mediasession.cpp
++++ b/components/hmi/src/mediasession.cpp
+@@ -6,9 +6,15 @@
+ #include <QPointer>
+ #include <QTimer>
+ #include <QUuid>
++#include <QProcessEnvironment>
++#include <QSaveFile>
++#include <QtEndian>
++#include <sys/socket.h>
++#include <unistd.h>
+ 
+ MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProcess(this))
+ {
++    connect(&frameServer, &QLocalServer::newConnection, this, &MediaSession::acceptFrames);
+     executable = QCoreApplication::applicationDirPath() + "/dshancontrol-media-worker";
+     state = {{"available", false}, {"state", "not_installed"}};
+     startupDeadline.setSingleShot(true);
+@@ -25,6 +31,7 @@ MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProc
+         if (state["state"] != "error")
+             state = {{"available", false}, {"state", "error"}, {"error", "worker-unavailable"}};
+         queue.clear();
++        resetFrames();
+         emit changed(state);
+     });
+     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+@@ -33,6 +40,7 @@ MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProc
+                 if (state["state"] != "error")
+                     state = {{"available", false}, {"state", "error"}, {"error", "worker-exited"}};
+                 queue.clear();
++                resetFrames();
+                 emit changed(state);
+             });
+ }
+@@ -66,6 +74,7 @@ void MediaSession::abortWorker(const QString &reason)
+     failedRun = true;
+     queue.clear();
+     received.clear();
++    resetFrames();
+     state = {{"available", false}, {"state", "error"}, {"error", reason}};
+     emit changed(state);
+     // Capture this specific process/run; never kill a later explicit restart.
+@@ -91,6 +100,17 @@ void MediaSession::start(bool explicitRequest)
+         emit changed(state);
+         return;
+     }
++    resetFrames();
++    frameDirectory.reset(new QTemporaryDir("/tmp/dshancontrol-media-XXXXXX"));
++    if (!frameDirectory->isValid() || !frameServer.listen(frameDirectory->filePath("frames.sock")))
++    {
++        state = {{"available", false}, {"state", "error"}, {"error", "frame-channel-failed"}};
++        emit changed(state); return;
++    }
++    auto environment = QProcessEnvironment::systemEnvironment();
++    environment.insert("DSHANCONTROL_MEDIA_FRAME_SOCKET", frameServer.fullServerName());
++    process->setProcessEnvironment(environment);
++    startupDeadline.setInterval(qEnvironmentVariable("DSHANCONTROL_MEDIA_BACKEND") == "gstreamer-software" ? 20000 : 4000);
+     state = {{"available", false}, {"state", "starting_service"}};
+     emit changed(state);
+     process->setProgram(executable);
+@@ -169,6 +189,20 @@ void MediaSession::read()
+             }
+             startupDeadline.stop();
+             state = root;
++            const auto diagnostics=qEnvironmentVariable("DSHANCONTROL_MEDIA_STATUS_FILE");
++            if(!diagnostics.isEmpty())
++            {
++                QSaveFile file(diagnostics);
++                if(file.open(QIODevice::WriteOnly))
++                {
++                    file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner);
++                    auto record=state;
++                    record["worker_pid"]=double(process->processId());
++                    record["hmi_pid"]=double(QCoreApplication::applicationPid());
++                    record["frames_received"]=double(framesReceived);
++                    file.write(QJsonDocument(record).toJson(QJsonDocument::Compact));file.commit();
++                }
++            }
+             emit changed(state);
+             if (root["available"] == false && !queue.isEmpty())
+             {
+@@ -181,3 +215,52 @@ void MediaSession::read()
+             emit feedback("播放操作未完成，请查看播放器状态。");
+     }
+ }
++
++void MediaSession::resetFrames()
++{
++    if (frameSocket) { frameSocket->disconnect(this); frameSocket->abort(); frameSocket->deleteLater(); frameSocket = nullptr; }
++    frameServer.close(); frameInput.clear(); frameDirectory.reset(); framesReceived=0;
++    emit frameReady(QImage());
++}
++void MediaSession::acceptFrames()
++{
++    while (frameServer.hasPendingConnections())
++    {
++        auto *connection = frameServer.nextPendingConnection();
++        struct ucred peer{}; socklen_t size=sizeof(peer);
++        if (frameSocket || process->processId()<=0 ||
++            ::getsockopt(int(connection->socketDescriptor()),SOL_SOCKET,SO_PEERCRED,&peer,&size)!=0 ||
++            peer.pid!=process->processId() || peer.uid!=::geteuid())
++        { connection->abort(); connection->deleteLater(); continue; }
++        frameSocket=connection; frameInput.clear();
++        connection->setReadBufferSize(2*(20+640*480*2));
++        connect(connection,&QLocalSocket::readyRead,this,&MediaSession::readFrames);
++        connect(connection,&QLocalSocket::disconnected,this,[this,connection]() {
++            if(frameSocket==connection) {
++                frameSocket=nullptr; frameInput.clear(); emit frameReady(QImage());
++                if(!failedRun && process->state()==QProcess::Running && state["capabilities"].toArray().contains("qt-rgb565-frames-v1"))
++                    abortWorker("worker-frame-disconnected");
++            }
++            connection->deleteLater();
++        });
++        readFrames();
++    }
++}
++void MediaSession::readFrames()
++{
++    if(!frameSocket)return;
++    frameInput+=frameSocket->readAll();
++    if(frameInput.size()>2*(20+640*480*2)) { abortWorker("worker-frame-too-large"); return; }
++    while(frameInput.size()>=20)
++    {
++        const auto *h=reinterpret_cast<const uchar *>(frameInput.constData());
++        const quint32 magic=qFromLittleEndian<quint32>(h),w=qFromLittleEndian<quint32>(h+4),
++                      height=qFromLittleEndian<quint32>(h+8),bytes=qFromLittleEndian<quint32>(h+12), generation=qFromLittleEndian<quint32>(h+16);
++        if(magic!=0x31465244 || !w || w>640 || !height || height>480 || bytes!=w*height*2)
++        { abortWorker("worker-invalid-frame"); return; }
++        if(frameInput.size()<int(20+bytes))return;
++        const QImage image(reinterpret_cast<const uchar *>(frameInput.constData()+20),int(w),int(height),int(w*2),QImage::Format_RGB16);
++        const QImage copy=image.copy(); frameInput.remove(0,int(20+bytes));
++        if (state["available"]==true && state["frame_generation"].toDouble()==generation) { ++framesReceived; emit frameReady(copy); }
++    }
++}
+diff --git a/components/hmi/src/mediasession.h b/components/hmi/src/mediasession.h
+index cdbb04c..e489bf7 100644
+--- a/components/hmi/src/mediasession.h
++++ b/components/hmi/src/mediasession.h
+@@ -1,5 +1,10 @@
+ #pragma once
+ #include <QJsonObject>
++#include <QImage>
++#include <QLocalServer>
++#include <QLocalSocket>
++#include <QTemporaryDir>
++#include <memory>
+ #include <QObject>
+ #include <QProcess>
+ #include <QQueue>
+@@ -16,6 +21,7 @@ class MediaSession : public QObject
+   signals:
+     void changed(const QJsonObject &state);
+     void feedback(const QString &message);
++    void frameReady(const QImage &frame);
+ 
+   private:
+     friend class HmiUiTest;
+@@ -29,4 +35,12 @@ class MediaSession : public QObject
+     QString executable;
+     void read();
+     void flush();
++    QLocalServer frameServer;
++    QLocalSocket *frameSocket = nullptr;
++    std::unique_ptr<QTemporaryDir> frameDirectory;
++    QByteArray frameInput;
++    quint64 framesReceived = 0;
++    void acceptFrames();
++    void readFrames();
++    void resetFrames();
+ };
+diff --git a/components/hmi/src/visuals.cpp b/components/hmi/src/visuals.cpp
+index 06ed767..8441fd7 100644
+--- a/components/hmi/src/visuals.cpp
++++ b/components/hmi/src/visuals.cpp
+@@ -494,6 +494,20 @@ void OverviewDashboard::drawSummary(QPainter &p, const QRectF &r)
+              i == 3 ? 15 : 17, i == 0 ? healthColor : (i == 2 ? QColor("#b63752") : blue), true);
+     }
+ }
++QJsonObject OverviewDashboard::topologyNetwork(const QString &kind) const
++{
++    QJsonObject selected;
++    for (const auto &value : data.value("networks").toArray()) {
++        const auto network = value.toObject();
++        if (network.value("kind").toString() != kind)
++            continue;
++        if (selected.isEmpty() || (!selected.value("online").toBool() &&
++                                  network.value("online").toBool()))
++            selected = network;
++    }
++    return selected;
++}
++
+ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
+ {
+     using namespace Visuals;
+@@ -593,7 +607,6 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
+         text(p, QRectF(center.x() + 85, center.y() + 68 + i * 20, center.width() - 93, 20), values[i], 11,
+              i == 2 ? (connected ? green : muted) : ink);
+     }
+-    const auto networks = data.value("networks").toArray();
+     for (int i = 0; i < 2; i++) {
+         if (!narrow)
+             wire(QPointF(center.right(), center.center().y()),
+@@ -603,7 +616,7 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
+                  QPointF(outputs[i].center().x(), outputs[i].top()), blue);
+         panel(p, outputs[i], QColor("#f6f9fe"));
+         icon(p, QRectF(outputs[i].x() + 17, outputs[i].y() + 20, 32, 32), i == 0 ? "server" : "cloud");
+-        const QJsonObject net = i < networks.size() ? networks[i].toObject() : QJsonObject();
++        const QJsonObject net = topologyNetwork(i == 0 ? "ethernet" : "wifi");
+         text(p, outputs[i].adjusted(71, 5, -5, -outputs[i].height() + 29), i == 0 ? "本地网络" : "无线网络",
+              14, ink, true);
+         text(p, outputs[i].adjusted(71, 27, -5, -outputs[i].height() + 45),
+diff --git a/components/hmi/src/visuals.h b/components/hmi/src/visuals.h
+index b727a94..79fdf9e 100644
+--- a/components/hmi/src/visuals.h
++++ b/components/hmi/src/visuals.h
+@@ -196,6 +196,7 @@ class OverviewDashboard : public QWidget
+     friend class HmiUiTest;
+     QStringList summaryValues() const;
+     void drawSummary(QPainter &, const QRectF &);
++    QJsonObject topologyNetwork(const QString &kind) const;
+     void drawTopology(QPainter &, const QRectF &, bool narrow);
+     void drawTrend(QPainter &, const QRectF &);
+     void drawAlarms(QPainter &, const QRectF &);
+diff --git a/components/media/media.pro b/components/media/media.pro
+index a39a8c8..71da300 100644
+--- a/components/media/media.pro
++++ b/components/media/media.pro
+@@ -10,3 +10,11 @@ contains(CONFIG, cedar) {
+     INCLUDEPATH += $$[QT_SYSROOT]/usr/include/libcedarx $$[QT_SYSROOT]/usr/include/libcedarc
+     LIBS += -ltplayer -lcdx_base -lrt
+ }
++
++contains(CONFIG, gstsoftware) {
++    QT += network
++    CONFIG += link_pkgconfig
++    PKGCONFIG += gstreamer-app-1.0 gstreamer-video-1.0
++    DEFINES += DSHAN_GSTREAMER_PLAYER
++    HEADERS += src/gstworker.h
++}
+diff --git a/components/media/src/main.cpp b/components/media/src/main.cpp
+index dc3487a..76644d8 100644
+--- a/components/media/src/main.cpp
++++ b/components/media/src/main.cpp
+@@ -22,6 +22,10 @@
+ #include <tplayer.h>
+ #endif
+ 
++#ifdef DSHAN_GSTREAMER_PLAYER
++#include "gstworker.h"
++#endif
++
+ namespace
+ {
+ void exact(const QJsonObject &object, QStringList keys)
+@@ -551,7 +555,11 @@ int main(int argc, char **argv)
+     QCoreApplication app(argc, argv);
+     try
+     {
++#ifdef DSHAN_GSTREAMER_PLAYER
++        GstMediaWorker player(protocol);
++#else
+         MediaWorker player(protocol);
++#endif
+         return app.exec();
+     }
+     catch (const Failure &)
+diff --git a/tests/hmi/hmi_ui_test.cpp b/tests/hmi/hmi_ui_test.cpp
+index c32828c..dae454e 100644
+--- a/tests/hmi/hmi_ui_test.cpp
++++ b/tests/hmi/hmi_ui_test.cpp
+@@ -132,6 +132,45 @@ class HmiUiTest : public QObject
+             r->abort();
+     }
+   private slots:
++    void softwareFramesAreAuthenticatedBoundedAndRejectOldGenerations()
++    {
++        QTemporaryDir dir;
++        QFile worker(dir.filePath("frames.py"));
++        QVERIFY(worker.open(QIODevice::WriteOnly));
++        worker.write("#!/usr/bin/python3\nimport os,socket,json,sys,struct,time\ns={'protocol':1,'event':'status','available':True,'state':'playing','capabilities':['suspend-during-prepare','visibility-state','qt-rgb565-frames-v1'],'frame_generation':7}\nprint(json.dumps(s),flush=True)\nc=socket.socket(socket.AF_UNIX);c.connect(os.environ['DSHANCONTROL_MEDIA_FRAME_SOCKET'])\nfor line in sys.stdin:\n r=json.loads(line);cmd=r['command']\n if cmd=='valid':\n  b=struct.pack('<5I',0x31465244,4,2,16,7)+b'\\x00\\xf8'*8\n  for x in b:c.sendall(bytes([x]));time.sleep(.001)\n elif cmd=='old':c.sendall(struct.pack('<5I',0x31465244,4,2,16,6)+b'\\xe0\\x07'*8)\n elif cmd=='invalid':c.sendall(struct.pack('<5I',0x31465244,4096,2,16,7))\n elif cmd=='disconnect':c.close();time.sleep(5)\n");
++        worker.close(); worker.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
++        MediaSession session;
++        session.executable=worker.fileName();
++        QSignalSpy spy(&session,&MediaSession::frameReady);
++        session.start();
++        QTRY_VERIFY(session.snapshot()["available"]==true);
++        QTRY_VERIFY(session.frameSocket!=nullptr);
++        spy.clear();session.command("valid");
++        QTRY_COMPARE(spy.count(),1);
++        const QImage image=qvariant_cast<QImage>(spy.at(0).at(0));
++        QCOMPARE(image.size(),QSize(4,2));QCOMPARE(image.pixelColor(1,1),QColor(Qt::red));
++        session.command("old");QTest::qWait(80);QCOMPARE(spy.count(),1);
++        session.command("invalid");
++        QTRY_COMPARE(session.snapshot()["error"].toString(),QString("worker-invalid-frame"));
++        QTRY_COMPARE(session.process->state(),QProcess::NotRunning);
++        session.start(true);
++        QTRY_VERIFY(session.snapshot()["available"]==true);
++        QTRY_VERIFY(session.frameSocket!=nullptr);
++        session.command("disconnect");
++        QTRY_COMPARE(session.snapshot()["error"].toString(),QString("worker-frame-disconnected"));
++        QTRY_COMPARE(session.process->state(),QProcess::NotRunning);
++    }
++    void softwareFrameSocketRejectsOtherProcesses()
++    {
++        QTemporaryDir dir;QFile worker(dir.filePath("idle.py"));QVERIFY(worker.open(QIODevice::WriteOnly));
++        worker.write("#!/usr/bin/python3\nimport json,time\nprint(json.dumps({'protocol':1,'event':'status','available':True,'state':'idle','capabilities':['suspend-during-prepare','visibility-state']}),flush=True)\ntime.sleep(20)\n");
++        worker.close();worker.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
++        MediaSession session;session.executable=worker.fileName();session.start();
++        QTRY_VERIFY(session.snapshot()["available"]==true);
++        QLocalSocket impostor;impostor.connectToServer(session.frameServer.fullServerName());
++        QTRY_COMPARE(impostor.state(),QLocalSocket::UnconnectedState);
++        QVERIFY(session.frameSocket==nullptr);QVERIFY(session.snapshot()["available"]==true);
++    }
+     void mediaWorkerFailuresAreBoundedAndDoNotRestart()
+     {
+         QTemporaryDir dir;
+@@ -3490,6 +3529,33 @@ class HmiUiTest : public QObject
+         QCOMPARE(w.refreshCombo->currentData().toInt(), 1500);
+         QCOMPARE(w.refreshCombo->currentText(), QString("1.5 秒"));
+     }
++    void overviewTopologyMatchesNetworkKindsInsteadOfArrayPositions()
++    {
++        OverviewDashboard dashboard;
++        const QJsonObject eth0{{"name", "eth0"}, {"kind", "ethernet"}, {"online", false}};
++        const QJsonObject eth1{{"name", "eth1"}, {"kind", "ethernet"}, {"online", false}};
++        const QJsonObject wifi{{"name", "wlan0"}, {"kind", "wifi"}, {"online", true},
++                              {"address", "192.168.1.26/24"}};
++        QJsonObject value{{"timestamp", 1000}, {"networks", QJsonArray{eth0, eth1, wifi}}};
++        dashboard.setSnapshot(value);
++        QCOMPARE(dashboard.topologyNetwork("wifi")["name"].toString(), QString("wlan0"));
++        QVERIFY(dashboard.topologyNetwork("wifi")["online"].toBool());
++        QVERIFY(!dashboard.topologyNetwork("ethernet")["online"].toBool());
++        value["networks"] = QJsonArray{wifi, eth1, eth0};
++        dashboard.setSnapshot(value);
++        QCOMPARE(dashboard.topologyNetwork("wifi"), wifi);
++        auto connectedEthernet = eth1;
++        connectedEthernet["online"] = true;
++        value["networks"] = QJsonArray{eth0, connectedEthernet, wifi};
++        dashboard.setSnapshot(value);
++        QCOMPARE(dashboard.topologyNetwork("ethernet")["name"].toString(), QString("eth1"));
++        value["networks"] = QJsonArray{eth0, eth1};
++        dashboard.setSnapshot(value);
++        QVERIFY(dashboard.topologyNetwork("wifi").isEmpty());
++        value["networks"] = QJsonArray{QJsonObject{{"name", "wlan0"}, {"online", true}}};
++        dashboard.setSnapshot(value);
++        QVERIFY(dashboard.topologyNetwork("wifi").isEmpty());
++    }
+     void unavailableAndOfflineClearTelemetry()
+     {
+         MainWindow w;
+diff --git a/components/media/src/gstworker.h b/components/media/src/gstworker.h
+new file mode 100644
+index 0000000..0d59c34
+--- /dev/null
++++ b/components/media/src/gstworker.h
+@@ -0,0 +1,316 @@
++#pragma once
++// Optional software backend. The existing Cedar and unavailable builds are unchanged.
++#include "../../runtime/src/storage.h"
++#include <QCoreApplication>
++#include <QElapsedTimer>
++#include <QFile>
++#include <QSize>
++#include <QJsonArray>
++#include <QJsonDocument>
++#include <QLocalSocket>
++#include <QSocketNotifier>
++#include <QTimer>
++#include <QUrl>
++#include <QtEndian>
++#include <gst/app/gstappsink.h>
++#include <gst/video/video.h>
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <unistd.h>
++#include <cstring>
++
++class GstMediaWorker : public QObject
++{
++    QFile output;
++    QLocalSocket frames;
++    QTimer timer;
++    QElapsedTimer clock, preparing, fpsClock;
++    QByteArray input;
++    GstElement *pipeline = nullptr, *sink = nullptr, *outputFilter = nullptr;
++    QSize sourceSize, outputSize, viewport=QSize(640,480);
++    GstBus *bus = nullptr;
++    int heldFile = -1, sentFrames = 0, droppedFrames = 0, fpsFrames = 0;
++    quint32 frameGeneration = 0;
++    bool desiredPlaying = false;
++    QJsonObject status;
++    qint64 lastStatus = 0;
++    static void exact(const QJsonObject &v, QStringList keys)
++    {
++        auto actual=v.keys(); actual.sort(); keys.sort();
++        require(actual==keys,"Invalid media request fields","request");
++    }
++    void send(QJsonObject value)
++    {
++        value["protocol"]=1;
++        output.write(QJsonDocument(value).toJson(QJsonDocument::Compact)+'\n'); output.flush();
++    }
++    void emitStatus()
++    {
++        auto value=status; value["event"]="status"; send(value); lastStatus=clock.elapsed();
++    }
++    void release()
++    {
++        desiredPlaying=false; ++frameGeneration; status["frame_generation"]=double(frameGeneration);
++        if(pipeline) gst_element_set_state(pipeline,GST_STATE_NULL);
++        if(bus) gst_object_unref(bus);
++        if(sink) gst_object_unref(sink);
++        if(outputFilter) gst_object_unref(outputFilter);
++        if(pipeline) gst_object_unref(pipeline);
++        pipeline=nullptr; sink=nullptr; bus=nullptr; outputFilter=nullptr; sourceSize=QSize();outputSize=QSize();
++        if(heldFile>=0) ::close(heldFile);
++        heldFile=-1;
++    }
++    void fail(const QString &code)
++    {
++        release(); status["state"]="error"; status["error"]=code;
++        status["first_frame"]=false; status["visible"]=false; emitStatus();
++    }
++    void setState(GstState value)
++    {
++        require(pipeline && gst_element_set_state(pipeline,value)!=GST_STATE_CHANGE_FAILURE,
++                "Cannot change playback state","playback-state-failed");
++    }
++    void query()
++    {
++        if(!pipeline)return;
++        gint64 position=0,duration=0;
++        if(gst_element_query_position(pipeline,GST_FORMAT_TIME,&position) && position>=0)
++            status["position_ms"]=double(position/GST_MSECOND);
++        if(gst_element_query_duration(pipeline,GST_FORMAT_TIME,&duration) && duration>=0)
++            status["duration_ms"]=double(duration/GST_MSECOND);
++        GstQuery *q=gst_query_new_seeking(GST_FORMAT_TIME);
++        if(gst_element_query(pipeline,q)) {
++            gboolean seekable=false; gst_query_parse_seeking(q,nullptr,&seekable,nullptr,nullptr);
++            status["seekable"]=bool(seekable);
++        }
++        gst_query_unref(q);
++    }
++    // Bound RGB transport and raster work on the single-core 6ULL, including fullscreen.
++    void resizeOutput()
++    {
++        if(!outputFilter || !sourceSize.isValid())return;
++        QSize size=sourceSize;
++        size.scale(QSize(qMin(320,viewport.width()),qMin(240,viewport.height())),Qt::KeepAspectRatio);
++        size=QSize(qMax(8,size.width()&~1),qMax(8,size.height()&~1));
++        if(size==outputSize)return;
++        GstCaps *caps=gst_caps_new_simple("video/x-raw","format",G_TYPE_STRING,"RGB16",
++            "width",G_TYPE_INT,size.width(),"height",G_TYPE_INT,size.height(),
++            "pixel-aspect-ratio",GST_TYPE_FRACTION,1,1,nullptr);
++        g_object_set(outputFilter,"caps",caps,nullptr);gst_caps_unref(caps);outputSize=size;
++    }
++    void sample(GstSample *sample)
++    {
++        GstVideoInfo info;
++        if(!gst_video_info_from_caps(&info,gst_sample_get_caps(sample)) ||
++           GST_VIDEO_INFO_FORMAT(&info)!=GST_VIDEO_FORMAT_RGB16 ||
++           info.width<1 || info.width>640 || info.height<1 || info.height>480) {
++            fail("unsupported-frame-size");return;
++        }
++        if(!sourceSize.isValid()) {
++            GstPad *pad=nullptr;g_signal_emit_by_name(pipeline,"get-video-pad",0,&pad);
++            GstCaps *caps=pad?gst_pad_get_current_caps(pad):nullptr;GstVideoInfo original;
++            if(caps && gst_video_info_from_caps(&original,caps))sourceSize=QSize(original.width,original.height);
++            else sourceSize=QSize(info.width,info.height);
++            if(caps)gst_caps_unref(caps);if(pad)gst_object_unref(pad);
++            if(sourceSize.width()>1280 || sourceSize.height()>720){fail("unsupported-source-size");return;}
++            resizeOutput();
++        }
++        status["width"]=sourceSize.width(); status["height"]=sourceSize.height();
++        if(QSize(info.width,info.height)!=outputSize)return; // Discard in-flight buffers during renegotiation.
++        status["output_width"]=info.width;status["output_height"]=info.height;
++        status["source_fps"]=info.fps_d>0?double(info.fps_n)/info.fps_d:0;
++        if(frames.state()!=QLocalSocket::ConnectedState) {fail("frame-output-unavailable");return;}
++        if(frames.bytesToWrite()>0) {++droppedFrames;return;}
++        GstVideoFrame mapped;
++        if(!gst_video_frame_map(&mapped,&info,gst_sample_get_buffer(sample),GST_MAP_READ)) {
++            fail("frame-map-failed");return;
++        }
++        const int stride=GST_VIDEO_FRAME_PLANE_STRIDE(&mapped,0);
++        if(stride<info.width*2) {gst_video_frame_unmap(&mapped);fail("invalid-frame-stride");return;}
++        QByteArray packet(20+info.width*info.height*2,Qt::Uninitialized);
++        auto *header=reinterpret_cast<uchar *>(packet.data());
++        qToLittleEndian<quint32>(0x31465244,header);
++        qToLittleEndian<quint32>(info.width,header+4);
++        qToLittleEndian<quint32>(info.height,header+8);
++        qToLittleEndian<quint32>(info.width*info.height*2,header+12);
++        qToLittleEndian<quint32>(frameGeneration,header+16);
++        const auto *pixels=static_cast<const char *>(GST_VIDEO_FRAME_PLANE_DATA(&mapped,0));
++        for(int y=0;y<info.height;++y)
++            memcpy(packet.data()+20+y*info.width*2,pixels+y*stride,info.width*2);
++        gst_video_frame_unmap(&mapped);
++        frames.write(packet); ++sentFrames;
++        status["frames_delivered"]=sentFrames; status["frames_dropped"]=droppedFrames;
++        if(!status["first_frame"].toBool()) {
++            status["first_frame"]=true;
++            if(desiredPlaying)status["state"]="playing";
++            emitStatus();
++        }
++        ++fpsFrames;
++        if(fpsClock.elapsed()>=1000) {
++            status["display_fps"]=double(fpsFrames)*1000/fpsClock.elapsed();
++            fpsFrames=0;fpsClock.restart();
++        }
++    }
++    void tick()
++    {
++        if(!pipeline)return;
++        while(auto *message=gst_bus_pop(bus)) {
++            const auto type=GST_MESSAGE_TYPE(message);
++            if(type==GST_MESSAGE_ERROR) {
++                GError *error=nullptr; gchar *debug=nullptr;
++                gst_message_parse_error(message,&error,&debug);
++                if(error) {qWarning("GStreamer: %s",error->message);g_error_free(error);}
++                g_free(debug);gst_message_unref(message);fail("decode-failed");return;
++            }
++            if(type==GST_MESSAGE_TAG) {
++                GstTagList *tags=nullptr;gst_message_parse_tag(message,&tags);gchar *codec=nullptr;
++                if(gst_tag_list_get_string(tags,GST_TAG_VIDEO_CODEC,&codec)) {
++                    status["codec_name"]=QString::fromUtf8(codec);g_free(codec);
++                }
++                gst_tag_list_unref(tags);
++            }
++            if(type==GST_MESSAGE_ASYNC_DONE) {
++                status["seeking"]=false;query();
++                if(status["state"]=="preparing" && !desiredPlaying)status["state"]="prepared";
++            }
++            if(type==GST_MESSAGE_EOS) {
++                query();
++                if(status["loop"].toBool()) {
++                    if(!gst_element_seek_simple(pipeline,GST_FORMAT_TIME,
++                           GstSeekFlags(GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE),0)) {
++                        gst_message_unref(message);fail("loop-seek-failed");return;
++                    }
++                    desiredPlaying=true;setState(GST_STATE_PLAYING);
++                } else {
++                    desiredPlaying=false;setState(GST_STATE_PAUSED);status["state"]="completed";
++                    status["position_ms"]=status["duration_ms"];
++                }
++                emitStatus();
++            }
++            gst_message_unref(message);
++        }
++        if(!pipeline)return;
++        GstSample *value=desiredPlaying?gst_app_sink_try_pull_sample(GST_APP_SINK(sink),0)
++                                     :gst_app_sink_try_pull_preroll(GST_APP_SINK(sink),0);
++        if(value) {sample(value);gst_sample_unref(value);}
++        if(!pipeline)return;
++        if(!status["first_frame"].toBool() && preparing.elapsed()>12000) {fail("first-frame-timeout");return;}
++        if(clock.elapsed()-lastStatus>=500) {query();emitStatus();}
++    }
++    void command(const QString &name,const QJsonObject &params)
++    {
++        if(name=="snapshot") {exact(params,{});emitStatus();return;}
++        if(name=="rect") {
++            exact(params,{"x","y","width","height"});
++            for(const auto &key:{"x","y","width","height"})
++                require(positiveInteger(params[key],true) && params[key].toDouble()<=8192 && params[key].toInt()%2==0,
++                        "Invalid viewport","media");
++            require(params["width"].toInt()>=8 && params["height"].toInt()>=8,"Invalid viewport","media");
++            viewport=QSize(params["width"].toInt(),params["height"].toInt());resizeOutput();
++            return; // Qt owns composition; the worker never writes the framebuffer.
++        }
++        if(name=="close") {
++            exact(params,{});release();status["state"]="idle";status["first_frame"]=false;
++            status["visible"]=false;status["position_ms"]=0;status["duration_ms"]=0;
++            emitStatus();return;
++        }
++        if(name=="open") {
++            exact(params,{"path","volume"});
++            require(positiveInteger(params["volume"],true) && params["volume"].toDouble()<=100,"Invalid volume","media");
++            require(frames.state()==QLocalSocket::ConnectedState,"Qt video output required","frame-output-unavailable");
++            const QString path=params["path"].toString();
++            require(path.startsWith('/') && !path.contains(QChar(0)),"Local file required","media");
++            release();heldFile=::open(QFile::encodeName(path).constData(),O_RDONLY|O_NONBLOCK|O_CLOEXEC|O_NOFOLLOW);
++            struct stat st{};
++            require(heldFile>=0 && ::fstat(heldFile,&st)==0 && S_ISREG(st.st_mode) && st.st_size>0,
++                    "Readable regular media file required","file-unavailable");
++            pipeline=gst_element_factory_make("playbin",nullptr);
++            GError *error=nullptr;
++            GstElement *video=gst_parse_bin_from_description(
++                "videoscale ! videoconvert ! capsfilter name=qtrgb caps=\"video/x-raw,format=RGB16,width=[1,640],height=[1,480],pixel-aspect-ratio=1/1\" ! appsink name=qtframes max-buffers=1 drop=true sync=true",true,&error);
++            if(error)g_error_free(error);
++            require(pipeline && video,"GStreamer video plugins missing","decoder-unavailable");
++            sink=gst_bin_get_by_name(GST_BIN(video),"qtframes");
++            outputFilter=gst_bin_get_by_name(GST_BIN(video),"qtrgb");
++            const auto uri=QUrl::fromLocalFile(QString("/proc/self/fd/%1").arg(heldFile)).toEncoded();
++            // Video-only qualification: disable audio and subtitles, no ALSA probing or fake audio capability.
++            gst_object_ref_sink(video);
++            g_object_set(pipeline,"uri",uri.constData(),"video-sink",video,"flags",guint(1),nullptr);
++            gst_object_unref(video);
++            bus=gst_element_get_bus(pipeline);
++            desiredPlaying=true;sentFrames=droppedFrames=fpsFrames=0;fpsClock.restart();preparing.restart();
++            status["state"]="preparing";status["first_frame"]=false;status["visible"]=true;
++            status["seeking"]=false;status["error"]=QJsonValue();status["position_ms"]=0;status["duration_ms"]=0;
++            status["width"]=0;status["height"]=0;status["loop"]=false;status["volume"]=params["volume"];
++            status["frames_delivered"]=0;status["frames_dropped"]=0;status["codec_name"]=QJsonValue();
++            setState(GST_STATE_PLAYING);emitStatus();return;
++        }
++        if(name=="suspend") {
++            exact(params,{});desiredPlaying=false;
++            if(pipeline) {setState(GST_STATE_PAUSED);status["state"]=status["first_frame"]==true?"paused":"prepared";}
++            status["visible"]=false;emitStatus();return;
++        }
++        if(name=="visible") {
++            exact(params,{"value"});require(params["value"].isBool(),"Invalid visibility","media");
++            if(!params["value"].toBool() && pipeline) {desiredPlaying=false;setState(GST_STATE_PAUSED);status["state"]="paused";}
++            status["visible"]=params["value"];emitStatus();return;
++        }
++        require(pipeline,"No prepared video","media");
++        if(name=="pause" || name=="play") {
++            exact(params,{});desiredPlaying=name=="play";fpsFrames=0;fpsClock.restart();setState(desiredPlaying?GST_STATE_PLAYING:GST_STATE_PAUSED);
++            status["state"]=desiredPlaying?(status["first_frame"]==true?"playing":"starting"):"paused";
++        } else if(name=="seek") {
++            exact(params,{"position_ms"});
++            require(status["seekable"]==true && positiveInteger(params["position_ms"],true) &&
++                    params["position_ms"].toDouble()<=status["duration_ms"].toDouble() && params["position_ms"].toDouble()<=2147483647,"Invalid seek","media");
++            require(gst_element_seek_simple(pipeline,GST_FORMAT_TIME,GstSeekFlags(GST_SEEK_FLAG_FLUSH|GST_SEEK_FLAG_ACCURATE),
++                        gint64(params["position_ms"].toDouble()*GST_MSECOND)),"Seek failed","seek-failed");
++            status["seeking"]=true;
++        } else if(name=="loop") {
++            exact(params,{"value"});require(params["value"].isBool(),"Invalid loop","media");status["loop"]=params["value"];
++        } else if(name=="volume" || name=="mute") {
++            throw Failure("audio-not-enabled","media","This board profile is video-only");
++        } else throw Failure("unknown-command","media","Unknown media command");
++        query();emitStatus();
++    }
++    void read()
++    {
++        char bytes[8192];const ssize_t n=::read(STDIN_FILENO,bytes,sizeof(bytes));
++        if(n==0){release();QCoreApplication::quit();return;} if(n<0)return;
++        input.append(bytes,int(n));
++        if(input.size()>65536){release();QCoreApplication::exit(2);return;}
++        int end;
++        while((end=input.indexOf('\n'))>=0) {
++            const auto line=input.left(end);input.remove(0,end+1);QString id,name;
++            try {
++                const auto doc=strictJson(line);require(doc.isObject(),"Object required");const auto r=doc.toObject();
++                exact(r,{"protocol","request_id","command","params"});
++                require(r["protocol"]==1 && r["request_id"].isString() && r["request_id"].toString().size()<=64 &&
++                        r["command"].isString() && r["params"].isObject(),"Invalid request");
++                id=r["request_id"].toString();name=r["command"].toString();command(name,r["params"].toObject());
++                send({{"event","reply"},{"request_id",id},{"accepted",true}});
++            } catch(const Failure &e) {
++                if(name=="open")fail(e.code);
++                send({{"event","reply"},{"request_id",id},{"accepted",false},{"error",QJsonObject{{"code",e.code}}}});
++            }
++        }
++    }
++public:
++    explicit GstMediaWorker(int fd)
++    {
++        require(output.open(fd,QIODevice::WriteOnly,QFileDevice::AutoCloseHandle),"Cannot open output");
++        gst_init(nullptr,nullptr);
++        status={{"backend","gstreamer-software"},{"available",true},{"state","idle"},
++                {"capabilities",QJsonArray{"suspend-during-prepare","visibility-state","qt-rgb565-frames-v1"}},
++                {"first_frame",false},{"hardware_decode_confirmed",false},{"audio_available",false},
++                {"video_output","qt-rgb565"},{"position_ms",0},{"duration_ms",0},{"seekable",false},{"seeking",false}};
++        frames.connectToServer(qEnvironmentVariable("DSHANCONTROL_MEDIA_FRAME_SOCKET"));
++        if (!frames.waitForConnected(1000)) { status["available"]=false; status["state"]="unavailable"; status["error"]="frame-output-unavailable"; }
++        int flags=::fcntl(STDIN_FILENO,F_GETFL);require(flags>=0 && ::fcntl(STDIN_FILENO,F_SETFL,flags|O_NONBLOCK)==0,"Input setup failed");
++        auto *notifier=new QSocketNotifier(STDIN_FILENO,QSocketNotifier::Read,this);
++        connect(notifier,&QSocketNotifier::activated,this,[this](int){read();});
++        connect(&timer,&QTimer::timeout,this,[this](){try{tick();}catch(const Failure &e){fail(e.code);}});
++        clock.start();timer.start(15);emitStatus();
++    }
++    ~GstMediaWorker() override {release();}
++};

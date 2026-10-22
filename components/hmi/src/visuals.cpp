@@ -494,6 +494,20 @@ void OverviewDashboard::drawSummary(QPainter &p, const QRectF &r)
              i == 3 ? 15 : 17, i == 0 ? healthColor : (i == 2 ? QColor("#b63752") : blue), true);
     }
 }
+QJsonObject OverviewDashboard::topologyNetwork(const QString &kind) const
+{
+    QJsonObject selected;
+    for (const auto &value : data.value("networks").toArray()) {
+        const auto network = value.toObject();
+        if (network.value("kind").toString() != kind)
+            continue;
+        if (selected.isEmpty() || (!selected.value("online").toBool() &&
+                                  network.value("online").toBool()))
+            selected = network;
+    }
+    return selected;
+}
+
 void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
 {
     using namespace Visuals;
@@ -593,7 +607,6 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
         text(p, QRectF(center.x() + 85, center.y() + 68 + i * 20, center.width() - 93, 20), values[i], 11,
              i == 2 ? (connected ? green : muted) : ink);
     }
-    const auto networks = data.value("networks").toArray();
     for (int i = 0; i < 2; i++) {
         if (!narrow)
             wire(QPointF(center.right(), center.center().y()),
@@ -603,7 +616,7 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
                  QPointF(outputs[i].center().x(), outputs[i].top()), blue);
         panel(p, outputs[i], QColor("#f6f9fe"));
         icon(p, QRectF(outputs[i].x() + 17, outputs[i].y() + 20, 32, 32), i == 0 ? "server" : "cloud");
-        const QJsonObject net = i < networks.size() ? networks[i].toObject() : QJsonObject();
+        const QJsonObject net = topologyNetwork(i == 0 ? "ethernet" : "wifi");
         text(p, outputs[i].adjusted(71, 5, -5, -outputs[i].height() + 29), i == 0 ? "本地网络" : "无线网络",
              14, ink, true);
         text(p, outputs[i].adjusted(71, 27, -5, -outputs[i].height() + 45),

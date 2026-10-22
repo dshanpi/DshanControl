@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+G=/sys/kernel/config/usb_gadget/dshan6ull
+case "${1:-}" in
+start)
+    mountpoint -q /sys/kernel/config || mount -t configfs configfs /sys/kernel/config
+    mkdir -p "$G"
+    echo 0x1d6b > "$G/idVendor"; echo 0x0104 > "$G/idProduct"
+    mkdir -p "$G/strings/0x409" "$G/configs/c.1/strings/0x409" "$G/functions/ffs.adb"
+    echo 100ask_IMX6ULL > "$G/strings/0x409/serialnumber"
+    echo NXP > "$G/strings/0x409/manufacturer"
+    echo 100ASK_IMX6ULL > "$G/strings/0x409/product"
+    echo ADB > "$G/configs/c.1/strings/0x409/configuration"
+    [ -e "$G/configs/c.1/ffs.adb" ] || ln -s "$G/functions/ffs.adb" "$G/configs/c.1/ffs.adb"
+    mkdir -p /dev/usb-ffs/adb
+    mountpoint -q /dev/usb-ffs/adb || mount -t functionfs adb /dev/usb-ffs/adb
+    start-stop-daemon -S -b -m -p /run/adbd.pid -x /usr/bin/adbd
+    for attempt in 1 2 3 4 5; do [ -e /dev/usb-ffs/adb/ep1 ] && break; sleep 1; done
+    for udc in /sys/class/udc/*; do [ -e "$udc" ] || continue; basename "$udc" > "$G/UDC"; break; done
+    ;;
+stop)
+    [ ! -e "$G/UDC" ] || echo '' > "$G/UDC"
+    start-stop-daemon -K -p /run/adbd.pid || true
+    ;;
+*) exit 1 ;;
+esac

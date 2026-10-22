@@ -196,6 +196,7 @@ class OverviewDashboard : public QWidget
     friend class HmiUiTest;
     QStringList summaryValues() const;
     void drawSummary(QPainter &, const QRectF &);
+    QJsonObject topologyNetwork(const QString &kind) const;
     void drawTopology(QPainter &, const QRectF &, bool narrow);
     void drawTrend(QPainter &, const QRectF &);
     void drawAlarms(QPainter &, const QRectF &);

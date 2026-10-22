@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "100ask-imx6ull-pro",
+  "vendor": "100ask",
+  "soc": "nxp-imx6ull",
+  "architecture": "armv7-a",
+  "build_system": "buildroot-2026.02.1",
+  "supported_profiles": [],
+  "runtime_manifest": "boards/imx6ull-pro/platform.json",
+  "display": {
+    "width": 1024,
+    "height": 600,
+    "framebuffer": "/dev/fb0"
+  },
+  "validation_status": "development-full-flash-display-touch-wifi-video-validated-not-qualified",
+  "limitations": [
+    "development-preview",
+    "pcb-revision-unverified",
+    "ethernet-link-not-tested",
+    "video-software-only-no-audio",
+    "fieldbus-and-cloud-not-qualified",
+    "production-updates-not-qualified"
+  ],
+  "candidate_profiles": [
+    "lite"
+  ],
+  "$schema": "../schemas/board-descriptor.schema.json",
+  "board_support_component": "imx6ull-pro-adapter"
+}
