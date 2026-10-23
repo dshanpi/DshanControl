@@ -270,6 +270,40 @@ class HmiUiTest : public QObject
         QTRY_VERIFY_WITH_TIMEOUT(worker.isNull(), 4500);
         QVERIFY(ticks >= 40);
     }
+    void mediaTimelineUsesKnownDurationWithoutChangingBackendState_data()
+    {
+        QTest::addColumn<QString>("playbackState");
+        QTest::addColumn<int>("positionMs");
+        QTest::addColumn<int>("durationMs");
+        QTest::addColumn<QString>("elapsedText");
+        QTest::newRow("observed-completed-overrun") << QString("completed") << 30000 << 27052 << QString("00:27");
+        QTest::newRow("playing-overrun") << QString("playing") << 28000 << 27052 << QString("00:27");
+        QTest::newRow("paused-position") << QString("paused") << 12345 << 27052 << QString("00:12");
+        QTest::newRow("short-completion-is-not-invented") << QString("completed") << 23000 << 27052 << QString("00:23");
+        QTest::newRow("unknown-duration") << QString("playing") << 30000 << 0 << QString("00:30");
+        QTest::newRow("negative-position") << QString("playing") << -1000 << 27052 << QString("00:00");
+    }
+    void mediaTimelineUsesKnownDurationWithoutChangingBackendState()
+    {
+        QFETCH(QString, playbackState);
+        QFETCH(int, positionMs);
+        QFETCH(int, durationMs);
+        QFETCH(QString, elapsedText);
+        MediaPanel panel;
+        const QJsonObject status{{"available", true}, {"state", playbackState},
+                                 {"position_ms", positionMs}, {"duration_ms", durationMs},
+                                 {"seekable", true}};
+        panel.apply(status);
+        QCOMPARE(panel.currentTime->text(), elapsedText);
+        if (durationMs > 0)
+            QCOMPARE(panel.seek->value(), qBound(0, positionMs, durationMs));
+        // Keep the original decoder reading available for diagnosis. Rendering
+        // an end boundary must not invent completion or rewrite its position.
+        QCOMPARE(panel.state, status);
+        panel.apply({{"available", false}, {"state", "error"},
+                     {"position_ms", positionMs}, {"duration_ms", durationMs}});
+        QCOMPARE(panel.currentTime->text(), QString("--:--"));
+    }
     void mediaHidePreservesPositionAndCancelsPendingAutostart()
     {
         QTemporaryDir dir;

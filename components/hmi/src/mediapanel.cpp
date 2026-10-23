@@ -431,8 +431,15 @@ void MediaPanel::apply(const QJsonObject &status)
     loading = false;
     mute->setIcon(Visuals::icon("volume", Visuals::blue));
     mute->setToolTip(status["muted"] == true ? "恢复声音" : "静音");
-    currentTime->setText(active ? timeText(qint64(status["position_ms"].toDouble())) : "--:--");
-    duration->setText(active ? timeText(qint64(status["duration_ms"].toDouble())) : "--:--");
+    const qint64 durationMs = qMax(qint64(0), qint64(status["duration_ms"].toDouble()));
+    qint64 displayedPositionMs = qMax(qint64(0), qint64(status["position_ms"].toDouble()));
+    // Cedar can report a position beyond the known end (including after its
+    // completion callback). Match the bounded seek bar without rewriting the
+    // backend snapshot or inferring completion from the displayed time.
+    if (durationMs > 0)
+        displayedPositionMs = qMin(displayedPositionMs, durationMs);
+    currentTime->setText(active ? timeText(displayedPositionMs) : "--:--");
+    duration->setText(active ? timeText(durationMs) : "--:--");
     decoder->setText(available ? "CedarX / TPlayer" : "播放组件未就绪");
     format->setText(status["codec_id"].isDouble()
                         ? "编码标识：" + QString::number(status["codec_id"].toInt())
