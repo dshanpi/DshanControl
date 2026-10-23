@@ -46,7 +46,7 @@ endef
 define DSHANCONTROL_INSTALL_TARGET_CMDS
 	$(HOST_DIR)/bin/python3 $(@D)/scripts/install_s4_runtime.py \
 		--source $(@D) --target $(TARGET_DIR) --hmi $(@D)/components/hmi/src/omnigate-hmi \
-		--runtime $(@D)/components/runtime/dshancontrol-runtime $(DSHANCONTROL_DESKTOP_INSTALL_ARGS)
+		--runtime $(@D)/components/runtime/dshancontrol-runtime --readelf "$(TARGET_READELF)" $(DSHANCONTROL_DESKTOP_INSTALL_ARGS)
 endef
 
 $(eval $(generic-package))

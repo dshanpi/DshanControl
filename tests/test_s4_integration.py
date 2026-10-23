@@ -9,6 +9,8 @@ import unittest
 import hashlib
 from pathlib import Path
 
+from s4_media_fixture import media_elf
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -74,7 +76,7 @@ class S4IntegrationTests(unittest.TestCase):
             base = Path(temp); source, hmi = self.install_source(base)
             artifacts = []
             for name in ['desktop', 'media', 'imageformats.so']:
-                p = base / name; p.write_bytes(b'build fixture ' + name.encode()); p.chmod(0o755)
+                p = base / name; p.write_bytes(media_elf() if name == 'media' else b'build fixture ' + name.encode()); p.chmod(0o755)
                 artifacts.append(p)
             target = base / 'target'
             args = [sys.executable, str(ROOT / 'scripts/install_s4_runtime.py'),
@@ -88,6 +90,14 @@ class S4IntegrationTests(unittest.TestCase):
             factory = target / 'usr/share/dshancontrol/factory'
             self.assertEqual(artifacts[2].read_bytes(), (factory / 'bin/imageformats/libdshanimageformats.so').read_bytes())
             previous = (factory / 'installed.json').read_bytes()
+            media_bytes = artifacts[1].read_bytes()
+            artifacts[1].write_bytes(media_elf(cedar=False))
+            refused = subprocess.run(args, capture_output=True, text=True)
+            self.assertNotEqual(0, refused.returncode)
+            self.assertIn('lacks Cedar playback', refused.stderr)
+            self.assertEqual(previous, (factory / 'installed.json').read_bytes())
+            self.assertEqual(media_bytes, (factory / 'bin/dshancontrol-media-worker').read_bytes())
+            artifacts[1].write_bytes(media_bytes)
             license_path = source / 'components/imageformats/NOTICE'
             license_bytes = license_path.read_bytes()
             license_path.unlink()

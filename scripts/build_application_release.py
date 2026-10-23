@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / 'components/updater'))
 from update_protocol import TARGET_FIELDS, digest, read_json, require, validate_manifest, validate_target
 sys.path.insert(0, str(ROOT / 'scripts'))
 from application_payload import payload, component_inputs
+from check_s4_media import verify as verify_s4_media
 
 
 def main():
@@ -32,6 +33,8 @@ def main():
     contract = read_json(a.target_contract)
     validate_target(contract)
     components = component_inputs(a.desktop_service, a.media_worker, a.imageformats)
+    if components:
+        verify_s4_media(a.media_worker)
     require(not components or contract.get('desktop_provider') is True,
             'desktop bundle requires an explicitly qualified desktop runtime contract')
     status = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], universal_newlines=True)

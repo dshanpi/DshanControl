@@ -8,6 +8,7 @@ from check_hmi_resources import verify as verify_hmi_resources
 
 
 from application_payload import payload, component_inputs, component_licenses
+from check_s4_media import verify as verify_s4_media
 
 
 def main():
@@ -20,10 +21,13 @@ def main():
     p.add_argument('--desktop-service', type=Path)
     p.add_argument('--media-worker', type=Path)
     p.add_argument('--imageformats', type=Path)
+    p.add_argument('--readelf', default='readelf', help='host ELF inspection tool for S4 media artifacts')
     args = p.parse_args()
     try:
         components = component_inputs(args.desktop_service, args.media_worker, args.imageformats)
         component_licenses(args.source, components)
+        if components:
+            verify_s4_media(args.media_worker, args.readelf)
     except ValueError as error:
         p.error(str(error))
     if components and not args.runtime:
