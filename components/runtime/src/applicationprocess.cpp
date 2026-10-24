@@ -472,3 +472,18 @@ QMap<QString, QStringList> ApplicationProcesses::launchCommands() const {
     result.remove("supervisor");
   return result;
 }
+
+void ApplicationProcesses::verifyLaunchPeers(const QString &role,
+                                             const QString &commit) const {
+  processRequire(!role.isEmpty() && launchCommands().contains(role), stage,
+                 "Invalid scoped launch role", "contract");
+  for (auto it = commands.cbegin(); it != commands.cend(); ++it) {
+    if (it.key() == role)
+      continue;
+    const bool system = nativeSupervisor && it.key() == "supervisor";
+    Owned process(system && !fixture ? "/run" : pidRoot,
+                  system && !fixture ? "dshancontrol-runtime" : it.key(),
+                  it.value(), stage, false, receiptsRequired && !system,
+                  commit);
+  }
+}

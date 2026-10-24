@@ -49,8 +49,10 @@ int main(int argc, char **argv) {
                           << '\n';
       return 0;
     }
-    if (command == "application-start" && args.size() == 1) {
-      QTextStream(stdout) << QJsonDocument(startApplication(configuration))
+    if (command == "application-start" && args.size() <= 2) {
+      require(args.size() == 1 || !args[1].isEmpty(), "Application role required");
+      QTextStream(stdout)
+          << QJsonDocument(startApplication(configuration, args.value(1)))
                                  .toJson(QJsonDocument::Compact)
                           << '\n';
       return 0;
@@ -116,7 +118,7 @@ int main(int argc, char **argv) {
       throw Failure(
           "invalid-command", "preparing",
           "Usage: dshancontrol-runtime [--config FILE] "
-          "storage-check|storage-mount|initialize|application-stop "
+          "storage-check|storage-mount|initialize|application-start [ROLE]|application-stop "
           "[ROLE]|application-commit|application-health|check|download|recover|"
           "install MANIFEST SIGNATURE PACKAGE");
     if (result.isObject())

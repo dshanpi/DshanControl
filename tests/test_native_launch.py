@@ -35,7 +35,7 @@ class NativeLaunchTests(unittest.TestCase):
         self.addCleanup(self.cleanup_managed)
 
     def command(self,operation,expected=0,env=None,pass_fds=()):
-        result=subprocess.run([str(reference.BINARY),'--config',str(self.f.config),operation],
+        result=subprocess.run([str(reference.BINARY),'--config',str(self.f.config)]+([operation] if isinstance(operation,str) else operation),
             capture_output=True,text=True,timeout=35,env=env,pass_fds=pass_fds)
         self.assertEqual(expected,result.returncode,result.stdout+result.stderr)
         return json.loads(result.stdout if expected==0 else result.stderr)
@@ -146,6 +146,89 @@ class NativeLaunchTests(unittest.TestCase):
         self.assertTrue(self.command('application-health')['ok'])
         value=self.command('application-stop');self.original.clear()
         self.assertEqual(0,value['cleared_pid_files']);self.assertEqual(3,value['cleared_process_records'])
+
+    def stop_hmi_for_recovery(self):
+        self.launch()
+        self.assertEqual(1,self.command(['application-stop','hmi'])['cleared_process_records'])
+        self.original.clear();self.remember()
+        return dict(self.original)
+
+    def assert_peers_preserved(self,before):
+        self.assertEqual(before,{path:path.read_bytes() for path in before})
+        for path,body in before.items():
+            if path.name.endswith('.launch.json'):
+                record=json.loads(body)
+                stat=Path('/proc/%d/stat'%record['pid']).read_text().split(') ',1)[1].split()
+                self.assertNotIn(stat[0],['Z','X'])
+                self.assertEqual(str(record['start_ticks']),stat[19])
+
+    def test_scoped_start_recovers_hmi_without_restarting_peers(self):
+        before=self.stop_hmi_for_recovery()
+        value=self.command(['application-start','hmi']);self.remember()
+        self.assertEqual(['hmi'],value['launched'])
+        self.assert_peers_preserved(before)
+        self.assertTrue(self.command('application-health')['ok'])
+        receipt=json.loads((self.f.pids/'hmi.launch.json').read_text())
+        self.assertEqual('a'*40,receipt['application_commit'])
+        self.assertEqual(60001 if os.geteuid()==0 else os.getuid(),receipt['uid'])
+
+    def test_scoped_start_requires_live_matching_peer_records(self):
+        before=self.stop_hmi_for_recovery()
+        path=self.f.pids/'web.launch.json';original=path.read_bytes()
+        record=json.loads(original)
+        for key,value in [('start_ticks','0'),('application_commit','b'*40)]:
+            with self.subTest(key=key):
+                changed=dict(record);changed[key]=value;path.write_text(json.dumps(changed))
+                self.command(['application-start','hmi'],expected=1)
+                self.assertFalse((self.f.pids/'hmi.launch.json').exists())
+                path.write_bytes(original)
+        path.unlink()
+        self.command(['application-start','hmi'],expected=1)
+        self.assertFalse((self.f.pids/'hmi.launch.json').exists())
+        path.write_bytes(original);path.chmod(0o600)
+        self.assert_peers_preserved(before)
+
+    def test_scoped_start_retains_existing_or_stale_target_state(self):
+        before=self.stop_hmi_for_recovery()
+        path=self.f.pids/'hmi.pid'
+        for mode in ['stale','symlink','malformed-record']:
+            with self.subTest(mode=mode):
+                if mode=='stale':path.write_text('2147483647\n')
+                elif mode=='symlink':path.symlink_to(self.f.pids/'absent')
+                else:path=self.f.pids/'hmi.launch.json';path.write_bytes(b'{broken')
+                result=self.command(['application-start','hmi'],expected=1)
+                self.assertEqual('launch-state-exists',result['code'])
+                self.assertTrue(path.exists() or path.is_symlink())
+                path.unlink();path=self.f.pids/'hmi.pid'
+                self.assert_peers_preserved(before)
+
+    def test_scoped_start_obeys_all_lifecycle_leases(self):
+        before=self.stop_hmi_for_recovery()
+        for path in [self.f.apps/'.update.lock',self.f.apps/'.control.lock',self.f.pids/'.lifecycle.lock']:
+            with path.open('w') as lock:
+                fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                result=self.command(['application-start','hmi'],expected=1)
+                self.assertEqual('resource-busy',result['code'])
+                self.assertFalse((self.f.pids/'hmi.launch.json').exists())
+                self.assert_peers_preserved(before)
+
+    def test_scoped_start_rejects_unknown_empty_and_system_roles(self):
+        before=self.stop_hmi_for_recovery()
+        for role in ['unknown','','../hmi']:
+            self.command(['application-start',role],expected=1)
+            self.assertFalse((self.f.pids/'hmi.launch.json').exists())
+            self.assert_peers_preserved(before)
+        self.f.settings['application_health']['native_supervisor']=True;self.f.save()
+        self.command(['application-start','supervisor'],expected=1)
+        self.assert_peers_preserved(before)
+
+    def test_scoped_start_preflights_target_before_fork(self):
+        before=self.stop_hmi_for_recovery()
+        missing=self.f.root/'missing-hmi'
+        self.f.settings['application_health']['fixture_processes']['hmi']=[str(missing),'hmi'];self.f.save()
+        self.command(['application-start','hmi'],expected=1)
+        self.assertFalse((self.f.pids/'hmi.launch.json').exists())
+        self.assert_peers_preserved(before)
 
     def test_duplicate_start_refuses_without_replacing_any_record(self):
         self.launch();before=dict(self.original)

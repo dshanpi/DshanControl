@@ -16,4 +16,5 @@ public:
   QJsonObject stop(const QString &role = QString()) const;
   QString pidDirectory() const { return pidRoot; }
   QMap<QString, QStringList> launchCommands() const;
+  void verifyLaunchPeers(const QString &role, const QString &currentCommit) const;
 };

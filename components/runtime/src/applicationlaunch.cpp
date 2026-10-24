@@ -379,9 +379,12 @@ void launch(Role &role, const QString &pidRoot, const QString &commit) {
   }
 }
 } // namespace
-QJsonObject startApplication(const QJsonObject &config) {
+QJsonObject startApplication(const QJsonObject &config,
+                             const QString &selectedRole) {
   ApplicationProcesses processes(config, "start");
   const auto commands = processes.launchCommands();
+  launchRequire(selectedRole.isEmpty() || commands.contains(selectedRole),
+                "Invalid application role", "launch-role");
   const bool dev = config["development_mode"].toBool(false);
   const auto policy = config["application_health"].toObject();
   launchRequire(dev || !policy.contains("fixture_credentials"),
@@ -442,7 +445,8 @@ QJsonObject startApplication(const QJsonObject &config) {
   std::vector<std::unique_ptr<Role>> roles;
   for (const auto &name : {QString("desktop"), QString("web"), QString("hmi"),
                            QString("supervisor")})
-    if (commands.contains(name)) {
+    if (commands.contains(name) &&
+        (selectedRole.isEmpty() || selectedRole == name)) {
       std::unique_ptr<Role> role(new Role);
       role->name = name;
       role->arguments = commands[name];
@@ -461,6 +465,11 @@ QJsonObject startApplication(const QJsonObject &config) {
           "launch-state-exists");
     }
   }
+  // A scoped start is recovery of one role, not a partial cold start. Verify
+  // the other live roles against their original receipts and current commit
+  // while holding the same update/control/lifecycle leases as a full start.
+  if (!selectedRole.isEmpty())
+    processes.verifyLaunchPeers(selectedRole, commit);
   // Complete every preflight before any application is started.
   for (const auto &role : roles) {
     role->log.value = ::open(
