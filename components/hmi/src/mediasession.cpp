@@ -6,6 +6,17 @@
 #include <QPointer>
 #include <QTimer>
 #include <QUuid>
+#include <QList>
+
+namespace { QList<QPointer<QProcess>> retiringWorkers; }
+bool MediaSession::hasRetiringWorkers()
+{
+    for (int i = retiringWorkers.size() - 1; i >= 0; --i)
+        if (!retiringWorkers[i] || retiringWorkers[i]->state() == QProcess::NotRunning)
+            retiringWorkers.removeAt(i);
+    return !retiringWorkers.isEmpty();
+}
+
 
 MediaSession::MediaSession(QObject *parent) : QObject(parent), process(new QProcess(this))
 {
@@ -46,6 +57,8 @@ MediaSession::~MediaSession()
         return;
     process->setParent(nullptr);
     auto *retired = process;
+    hasRetiringWorkers();
+    retiringWorkers.append(retired);
     connect(retired, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), retired,
             &QObject::deleteLater);
     connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, retired,

@@ -10,6 +10,7 @@ class MediaSession : public QObject
   public:
     explicit MediaSession(QObject *parent = nullptr);
     ~MediaSession() override;
+    static bool hasRetiringWorkers();
     void start(bool explicitRequest = false);
     void command(const QString &name, const QJsonObject &params = {});
     QJsonObject snapshot() const { return state; }

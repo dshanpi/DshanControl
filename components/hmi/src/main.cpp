@@ -5,6 +5,7 @@
 #include "applicationheartbeat.h"
 #include "desktop/desktopshell.h"
 #include "displayprobe.h"
+#include "applicationshutdown.h"
 #include <QMessageBox>
 
 int main(int argc, char *argv[])
@@ -52,7 +53,8 @@ int main(int argc, char *argv[])
         new ApplicationHeartbeat(heartbeatFile,
             qEnvironmentVariable("DSHANCONTROL_APPLICATION_COMMIT"),
             QUrl(qEnvironmentVariable("HEALTH_URL", "http://127.0.0.1/api/health")), &app);
+    ApplicationShutdown shutdown(app, window);
     const int result = app.exec();
     delete window;
-    return result;
+    return result == 0 && shutdown.deadlineExpired() ? 2 : result;
 }
