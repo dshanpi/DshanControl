@@ -257,6 +257,11 @@ class MediaWorker : public QObject
     void close()
     {
         ++generation;
+        // Completion callbacks from this decoder are now invalid. Clear their
+        // pending state here; cancellation cannot wait for SEEK_COMPLETE.
+        status["seeking"] = false;
+        status["buffering"] = false;
+        status["seekable"] = false;
         prepared = false;
         autostart = false;
 #ifdef DSHAN_CEDAR_PLAYER
