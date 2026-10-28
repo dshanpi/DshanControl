@@ -113,9 +113,13 @@ class MainWindow : public QMainWindow
     bool settingsPending = false;
     bool desktopBrightnessRequest = false;
     quint64 settingsRevision = 0;
+    quint64 settingsConnectionRevision = 0;
     quint64 savedSettingsRevision = 0;
     QJsonObject submittedSettings;
     void updateSettingsControls();
+    void discardSettingsDraft();
+    QString settingsDraftNotice;
+    QString settingsFeedback = QStringLiteral("尚未执行保存；服务记录不代表背光已实际应用。");
     QList<QPushButton *> serviceButtons;
     QPushButton *rebootButton = nullptr;
     QNetworkAccessManager networkManager;

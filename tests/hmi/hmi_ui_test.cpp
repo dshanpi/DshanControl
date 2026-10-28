@@ -135,6 +135,71 @@ class HmiUiTest : public QObject
     }
   private slots:
 
+    void settingsDraftRestoreIsExplicitAndDoesNotApplyHardware()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *wp=shell.findChild<MainWindow *>(); QVERIFY(wp); auto &w=*wp;
+        isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();
+        QVERIFY(shell.openApplication("settings")); QTest::qWait(20);
+        auto *discard=w.findChild<QPushButton *>("discardSettingsDraft");
+        auto *result=w.findChild<QLabel *>("settingsLastResult");
+        auto *record=w.findChild<QLabel *>("settingsRecordedValues");
+        auto *save=w.findChild<QPushButton *>("saveSettings");
+        QVERIFY(discard && result && record && save); QVERIFY(!discard->isEnabled());
+        QVERIFY(discard->visibleRegion().contains(discard->rect()));
+        QVERIFY(save->visibleRegion().contains(save->rect()));
+        QVERIFY(result->visibleRegion().contains(result->rect()));
+        w.brightnessSlider->setValue(100); QVERIFY(discard->isEnabled());
+        bool sawCancel=false;
+        QTimer::singleShot(20,[&](){
+            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            if (!box) return;
+            sawCancel=box->defaultButton()==box->button(QMessageBox::No) && box->text().contains("不调节背光");
+            box->button(QMessageBox::No)->click();
+        });
+        discard->click(); QVERIFY(sawCancel); QCOMPARE(w.brightnessSlider->value(),100); QVERIFY(w.settingsDirty);
+        w.settingsFeedback="显示设置已保存，背光应用未确认。请重试并检查背光设备。";
+        w.updateSettingsControls(); const QString feedback=result->text();
+        auto fresh=snapshot(); auto values=fresh["settings"].toObject();
+        values["brightness"]=180; values["refresh_ms"]=1500; values["demo_mode"]=false; fresh["settings"]=values;
+        w.updateSnapshot(fresh); w.refreshTimer.stop(); QCOMPARE(w.brightnessSlider->value(),100);
+        QVERIFY(record->text().contains("1.5")); QCOMPARE(result->text(),feedback);
+        QTest::qWait(20);
+        qRegisterMetaType<QNetworkReply *>("QNetworkReply*");
+        QSignalSpy replies(&w.networkManager,&QNetworkAccessManager::finished);
+        QTimer::singleShot(20,[](){
+            if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) box->button(QMessageBox::Yes)->click();
+        });
+        const auto generation=w.snapshotGeneration;
+        discard->click(); QTest::qWait(20);
+        QCOMPARE(w.brightnessSlider->value(),180); QCOMPARE(w.refreshCombo->currentData().toInt(),1500);
+        QVERIFY(!w.demoCheck->isChecked()); QVERIFY(!w.settingsDirty); QVERIFY(!discard->isEnabled());
+        QVERIFY(!w.settingsPending); QCOMPARE(w.snapshotGeneration,generation); QCOMPARE(replies.count(),0);
+        QCOMPARE(result->text(),feedback); // Restoring a form must not erase a hardware failure.
+        w.brightnessSlider->setValue(110);
+        bool refused=false; QTimer modal;
+        connect(&modal,&QTimer::timeout,&w,[&](){
+            if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
+                if(box->standardButtons().testFlag(QMessageBox::Yes)) {
+                    w.updateSnapshot(snapshot()); w.refreshTimer.stop(); box->button(QMessageBox::Yes)->click();
+                } else { refused=box->text().contains("未撤销"); box->accept(); }
+            }
+        }); modal.start(10); discard->click(); modal.stop();
+        QVERIFY(refused); QCOMPARE(w.brightnessSlider->value(),110); QVERIFY(w.settingsDirty);
+        QCOMPARE(result->text(),feedback);
+        w.markOffline(); QVERIFY(w.latestSnapshot.isEmpty());
+        w.updateSettingsControls(); QVERIFY(w.latestSnapshot.isEmpty());
+        QVERIFY(!discard->isEnabled()); QVERIFY(!save->isEnabled());
+        QCOMPARE(w.brightnessSlider->value(),110); QVERIFY(record->text().contains("离线"));
+        auto incomplete=snapshot(); incomplete["settings"]=QJsonObject{{"brightness",120}};
+        w.updateSnapshot(incomplete); w.refreshTimer.stop(); QVERIFY(!discard->isEnabled());
+        QVERIFY(record->text().contains("不完整")); QCOMPARE(w.brightnessSlider->value(),110);
+        w.updateSnapshot(fresh); w.refreshTimer.stop();
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()) { QVERIFY(QDir().mkpath(output)); QTest::qWait(30);
+            QVERIFY(shell.grab().save(output+"/设置-编辑与部分成功.png")); }
+    }
+
     void applicationGuidesCoverRoutesAndPreserveDrafts()
     {
         DesktopV1::DesktopShell shell; shell.show();
@@ -3349,13 +3414,15 @@ class HmiUiTest : public QObject
 
     void settingsAndServicesRequestsRemainTruthful()
     {
-        MainWindow w; isolate(w); w.updateSnapshot(snapshot()); w.refreshTimer.stop();
+        MainWindow w; isolate(w); w.requestActive = false;
+        w.updateSnapshot(snapshot()); w.refreshTimer.stop();
         w.resize(1024, 600); w.show(); w.pages->setCurrentIndex(5);
         w.navButtons[0]->setChecked(false); w.navButtons[5]->setChecked(true);
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
         QJsonArray requests;
         QStringList dialogs;
         int mode = 0;
+        int revoke = 0;
         connect(&server, &QTcpServer::newConnection, this, [&]() {
             auto *socket = server.nextPendingConnection();
             connect(socket, &QTcpSocket::readyRead, socket, [&, socket]() {
@@ -3372,7 +3439,9 @@ class HmiUiTest : public QObject
                 const auto body = QJsonDocument::fromJson(bytes.mid(split + 4, length)).object();
                 QJsonObject response{{"ok", true}};
                 if (method == "GET") {
-                    response = path.endsWith("/snapshot") ? snapshot() : QJsonObject{{"ok", true}, {"audit", QJsonArray()}};
+                    response = path.endsWith("/snapshot")
+                        ? (revoke == 1 ? QJsonObject{{"ok", false}} : snapshot())
+                        : QJsonObject{{"ok", true}, {"audit", QJsonArray()}};
                 } else {
                     requests.append(QJsonObject{{"method", method}, {"path", path}, {"body", body}});
                     if (path.endsWith("/settings")) {
@@ -3391,7 +3460,6 @@ class HmiUiTest : public QObject
         });
         w.networkManager.setProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", server.serverPort()));
         connect(&w.networkManager, &QNetworkAccessManager::finished, &w, &MainWindow::handleReply);
-        int revoke = 0;
         QTimer timer; connect(&timer, &QTimer::timeout, &w, [&]() {
             w.refreshTimer.stop();
             if (auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
@@ -3399,6 +3467,7 @@ class HmiUiTest : public QObject
                     QCOMPARE(box->defaultButton(), box->button(QMessageBox::No));
                     if (revoke == 1) w.markOffline();
                     if (revoke == 2) { w.updateSnapshot(snapshot()); w.refreshTimer.stop(); }
+                    if (revoke == 3) { w.markOffline(); w.updateSnapshot(snapshot()); w.refreshTimer.stop(); }
                     box->button(QMessageBox::Yes)->click();
                 } else { dialogs << box->text(); box->accept(); }
             }
@@ -3406,7 +3475,9 @@ class HmiUiTest : public QObject
         auto *save = w.findChild<QPushButton *>("saveSettings");
         w.brightnessSlider->setValue(120); w.refreshCombo->setCurrentIndex(2);
         save->click(); QVERIFY(w.settingsPending); QVERIFY(!save->isEnabled()); save->click();
+        QVERIFY(!w.findChild<QPushButton *>("discardSettingsDraft")->isEnabled());
         QTRY_COMPARE(dialogs.size(), 1); QTRY_COMPARE(requests.size(), 2);
+        QVERIFY(w.findChild<QLabel *>("settingsLastResult")->text().contains("背光已应用"));
         QVERIFY(dialogs.last().contains("背光已应用"));
         QVERIFY(w.settingsDirty); QCOMPARE(w.brightnessSlider->value(), 90);
         w.updateSnapshot(snapshot()); w.refreshTimer.stop(); QCOMPARE(w.brightnessSlider->value(), 90);
@@ -3416,10 +3487,20 @@ class HmiUiTest : public QObject
         QCOMPARE(requests[1].toObject()["body"].toObject()["params"].toObject()["value"].toInt(), 120);
         mode = 1; save->click(); QTRY_COMPARE(dialogs.size(), 2); QTRY_COMPARE(requests.size(), 4);
         QVERIFY(dialogs.last().contains("设置已保存，背光应用未确认")); QVERIFY(!w.settingsPending);
+        auto *lastResult=w.findChild<QLabel *>("settingsLastResult");
+        QVERIFY(lastResult->text().contains("背光应用未确认"));
+        w.updateSnapshot(snapshot()); w.refreshTimer.stop();
+        QVERIFY(lastResult->text().contains("背光应用未确认"));
         mode = 2; w.brightnessSlider->setValue(130); save->click();
         QTRY_COMPARE(dialogs.size(), 3); QTRY_COMPARE(requests.size(), 5);
         QVERIFY(dialogs.last().contains("设置保存未确认")); QVERIFY(w.settingsDirty);
         QCOMPARE(w.brightnessSlider->value(), 130);
+        // Finish the prior transaction's refresh before the two explicit connection scenarios.
+        QTRY_VERIFY(!w.requestActive);
+        // A disconnect/reconnect during confirmation also revokes this save.
+        revoke = 3; save->click(); QTest::qWait(40); QCOMPARE(requests.size(), 5);
+        QVERIFY(!w.settingsPending); QVERIFY(w.settingsDirty);
+        QVERIFY(w.findChild<QLabel *>("settingsEditState")->text().contains("本次未保存"));
         revoke = 1; save->click(); QTest::qWait(40); QCOMPARE(requests.size(), 5); QVERIFY(!save->isEnabled());
         QVERIFY(w.grab().save("screenshots/settings-offline-edit.png"));
         auto ready = snapshot(); ready["services"] = QJsonObject{{"thingsboard", QJsonObject{{"running", false}, {"available", true}}}};

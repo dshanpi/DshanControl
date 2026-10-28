@@ -1449,8 +1449,7 @@ QWidget *MainWindow::buildSettings()
     });
     brightnessRow->addWidget(brightnessValue);
     screenForm->addRow(iconLabel("sun", "屏幕亮度"), brightnessRow);
-    screenForm->addRow(iconLabel("type", "界面字体"), new QLabel("标准 · 思源黑体"));
-    screenForm->addRow(iconLabel("topology", "布局模式"), new QLabel("根据屏幕自动调整"));
+    screenForm->addRow(captionLabel("简体中文 · 思源黑体 · 根据屏幕自动调整布局"));
     auto *displayProbe = new QPushButton("屏幕色彩 / 比例校验");
     displayProbe->setObjectName("openDisplayProbe");
     displayProbe->setMinimumHeight(44);
@@ -1458,7 +1457,6 @@ QWidget *MainWindow::buildSettings()
         auto *probe = new DisplayProbe(this);
         probe->showFullScreen();
     });
-    screenForm->addRow(iconLabel("globe", "语言"), new QLabel("简体中文"));
     auto *interaction = new QGroupBox("数据与交互");
     auto *form = new QFormLayout(interaction);
     form->setVerticalSpacing(12);
@@ -1479,16 +1477,32 @@ QWidget *MainWindow::buildSettings()
     connect(viewServices, &QPushButton::clicked, this,
             [settingsTabs]() { settingsTabs->setCurrentIndex(1); });
     form->addRow(iconLabel("settings", "系统服务"), viewServices);
+    auto *record = captionLabel("等待服务返回当前设置");
+    record->setObjectName("settingsRecordedValues");
+    record->setTextFormat(Qt::PlainText);
+    screenForm->insertRow(1,record);
+    auto *feedback = captionLabel(settingsFeedback);
+    feedback->setObjectName("settingsLastResult");
+    feedback->setTextFormat(Qt::PlainText);
+
     columns->addWidget(screen, 1);
     columns->addWidget(interaction, 1);
     displayLayout->addLayout(columns, 1);
     QFrame *footer = new QFrame;
     footer->setObjectName("panel");
-    auto *footerLayout = new QHBoxLayout(footer);
+    auto *footerBody = new QVBoxLayout(footer);
+    footerBody->addWidget(feedback);
+    auto *footerLayout = new QHBoxLayout;
+    footerBody->addLayout(footerLayout);
     auto *editState = captionLabel("等待设备连接后加载设置");
     editState->setObjectName("settingsEditState");
     footerLayout->addWidget(editState, 1);
-    footerLayout->addWidget(displayProbe);
+    screenForm->addRow(displayProbe);
+    auto *discard = actionButton("撤销修改", "secondary");
+    discard->setObjectName("discardSettingsDraft");
+    discard->setEnabled(false);
+    footerLayout->addWidget(discard);
+    connect(discard, &QPushButton::clicked, this, &MainWindow::discardSettingsDraft);
     QPushButton *save = actionButton("保存设置");
     save->setObjectName("saveSettings");
     save->setMinimumWidth(126);
@@ -1496,6 +1510,7 @@ QWidget *MainWindow::buildSettings()
     connect(brightnessSlider, &QSlider::valueChanged, this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
+            settingsDraftNotice.clear();
             ++settingsRevision;
             updateSettingsControls();
         }
@@ -1503,6 +1518,7 @@ QWidget *MainWindow::buildSettings()
     connect(demoCheck, &QCheckBox::toggled, this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
+            settingsDraftNotice.clear();
             ++settingsRevision;
             updateSettingsControls();
         }
@@ -1510,6 +1526,7 @@ QWidget *MainWindow::buildSettings()
     connect(refreshCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
+            settingsDraftNotice.clear();
             ++settingsRevision;
             updateSettingsControls();
         }
@@ -1520,17 +1537,29 @@ QWidget *MainWindow::buildSettings()
                                  {"demo_mode", demoCheck->isChecked()},
                                  {"refresh_ms", refreshCombo->currentData().toInt()}};
         const auto revision = settingsRevision;
-        QMessageBox confirmation(QMessageBox::Question, "保存设置", "确认保存显示设置并应用背光亮度？",
-                                  QMessageBox::Yes | QMessageBox::No, this);
+        const auto connectionRevision = settingsConnectionRevision;
+        QMessageBox confirmation(QMessageBox::Question, "保存设置",
+            QString("确认保存以下设置并应用背光？\n亮度：%1%\n数据刷新：%2 秒\n演示数据：%3")
+                .arg(qRound(values["brightness"].toInt()*100.0/255))
+                .arg(values["refresh_ms"].toInt()/1000.0)
+                .arg(values["demo_mode"].toBool() ? "开启" : "关闭"),
+            QMessageBox::Yes | QMessageBox::No, this);
         confirmation.button(QMessageBox::Yes)->setText("保存并应用");
         confirmation.button(QMessageBox::No)->setText("取消");
         confirmation.setDefaultButton(QMessageBox::No);
         if (confirmation.exec() != QMessageBox::Yes)
             return;
-        if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision) return;
+        if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision ||
+            connectionRevision != settingsConnectionRevision) {
+            settingsDraftNotice = "连接或编辑已变化，本次未保存；请核对后重新确认。";
+            updateSettingsControls();
+            return;
+        }
+        settingsDraftNotice.clear();
         savedSettingsRevision = revision;
         submittedSettings = values;
         settingsPending = true;
+        settingsFeedback = "正在保存设置，等待服务确认；尚未应用背光。";
         updateSettingsControls();
         sendJson("PUT", "/settings", values, "settings");
     });
@@ -1733,6 +1762,7 @@ bool MainWindow::requestDesktopBrightness(int percent)
     savedSettingsRevision = settingsRevision;
     submittedSettings = QJsonObject{{"brightness", raw}};
     settingsPending = desktopBrightnessRequest = true;
+    settingsFeedback = "正在保存快捷亮度设置，等待服务确认。";
     updateSettingsControls();
     sendJson("PUT", "/settings", submittedSettings, "settings");
     return true;
@@ -1877,6 +1907,8 @@ void MainWindow::handleReply(QNetworkReply *reply)
             valid = doc.object()["result"].toObject()["brightness"] == submittedSettings["brightness"];
         if (valid && kind == "settings") {
             if (settingsRevision == savedSettingsRevision) settingsDirty = false;
+            settingsFeedback = "设置已保存；正在应用背光，等待设备确认。";
+            updateSettingsControls();
             sendJson("POST", "/actions", {{"action", "brightness"},
                 {"params", QJsonObject{{"value", submittedSettings["brightness"]}}},
                 {"confirmed", true}}, "brightness");
@@ -1884,10 +1916,11 @@ void MainWindow::handleReply(QNetworkReply *reply)
             // Also discard reads started while the save/apply transaction was pending.
             ++snapshotGeneration;
             settingsPending = false;
-            updateSettingsControls();
             const QString message = valid ? "显示设置已保存，背光已应用" :
                 (kind == "brightness" ? "显示设置已保存，背光应用未确认。请重试并检查背光设备。" :
                                         "设置保存未确认；保留当前编辑，请重试。");
+            settingsFeedback = message;
+            updateSettingsControls();
             if (desktopBrightnessRequest) {
                 desktopBrightnessRequest = false;
                 emit desktopBrightnessFinished(valid,
@@ -2037,11 +2070,33 @@ void MainWindow::handleReply(QNetworkReply *reply)
 void MainWindow::updateSettingsControls()
 {
     const bool online = !latestSnapshot.isEmpty();
+    const auto recorded = latestSnapshot.value("settings").toObject();
+    const bool canRestore = recorded["brightness"].isDouble() &&
+        recorded["brightness"].toDouble() == recorded["brightness"].toInt() &&
+        recorded["brightness"].toInt() >= 10 && recorded["brightness"].toInt() <= 255 &&
+        recorded["demo_mode"].isBool() && recorded["refresh_ms"].isDouble() &&
+        recorded["refresh_ms"].toDouble() == recorded["refresh_ms"].toInt() &&
+        recorded["refresh_ms"].toInt() >= 500 && recorded["refresh_ms"].toInt() <= 10000;
+    if (auto *discard = findChild<QPushButton *>("discardSettingsDraft"))
+        discard->setEnabled(online && canRestore && settingsDirty && !settingsPending);
+    if (auto *record = findChild<QLabel *>("settingsRecordedValues"))
+        record->setText(!online ? "服务已离线：当前编辑仍保留，暂时不能撤销或保存。"
+            : !canRestore ? "服务设置不完整：保留当前编辑，暂时不能撤销。"
+            : QString("最近服务记录：亮度 %1% · 刷新 %2 秒 · 演示%3\n此记录不代表背光已实际应用。")
+                .arg(qRound(recorded["brightness"].toInt()*100.0/255))
+                .arg(recorded["refresh_ms"].toInt()/1000.0)
+                .arg(recorded["demo_mode"].toBool() ? "开启" : "关闭"));
+    if (auto *feedback = findChild<QLabel *>("settingsLastResult"))
+        feedback->setText("最近操作：" + settingsFeedback);
     if (auto *state = findChild<QLabel *>("settingsEditState"))
         state->setText(settingsPending ? "正在保存并应用，请等待设备确认…"
             : !online ? "设备未连接，暂时不能保存设置"
             : settingsDirty ? "有未保存的修改 · 点击“保存设置”后生效"
                             : "设置已加载 · 修改后点击“保存设置”");
+    if (!settingsDraftNotice.isEmpty()) {
+        if (auto *state = findChild<QLabel *>("settingsEditState"))
+            state->setText(settingsDraftNotice + "\n" + state->text());
+    }
     findChild<QPushButton *>("saveSettings")->setEnabled(online && !settingsPending);
     rebootButton->setEnabled(online);
     for (auto *button : serviceButtons) {
@@ -2052,8 +2107,48 @@ void MainWindow::updateSettingsControls()
     }
 }
 
+void MainWindow::discardSettingsDraft()
+{
+    auto *button = findChild<QPushButton *>("discardSettingsDraft");
+    if (!button || !button->isEnabled() || settingsPending) return;
+    const auto recorded = latestSnapshot.value("settings").toObject();
+    const auto revision = settingsRevision;
+    const auto connectionRevision = settingsConnectionRevision;
+    QMessageBox confirmation(QMessageBox::Question, "撤销未保存的修改",
+        "将当前编辑恢复为页面显示的服务记录。此操作只改表单，不保存设置，也不调节背光。",
+        QMessageBox::Yes | QMessageBox::No, this);
+    confirmation.setTextFormat(Qt::PlainText);
+    confirmation.button(QMessageBox::Yes)->setText("撤销修改");
+    confirmation.button(QMessageBox::No)->setText("继续编辑");
+    confirmation.setDefaultButton(QMessageBox::No);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+    if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision ||
+        connectionRevision != settingsConnectionRevision ||
+        latestSnapshot.value("settings").toObject() != recorded) {
+        updateSettingsControls();
+        QMessageBox::information(this, "未撤销修改", "服务状态或编辑已变化，未撤销；请核对页面后重试。");
+        return;
+    }
+    loadingSettings = true;
+    brightnessSlider->setValue(recorded["brightness"].toInt());
+    demoCheck->setChecked(recorded["demo_mode"].toBool());
+    const int refresh = recorded["refresh_ms"].toInt();
+    int index = refreshCombo->findData(refresh);
+    if (index < 0) {
+        refreshCombo->addItem(QString("%1 秒").arg(refresh / 1000.0), refresh);
+        index = refreshCombo->count() - 1;
+    }
+    refreshCombo->setCurrentIndex(index);
+    loadingSettings = false;
+    settingsDirty = false;
+    settingsDraftNotice.clear();
+    ++settingsRevision;
+    updateSettingsControls();
+}
+
 void MainWindow::markOffline()
 {
+    ++settingsConnectionRevision;
     emit hmiSnapshotChanged({});
     alarmsAvailable = false;
     applyAlarmFilter();
