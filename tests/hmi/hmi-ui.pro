@@ -52,3 +52,5 @@ HEADERS += ../../components/hmi/src/desktop/desktopshell.h
 DEFINES += DSHANCONTROL_HMI_UI_TEST
 
 HEADERS += ../../components/hmi/src/desktop/applicationregistry.h
+
+HEADERS += ../../components/hmi/src/touchfiledialog.h ../../components/hmi/src/videofilepicker.h

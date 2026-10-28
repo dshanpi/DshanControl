@@ -28,8 +28,8 @@ QFrame *panel(QVBoxLayout **layout)
     auto *frame = new QFrame;
     frame->setObjectName("panel");
     *layout = new PageLayout(frame);
-    (*layout)->setContentsMargins(16, 12, 16, 12);
-    (*layout)->setSpacing(9);
+    (*layout)->setContentsMargins(14, 10, 14, 10);
+    (*layout)->setSpacing(6);
     return frame;
 }
 void field(QVBoxLayout *layout, const QString &name, QLabel *value)
@@ -114,7 +114,8 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     points->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     points->verticalHeader()->hide();
     points->verticalHeader()->setDefaultSectionSize(44);
-    points->setMinimumHeight(130);
+    points->setMinimumHeight(100);
+    static_cast<DataTable *>(points)->setEmptyText("尚未收到可上报的点位。连接接入服务后查看。");
     points->setEditTriggers(QAbstractItemView::NoEditTriggers);
     points->setSelectionBehavior(QAbstractItemView::SelectRows);
     readings->addWidget(points, 1);
@@ -149,9 +150,16 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     tabs->addTab(reporting, "数据上报");
     note = label("接入服务尚未连接。", "infoNote");
     root->addWidget(note);
+    auto *operationFeedback = label("", "operationFeedback");
+    operationFeedback->setStyleSheet("background:#edf5ff;color:#393939;border-left:3px solid #0f62fe;padding:8px;font-size:14px;");
+    operationFeedback->hide();
+    root->addWidget(operationFeedback);
     connect(client, &DesktopClient::snapshotChanged, this, &CloudPanel::apply);
     connect(client, &DesktopClient::feedback, this,
-            [this](const QString &message) { note->setText(message); });
+            [operationFeedback](const QString &message) {
+                operationFeedback->setText("最近服务反馈：" + message);
+                operationFeedback->setVisible(!message.isEmpty());
+            });
     countdown.setInterval(1000);
     connect(&countdown, &QTimer::timeout, this, &CloudPanel::showRemaining);
     countdown.start();

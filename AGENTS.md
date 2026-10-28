@@ -22,3 +22,6 @@ Maintain independent system/application rollback and user-data boundaries.
 Use make test and make test-hmi with Qt5 on Ubuntu. Record skips and exact scope.
 Source packaging exports clean committed Git objects only. A source preview is not
 an app update archive, firmware, production release or proof that a board was upgraded.
+
+## Qt application interaction design
+For Qt UI, application workflows, subpages or dialogs, read .agents/skills/qt-industrial-ui/SKILL.md and docs/design/qt-application-interaction.md. Exercise actual application flows and isolated host states; keep hardware acceptance separate.

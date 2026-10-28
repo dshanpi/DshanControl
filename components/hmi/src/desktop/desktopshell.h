@@ -32,5 +32,7 @@ class DesktopShell : public QWidget
     bool fullscreen = false;
     QString activeId;
     void positionContent();
+    void chooseApplication();
+    void recordApplication(const QString &id);
 };
 } // namespace DesktopV1

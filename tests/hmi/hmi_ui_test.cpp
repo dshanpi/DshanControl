@@ -1,4 +1,5 @@
 #include <QScopedPointer>
+#include "../../components/hmi/src/videofilepicker.h"
 #include "../../components/hmi/src/mainwindow.h"
 #include "../../components/hmi/src/visuals.h"
 #include "../../components/hmi/src/updatepanel.h"
@@ -133,6 +134,280 @@ class HmiUiTest : public QObject
             r->abort();
     }
   private slots:
+
+    void primaryFormActionsRemainVisibleAtDesktopResolution()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *window=shell.findChild<MainWindow *>(); QVERIFY(window); isolate(*window);
+        window->updateSnapshot(snapshot()); window->refreshTimer.stop();
+        auto visible=[&](const QString &name) {
+            auto *button=window->findChild<QPushButton *>(name);
+            return button && button->isVisible() && button->height()>=44 &&
+                   button->visibleRegion().contains(button->rect());
+        };
+        QVERIFY(shell.openApplication("fieldbus")); QTest::qWait(60);
+        QVERIFY(visible("canApply")); QVERIFY(visible("canNmtSend"));
+        window->findChild<QTabWidget *>("canControls")->setCurrentIndex(1); QTest::qWait(30);
+        QVERIFY(visible("canApply")); QVERIFY(visible("canSdoWrite"));
+        window->findChild<QTabWidget *>("protocolTabs")->setCurrentIndex(1); QTest::qWait(30);
+        QVERIFY(visible("rsSave"));
+        QVERIFY(shell.openApplication("network")); QTest::qWait(30);
+        QVERIFY(visible("networkRefresh0"));
+        window->findChild<QTabWidget *>("networkTabs")->setCurrentIndex(1); QTest::qWait(30);
+        QVERIFY(visible("networkRefresh1"));
+        QVERIFY(shell.openApplication("settings")); QTest::qWait(30);
+        QVERIFY(visible("saveSettings"));
+    }
+
+    void videoBrowserNavigatesFoldersAndRejectsRemovedFiles()
+    {
+        QTemporaryDir directory; QVERIFY(directory.isValid());
+        QVERIFY(QDir(directory.path()).mkdir("子目录"));
+        const QString file=directory.filePath("子目录/测试.MP4");
+        QFile source(file); QVERIFY(source.open(QIODevice::WriteOnly)); source.write("fixture"); source.close();
+        VideoFilePicker picker(nullptr,directory.path()); picker.show();
+        auto *table=picker.findChild<QTableWidget *>("pickerFiles");
+        auto *accept=picker.findChild<QPushButton *>("pickerAccept");
+        QVERIFY(table); QVERIFY(accept); QCOMPARE(table->rowCount(),1);
+        QVERIFY(!accept->isEnabled()); table->setCurrentCell(0,0); table->selectRow(0);
+        QCOMPARE(accept->text(),QString("打开文件夹")); accept->click();
+        QVERIFY(picker.findChild<QLabel *>("pickerLocation")->text().contains("子目录"));
+        QCOMPARE(table->rowCount(),1); table->setCurrentCell(0,0); table->selectRow(0);
+        QCOMPARE(accept->text(),QString("选择视频"));
+        QVERIFY(QFile::remove(file)); accept->click();
+        QVERIFY(picker.isVisible()); QVERIFY(picker.selectedFile().isEmpty());
+        QVERIFY(picker.findChild<QLabel *>("pickerNotice")->text().contains("不可用"));
+        picker.findChild<QPushButton *>("pickerUp")->click();
+        QVERIFY(!picker.findChild<QLabel *>("pickerLocation")->text().endsWith("子目录"));
+        picker.findChild<QPushButton *>("pickerCancel")->click();
+        QCOMPARE(picker.result(),int(QDialog::Rejected));
+    }
+
+    void internalNavigationAndSettingsEditsHaveVisibleState()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *window=shell.findChild<MainWindow *>(); QVERIFY(window); isolate(*window);
+        window->updateSnapshot(snapshot()); window->refreshTimer.stop();
+        QVERIFY(shell.openApplication("overview"));
+        emit window->dashboard->alarmsRequested();
+        QCOMPARE(shell.activeApplication(),QString("alarms"));
+        QVERIFY(shell.openApplication("devices"));
+        window->findChild<QPushButton *>("monitorSettings")->click();
+        QCOMPARE(shell.activeApplication(),QString("settings"));
+        window->brightnessSlider->setValue(window->brightnessSlider->value()-3);
+        auto *state=window->findChild<QLabel *>("settingsEditState");
+        QVERIFY(state); QVERIFY(state->text().contains("未保存"));
+        window->settingsPending=true; window->updateSettingsControls();
+        QVERIFY(state->text().contains("等待设备确认"));
+        QVERIFY(!window->findChild<QPushButton *>("saveSettings")->isEnabled());
+    }
+
+    void applicationSwitcherRoutesEveryApplicationAndCancels()
+    {
+        DesktopV1::DesktopShell shell;
+        auto *window=shell.findChild<MainWindow *>();
+        QVERIFY(window); isolate(*window);
+        shell.show(); QVERIFY(shell.openApplication("overview"));
+        auto *switcher=shell.findChild<QPushButton *>("switchApplication");
+        QVERIFY(switcher);
+        for (const auto &app : DesktopV1::catalog()) {
+            bool found=false;
+            QTimer::singleShot(50,[&]() {
+                auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                if (!dialog) return;
+                auto *button=dialog->findChild<QPushButton *>("appRoute_"+app.id);
+                found=button && button->isVisible() && button->height()>=48 &&
+                      button->text().contains(app.name);
+                if (found) button->click(); else dialog->reject();
+            });
+            switcher->click();
+            QVERIFY(found);
+            QCOMPARE(shell.activeApplication(), app.id);
+            QVERIFY(shell.findChild<QLabel *>("applicationLocation")->text().contains(app.name));
+        }
+        const auto before=shell.activeApplication();
+        QTimer::singleShot(50,[]() {
+            if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                dialog->reject();
+        });
+        switcher->click();
+        QCOMPARE(shell.activeApplication(),before);
+        QVERIFY(shell.openApplication("update"));
+        auto *tabs=window->findChild<QTabWidget *>("settingsTabs");
+        QVERIFY(tabs); QVERIFY(tabs->currentIndex()!=0);
+        QVERIFY(shell.openApplication("settings"));
+        QCOMPARE(tabs->currentIndex(),0);
+        QVERIFY(shell.openApplication("cloud_bind"));
+        window->findChild<QTabWidget *>("cloudTabs")->setCurrentIndex(1);
+        QCOMPARE(shell.activeApplication(),QString("reporting"));
+        QVERIFY(shell.openApplication("voice"));
+        window->findChild<QTabWidget *>("familyTabs")->setCurrentIndex(1);
+        QCOMPARE(shell.activeApplication(),QString("home"));
+        QVERIFY(shell.openApplication("settings"));
+        tabs->setCurrentIndex(3);
+        QCOMPARE(shell.activeApplication(),QString("update"));
+        tabs->setCurrentIndex(1);
+        QCOMPARE(shell.activeApplication(),QString("settings"));
+        QVERIFY(shell.findChild<QLabel *>("applicationLocation")->text().contains("服务管理"));
+    }
+
+    void mediaWorkflowUsesVisibleActionsAndSelectionDoesNotPlay()
+    {
+        QTemporaryDir directory; QVERIFY(directory.isValid());
+        const auto file=directory.filePath("中文视频.mp4");
+        QFile media(file); QVERIFY(media.open(QIODevice::WriteOnly));
+        media.write("fixture only; not a playable video"); media.close();
+        const auto previousDirectory=qgetenv("DSHANCONTROL_MEDIA_DIRECTORY");
+        qputenv("DSHANCONTROL_MEDIA_DIRECTORY",directory.path().toUtf8());
+        MainWindow window; isolate(window); window.resize(1024,600); window.show();
+        if (previousDirectory.isNull()) qunsetenv("DSHANCONTROL_MEDIA_DIRECTORY");
+        else qputenv("DSHANCONTROL_MEDIA_DIRECTORY",previousDirectory);
+        QVERIFY(window.openApplication("video"));
+        auto *panel=window.mediaPanel; QTest::qWait(50);
+        for (auto *button : {panel->play,panel->previous,panel->next,panel->mute,panel->fullscreen}) {
+            QVERIFY(!button->text().isEmpty()); QVERIFY(button->height()>=48);
+        }
+        bool localized=false;
+        QTimer::singleShot(80,[&]() {
+            auto *picker=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            if (!picker || picker->objectName()!="mediaFilePicker") return;
+            auto *up=picker->findChild<QPushButton *>("pickerUp");
+            auto *files=picker->findChild<QTableWidget *>("pickerFiles");
+            localized=up && up->text()=="上级文件夹" && up->height()>=48 && files;
+            if (!files) { picker->reject(); return; }
+            for (int row=0;row<files->rowCount();++row)
+                if (files->item(row,0)->data(Qt::UserRole).toString()==file) {
+                    files->setCurrentCell(row,0);
+                    QTest::mouseClick(files->viewport(),Qt::LeftButton,Qt::NoModifier,
+                                      files->visualItemRect(files->item(row,0)).center());
+                }
+            picker->findChild<QPushButton *>("pickerAccept")->click();
+        });
+        QTimer watchdog;
+        watchdog.setSingleShot(true);
+        connect(&watchdog,&QTimer::timeout,[]() {
+            if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget())) dialog->reject();
+        });
+        watchdog.start(3000);
+        panel->findChild<QPushButton *>("chooseVideo")->click();
+        watchdog.stop();
+        QVERIFY(localized); QCOMPARE(panel->selectedFile,file);
+        // Selection never enqueues a decoder open or a play command.
+        QVERIFY(panel->session.queue.isEmpty());
+        QTimer::singleShot(80,[]() {
+            if (auto *picker=qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                picker->reject();
+        });
+        panel->findChild<QPushButton *>("chooseVideo")->click();
+        QCOMPARE(panel->selectedFile,file); QVERIFY(panel->session.queue.isEmpty());
+        for (int index=0;index<3;++index) {
+            for (auto *tab:panel->findChildren<QPushButton *>("mediaSection"))
+                if (tab->property("section").toInt()==index) tab->click();
+            QCOMPARE(panel->pages->currentIndex(),index);
+            for (auto *tab:panel->findChildren<QPushButton *>("mediaSection"))
+                QCOMPARE(tab->isChecked(),tab->property("section").toInt()==index);
+        }
+        panel->showSection(0);
+        // A late status for the previous decoder must not turn the new selection into "resume".
+        panel->apply({{"available",true},{"state","playing"},{"audio_available",true},{"muted",false}});
+        QCOMPARE(panel->play->text(),QString("播放"));
+        QVERIFY(!panel->seek->isEnabled());
+        panel->open(file); // Worker is deliberately absent in this host fixture.
+        panel->apply({{"available",true},{"state","playing"},{"audio_available",true},{"muted",false}});
+        QCOMPARE(panel->play->text(),QString("暂停"));
+        panel->apply({{"available",true},{"state","paused"},{"audio_available",true},{"muted",true}});
+        QCOMPARE(panel->play->text(),QString("播放")); QCOMPARE(panel->mute->text(),QString("恢复声音"));
+        panel->fullscreen->click();
+        QCOMPARE(panel->fullscreen->text(),QString("退出全屏"));
+        panel->fullscreen->click();
+        QCOMPARE(panel->fullscreen->text(),QString("全屏"));
+        panel->apply({{"available",false},{"state","not_installed"}});
+        QVERIFY(!panel->play->isEnabled());
+        QVERIFY(panel->findChild<QPushButton *>("chooseVideo")->isEnabled());
+        QVERIFY(panel->note->text().contains("不能开始播放"));
+    }
+
+    void serviceFeedbackSurvivesSnapshotRefresh()
+    {
+        DesktopClient client; client.poll.stop();
+        CloudPanel cloud(&client); FamilyPanel family(&client);
+        const QString feedback="请求失败：服务未响应。请检查连接后重试。";
+        emit client.feedback(feedback);
+        cloud.apply({}); family.apply({});
+        for (auto *panel : {static_cast<QWidget *>(&cloud),static_cast<QWidget *>(&family)}) {
+            auto *label=panel->findChild<QLabel *>("operationFeedback");
+            QVERIFY(label); QVERIFY(label->text().contains(feedback)); QVERIFY(!label->isHidden());
+            QCOMPARE(label->textFormat(),Qt::PlainText);
+        }
+    }
+
+    void allApplicationSubpagesHaveReviewCaptures()
+    {
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if (output.isEmpty()) QSKIP("Set DSHANCONTROL_UI_REVIEW_DIR to collect the offline visual review.");
+        QVERIFY(QDir().mkpath(output));
+        DesktopV1::DesktopShell shell;
+        auto *window=shell.findChild<MainWindow *>();
+        QVERIFY(window); isolate(*window); window->updateSnapshot(snapshot()); window->refreshTimer.stop();
+        shell.resize(1024,600); shell.show();
+        QJsonArray manifest;
+        int sequence=0;
+        auto capture=[&](const QString &route,const QString &path) {
+            QTest::qWait(40);
+            const QString file=QString("%1-%2.png").arg(++sequence,3,10,QChar('0')).arg(route);
+            const bool saved=shell.grab().save(output+"/"+file);
+            manifest.append(QJsonObject{{"file",file},{"route",route},{"page",path},
+                                        {"saved",saved},{"scope","host fixture, not board acceptance"}});
+            return saved;
+        };
+        std::function<void(QWidget *,const QString &,const QString &)> visit;
+        visit=[&](QWidget *page,const QString &route,const QString &path) {
+            for (auto *tabs:page->findChildren<QTabWidget *>()) {
+                bool nested=false;
+                for (auto *parent=tabs->parentWidget();parent && parent!=page;parent=parent->parentWidget())
+                    if (qobject_cast<QTabWidget *>(parent)) nested=true;
+                if (nested || !tabs->isVisible()) continue;
+                const int previous=tabs->currentIndex();
+                for (int i=0;i<tabs->count();++i) {
+                    tabs->setCurrentIndex(i);
+                    QVERIFY(capture(route,path+" / "+tabs->tabText(i)));
+                    visit(tabs->currentWidget(),route,path+" / "+tabs->tabText(i));
+                }
+                tabs->setCurrentIndex(previous);
+            }
+        };
+        for (const auto &app:DesktopV1::catalog()) {
+            QVERIFY(shell.openApplication(app.id));
+            QVERIFY(capture(app.name,app.name));
+            visit(window->pages->currentWidget(),app.name,app.name);
+            if (app.id=="video")
+                for(int i=0;i<3;++i) {
+                    window->mediaPanel->showSection(i);
+                    QVERIFY(capture(app.name,QString("视频子页 %1").arg(i)));
+                }
+        }
+        QVERIFY(shell.openApplication("video"));
+        bool pickerSaved=false;
+        QTimer::singleShot(80,[&]() {
+            if (auto *picker=qobject_cast<QDialog *>(QApplication::activeModalWidget())) {
+                pickerSaved=picker->grab().save(output+"/视频文件选择.png");
+                picker->reject();
+            }
+        });
+        window->mediaPanel->findChild<QPushButton *>("chooseVideo")->click();
+        QVERIFY(pickerSaved);
+        bool menuSaved=false;
+        QTimer::singleShot(80,[&]() {
+            if (auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget())) {
+                menuSaved=dialog->grab().save(output+"/全部应用.png");
+                dialog->reject();
+            }
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click(); QVERIFY(menuSaved);
+        QFile file(output+"/页面清单.json"); QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(manifest).toJson()); file.close();
+        QVERIFY(sequence>=30);
+    }
     void applicationFrameworkRejectsContextBeforeNavigation()
     {
         MainWindow w;

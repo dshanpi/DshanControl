@@ -1,4 +1,5 @@
 #include "desktopcanvas.h"
+#include "../touchfiledialog.h"
 #include <QAbstractItemView>
 #include <QScroller>
 #include <QStandardPaths>
@@ -6,37 +7,7 @@
 #include <QToolButton>
 namespace
 {
-// Qt temporarily replaces the accept label when the current item is a folder.
-// Keep that standard label localized too, without depending on system .qm files.
-class FilePickerTranslation final : public QTranslator
-{
-  public:
-    bool isEmpty() const override { return false; }
-    FilePickerTranslation() { QCoreApplication::installTranslator(this); }
-    ~FilePickerTranslation() override { QCoreApplication::removeTranslator(this); }
-    QString translate(const char *context, const char *source, const char *, int) const override
-    {
-        const QString key = QString::fromLatin1(source);
-        if (qstrcmp(context, "QFileDialog") == 0) {
-            static const QHash<QString, QString> labels{
-                {"&Open", "打开"}, {"Open", "打开"}, {"&Choose", "选择"},
-                {"Look in:", "位置"}, {"File &name:", "文件名"},
-                {"Files of type:", "文件类型"}, {"Cancel", "取消"}, {"&Cancel", "取消"}};
-            return labels.value(key);
-        }
-        if (qstrcmp(context, "QFileSystemModel") == 0) {
-            static const QHash<QString, QString> labels{
-                {"Name", "名称"}, {"Size", "大小"}, {"Type", "类型"},
-                {"Date Modified", "修改时间"}};
-            return labels.value(key);
-        }
-        if (qstrcmp(context, "QPlatformTheme") == 0) {
-            if (key == "Open") return QStringLiteral("打开");
-            if (key == "Cancel") return QStringLiteral("取消");
-        }
-        return {};
-    }
-};
+using FilePickerTranslation = TouchFiles::Translation;
 
 QString bindingDialogStyle()
 {
@@ -65,22 +36,7 @@ QString chooseLocalFile(QWidget *parent, const QString &title, const QString &cu
     picker.setObjectName("desktopLocalFilePicker");
     picker.setOption(QFileDialog::DontUseNativeDialog);
     picker.setFileMode(QFileDialog::ExistingFile);
-    picker.setLabelText(QFileDialog::LookIn, QStringLiteral("位置"));
-    picker.setLabelText(QFileDialog::FileName, QStringLiteral("文件名"));
-    picker.setLabelText(QFileDialog::FileType, QStringLiteral("文件类型"));
-    picker.setLabelText(QFileDialog::Accept, QStringLiteral("选择"));
-    picker.setLabelText(QFileDialog::Reject, QStringLiteral("取消"));
-    picker.setStyleSheet(bindingDialogStyle());
-    // Embedded images may omit the desktop icon theme; navigation must remain visible.
-    const QHash<QString, QString> navigation{
-        {"backButton", "后退"}, {"forwardButton", "前进"}, {"toParentButton", "上级"},
-        {"newFolderButton", "新建"}, {"listModeButton", "列表"}, {"detailModeButton", "详情"}};
-    for (auto it = navigation.cbegin(); it != navigation.cend(); ++it)
-        if (auto *button = picker.findChild<QToolButton *>(it.key())) {
-            button->setText(it.value());
-            button->setAccessibleName(it.value());
-            button->setToolButtonStyle(Qt::ToolButtonTextOnly);
-        }
+    TouchFiles::configure(picker);
     QList<QUrl> shortcuts{QUrl::fromLocalFile("/")};
     for (const auto &path : {QString("/mnt/UDISK/media"),
                             QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)})

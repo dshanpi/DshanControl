@@ -40,10 +40,10 @@ class MediaPanel : public QWidget
     QTableWidget *files;
     QListWidget *playlist;
     QTimer *geometryTimer = nullptr;
-    QString mediaDirectory, selectedFile;
+    QString mediaDirectory, selectedFile, lastFeedback;
     QStringList mediaFiles;
     QJsonObject state;
-    bool full = false, loading = false;
+    bool full = false, loading = false, selectionNeedsOpen = false;
     void scan();
     void choose();
     void open(const QString &path);

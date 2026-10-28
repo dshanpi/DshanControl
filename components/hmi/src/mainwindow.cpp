@@ -3,6 +3,7 @@
 #endif
 #include "oneshotupload.h"
 #include "mainwindow.h"
+#include "touchfiledialog.h"
 #include "displayprobe.h"
 #include "updatepanel.h"
 #include "visuals.h"
@@ -158,6 +159,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     resize(1024, 600);
     setWindowTitle("DshanControl 工业控制桌面");
     Visuals::initializeFonts();
+    new TouchFiles::Translation(this);
     applyTheme();
 
     QWidget *root = new QWidget;
@@ -296,72 +298,72 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::applyTheme()
 {
     setStyleSheet(R"(
-        * { font-family: "Dshan Sans"; font-size: 14px; color: #092650; }
-        QMainWindow, QWidget#pages, QStackedWidget, QWidget#pageSurface { background: #f2f7fd; }
-        QFrame#header, QFrame#footer { background: white; border-bottom: 1px solid #d9e3ef; }
-        QFrame#footer { border-top: 1px solid #d9e3ef; }
-        QFrame#nav { background: #e8f3ff; border-right: 1px solid #d9e3ef; }
-        QWidget#navSurface { background: #e8f3ff; }
-        QLabel#brandMark { color: white; background: #0062ff; border-radius: 5px; font-size: 23px; font-weight: 700; }
+        * { font-family: "Dshan Sans"; font-size: 14px; color: #161616; }
+        QMainWindow, QWidget#pages, QStackedWidget, QWidget#pageSurface { background: #f4f4f4; }
+        QFrame#header, QFrame#footer { background: white; border-bottom: 1px solid #d0d0d0; }
+        QFrame#footer { border-top: 1px solid #d0d0d0; }
+        QFrame#nav { background: #f4f4f4; border-right: 1px solid #d0d0d0; }
+        QWidget#navSurface { background: #f4f4f4; }
+        QLabel#brandMark { color: white; background: #0f62fe; border-radius: 5px; font-size: 23px; font-weight: 700; }
         QLabel#brand { font-size: 20px; font-weight: 700; }
         QLabel#brandSubtitle { font-size: 13px; color: #193960; }
-        QLabel#clock, QLabel#headerMetric, QLabel#navModel { color: #395784; font-size: 12px; }
-        QLabel#navModel { padding: 8px 2px; border-top: 1px solid #d9e3ef; }
-        QLabel#infoNote { color: #0062ff; background: #e9f4ff; border-radius: 4px; padding: 12px; font-size: 12px; }
-        QLabel#warningNote { color: #b86c00; background: #fff7e7; border: 1px solid #f4d9a3; border-radius: 4px; padding: 10px; font-size: 12px; }
+        QLabel#clock, QLabel#headerMetric, QLabel#navModel { color: #525252; font-size: 12px; }
+        QLabel#navModel { padding: 8px 2px; border-top: 1px solid #d0d0d0; }
+        QLabel#infoNote { color: #0f62fe; background: #e9f4ff; border-radius: 4px; padding: 8px 12px; font-size: 14px; }
+        QLabel#warningNote { color: #b86c00; background: #fff7e7; border: 1px solid #f4d9a3; border-radius: 4px; padding: 8px 12px; font-size: 14px; }
         QLabel#demoBadge { color: #935a09; background: #fff1d7; padding: 4px 8px; border-radius: 4px; }
-        QLabel#sectionTitle { font-size: 27px; font-weight: 700; }
-        QLabel#caption, QLabel#nodeState, QLabel#gatewaySub, QLabel#statusName { color: #61758b; font-size: 13px; }
+        QLabel#sectionTitle { font-size: 22px; font-weight: 700; }
+        QLabel#caption, QLabel#nodeState, QLabel#gatewaySub, QLabel#statusName { color: #525252; font-size: 13px; }
         QLabel#panelTitle, QLabel#nodeName { font-size: 17px; font-weight: 700; }
         QLabel#statusValue, QLabel#gatewayTitle { font-size: 18px; font-weight: 700; }
-        QPushButton { min-height: 44px; border-radius: 4px; padding: 0 12px;
-                      color: white; background: #0062ff; border: 1px solid #0062ff; }
+        QPushButton { min-height: 46px; border-radius: 2px; padding: 0 12px;
+                      color: white; background: #0f62fe; border: 1px solid #0f62fe; }
         QPushButton:pressed { background: #0d46a0; }
-        QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border: 2px solid #0062ff; }
-        QPushButton:disabled { color: #718096; background: #e8edf4; border-color: #d9e3ef; }
-        QPushButton[kind="secondary"] { color: #0062ff; background: white; border-color: #bbcde4; }
+        QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border: 2px solid #0f62fe; }
+        QPushButton:disabled { color: #718096; background: #e8edf4; border-color: #d0d0d0; }
+        QPushButton[kind="secondary"] { color: #0f62fe; background: white; border-color: #a8a8a8; }
         QPushButton[kind="danger"] { color: #b52f40; background: #fff4f5; border-color: #e9b9c0; }
-        QPushButton[kind="secondary"]:disabled, QPushButton[kind="danger"]:disabled { color: #8190a5; background: #e8edf4; border-color: #d9e3ef; }
+        QPushButton[kind="secondary"]:disabled, QPushButton[kind="danger"]:disabled { color: #8190a5; background: #e8edf4; border-color: #d0d0d0; }
         QPushButton#navButton { color: #385371; background: transparent; border: 1px solid transparent; padding: 0 4px; }
-        QPushButton#navButton:checked { background: #0062ff; color: white; font-weight: 700; }
+        QPushButton#navButton:checked { background: #0f62fe; color: white; font-weight: 700; }
         QPushButton#navButton:focus { border: 2px solid #719ce0; }
-        QFrame#card, QFrame#panel, QGroupBox { background: white; border: 1px solid #d9e3ef; border-radius: 5px; }
+        QFrame#card, QFrame#panel, QGroupBox { background: white; border: 1px solid #d0d0d0; border-radius: 5px; }
         QFrame#gateway { background: #eaf2ff; border: 1px solid #8db5ef; border-radius: 5px; }
-        QFrame#ioNode { background: #f7faff; border: 1px solid #d9e3ef; border-left: 3px solid #0062ff; border-radius: 4px; }
-        QFrame#rule { background: #d9e3ef; border: none; }
+        QFrame#ioNode { background: #f7faff; border: 1px solid #d0d0d0; border-left: 3px solid #0f62fe; border-radius: 4px; }
+        QFrame#rule { background: #d0d0d0; border: none; }
         QGroupBox { margin-top: 0; padding: 34px 12px 12px 12px; font-weight: 700; font-size: 16px; }
         QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; top: 10px; left: 12px; padding: 0; }
-        QTableWidget { background: white; alternate-background-color: #f5f8fd; border: 1px solid #d9e3ef;
+        QTableWidget { background: white; alternate-background-color: #f5f8fd; border: 1px solid #d0d0d0;
                        gridline-color: #e6edf5; selection-background-color: #dbeaff; selection-color: #123c70; }
-        QHeaderView::section { background: #edf3fb; color: #49627d; border: none;
-                               border-bottom: 1px solid #d9e3ef; min-height: 24px; padding: 4px; }
+        QHeaderView::section { background: #e8e8e8; color: #49627d; border: none;
+                               border-bottom: 1px solid #d0d0d0; min-height: 24px; padding: 4px; }
         QTableWidget::item { padding: 5px; }
-        QLabel#valueText { color: #0062ff; font-weight: 700; }
-        QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled { background: #edf3fb; color: #8197b2; border-color: #d9e3ef; }
-        QLineEdit, QComboBox, QSpinBox { background: white; border: 1px solid #bbcde4; border-radius: 4px;
+        QLabel#valueText { color: #0f62fe; font-weight: 700; }
+        QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled { background: #e8e8e8; color: #8197b2; border-color: #d0d0d0; }
+        QLineEdit, QComboBox, QSpinBox { background: white; border: 1px solid #a8a8a8; border-radius: 4px;
                                         min-height: 42px; padding: 0 8px; }
-        QComboBox::drop-down { width: 28px; border-left: 1px solid #d9e3ef; }
-        QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 25px; height: 17px; border-left: 1px solid #d9e3ef; }
-        QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 25px; height: 17px; border-left: 1px solid #d9e3ef; }
+        QComboBox::drop-down { width: 28px; border-left: 1px solid #d0d0d0; }
+        QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 25px; height: 17px; border-left: 1px solid #d0d0d0; }
+        QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 25px; height: 17px; border-left: 1px solid #d0d0d0; }
         QSpinBox::up-arrow { image: url(:/hmi/icons/up.xpm); width: 9px; height: 5px; }
         QSpinBox::down-arrow { image: url(:/hmi/icons/down.xpm); width: 9px; height: 5px; }
         QComboBox::down-arrow { image: url(:/hmi/icons/down.xpm); width: 9px; height: 5px; }
-        QComboBox QAbstractItemView { background: white; selection-background-color: #dbeaff; selection-color: #092650; }
-        QTabWidget::pane { border: 1px solid #d9e3ef; background: white; border-radius: 4px; }
-        QTabBar::tab { background: white; color: #395784; min-height: 42px; padding: 0 22px; border-bottom: 1px solid #d9e3ef; }
-        QTabBar::tab:selected { color: #0062ff; background: white; border-bottom: 3px solid #0062ff; font-weight: 700; }
-        QTabBar::tab:focus { border: 1px solid #0062ff; }
+        QComboBox QAbstractItemView { background: white; selection-background-color: #dbeaff; selection-color: #161616; }
+        QTabWidget::pane { border: 1px solid #d0d0d0; background: white; border-radius: 4px; }
+        QTabBar::tab { background: white; color: #525252; min-height: 42px; padding: 0 22px; border-bottom: 1px solid #d0d0d0; }
+        QTabBar::tab:selected { color: #0f62fe; background: white; border-bottom: 3px solid #0f62fe; font-weight: 700; }
+        QTabBar::tab:focus { border: 1px solid #0f62fe; }
         QCheckBox { spacing: 8px; min-height: 44px; }
         QCheckBox::indicator { width: 24px; height: 24px; }
         QSlider { min-height: 48px; }
-        QSlider::groove:horizontal { height: 6px; background: #d9e3ef; border-radius: 3px; }
-        QSlider::handle:horizontal { width: 28px; margin: -12px 0; background: white; border: 2px solid #0062ff; border-radius: 15px; }
-        QSlider::sub-page:horizontal { background: #0062ff; }
-        QScrollArea { border: none; background: #f2f7fd; }
-        QScrollBar:vertical { background: #edf3fb; width: 14px; margin: 0; }
+        QSlider::groove:horizontal { height: 6px; background: #d0d0d0; border-radius: 3px; }
+        QSlider::handle:horizontal { width: 28px; margin: -12px 0; background: white; border: 2px solid #0f62fe; border-radius: 15px; }
+        QSlider::sub-page:horizontal { background: #0f62fe; }
+        QScrollArea { border: none; background: #f4f4f4; }
+        QScrollBar:vertical { background: #e8e8e8; width: 14px; margin: 0; }
         QScrollBar::handle:vertical { background: #a6bbd6; min-height: 44px; border-radius: 5px; }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-        QToolTip { background: white; color: #092650; border: 1px solid #bbcde4; }
+        QToolTip { background: white; color: #161616; border: 1px solid #a8a8a8; }
     )");
 }
 
@@ -437,7 +439,7 @@ QPushButton *MainWindow::actionButton(const QString &text, const QString &kind)
 QWidget *MainWindow::buildOverview()
 {
     dashboard = new OverviewDashboard;
-    connect(dashboard, &OverviewDashboard::alarmsRequested, this, [this]() { showPage(4); });
+    connect(dashboard, &OverviewDashboard::alarmsRequested, this, [this]() { navigateApplication("alarms"); });
     return dashboard;
 }
 
@@ -448,12 +450,15 @@ QWidget *MainWindow::buildFieldbus()
     layout->setContentsMargins(14, 6, 14, 6);
     auto *pageHeading = new QHBoxLayout;
     pageHeading->addWidget(titleLabel("现场总线"));
-    pageHeading->addWidget(captionLabel("接口状态与节点控制"), 1);
+    pageHeading->addWidget(captionLabel("选择协议 → 设置参数 → 确认执行 → 查看设备状态"), 1);
     layout->addLayout(pageHeading);
     QTabWidget *tabs = new SectionTabs;
 
-    QWidget *canPage = new QWidget;
-    QVBoxLayout *canLayout = new PageLayout(canPage);
+    QWidget *canPage = new LayoutPage;
+    auto *canRoot = new PageLayout(canPage);
+    canRoot->setContentsMargins(0,0,0,0);
+    auto *canContent = new LayoutPage;
+    QVBoxLayout *canLayout = new PageLayout(canContent);
     canLayout->setContentsMargins(0, 8, 0, 0);
     busTable = makeTable({"接口", "链路", "波特率", "数据来源"});
     auto *interfacePanel = new QGroupBox("接口状态");
@@ -517,7 +522,6 @@ QWidget *MainWindow::buildFieldbus()
     QVBoxLayout *linkLayout = new QVBoxLayout(linkPage);
     linkLayout->setContentsMargins(0, 0, 0, 0);
     linkLayout->addWidget(canCfg, 1);
-    linkLayout->addWidget(applyCan);
 
     auto *co = new QFrame;
     co->setObjectName("panel");
@@ -603,7 +607,6 @@ QWidget *MainWindow::buildFieldbus()
         bodyLayout->setContentsMargins(0, 0, 0, 0);
         bodyLayout->setSpacing(4);
         bodyLayout->addWidget(pane.first, 1);
-        bodyLayout->addWidget(pane.second);
         canControls->addTab(body, pane.first == co ? "NMT 控制" : "SDO 写入");
     }
     QHBoxLayout *canColumns = new QHBoxLayout;
@@ -611,6 +614,16 @@ QWidget *MainWindow::buildFieldbus()
     canColumns->addWidget(linkPage, 1);
     canColumns->addWidget(canControls, 1);
     canLayout->addLayout(canColumns, 1);
+    canRoot->addWidget(scrollPage(canContent),1);
+    auto *canActionRow = new QHBoxLayout;
+    canActionRow->addWidget(applyCan,1);
+    auto *canActions = new QStackedWidget;
+    canActions->addWidget(sendNmt); canActions->addWidget(sdoWrite);
+    canActionRow->addWidget(canActions,1);
+    canRoot->addLayout(canActionRow);
+    connect(canControls,&QTabWidget::currentChanged,canActions,&QStackedWidget::setCurrentIndex);
+    capabilityControls << qMakePair<QWidget *, QString>(applyCan, "can");
+    capabilityControls << qMakePair<QWidget *, QString>(canActions, "canopen");
     capabilityControls << qMakePair<QWidget *, QString>(linkPage, "can");
     tabs->setObjectName("protocolTabs");
     tabs->addTab(canPage, "CAN / CANopen");
@@ -646,7 +659,6 @@ QWidget *MainWindow::buildFieldbus()
     rsForm->addRow("波特率", rsBaud);
     rsForm->addRow("站号", rsUnit);
     rsForm->addRow("轮询周期(ms)", rsPoll);
-    rsForm->addRow(saveRs);
     auto *serialNote = captionLabel("帧格式由系统管理。仅保存首个从站配置；运行生效状态未验证。");
     serialNote->setObjectName("infoNote");
     rsForm->addRow(serialNote);
@@ -669,7 +681,13 @@ QWidget *MainWindow::buildFieldbus()
     capabilityControls << qMakePair<QWidget *, QString>(rs, "serial");
     auto *rsColumns = new QHBoxLayout;
     responsiveRows << rsColumns;
-    rsColumns->addWidget(rs, 1);
+    auto *rsEditor = new QWidget;
+    auto *rsEditorLayout = new QVBoxLayout(rsEditor);
+    rsEditorLayout->setContentsMargins(0,0,0,0);
+    rsEditorLayout->addWidget(scrollPage(rs),1);
+    rsEditorLayout->addWidget(saveRs);
+    capabilityControls << qMakePair<QWidget *, QString>(saveRs, "serial");
+    rsColumns->addWidget(rsEditor, 1);
     auto *registers = new QGroupBox("从站与寄存器");
     auto *registerLayout = new QVBoxLayout(registers);
     auto *registerTable = makeTable({"地址", "类型", "数值", "单位"});
@@ -678,7 +696,7 @@ QWidget *MainWindow::buildFieldbus()
     registerLayout->addWidget(captionLabel("请先完成串口参数与采集点配置。"));
     rsColumns->addWidget(registers, 1);
     rsLayout->addLayout(rsColumns, 1);
-    tabs->addTab(scrollPage(rsPage), "RS485 / Modbus");
+    tabs->addTab(rsPage, "RS485 / Modbus");
 
     QWidget *ecPage = new QWidget;
     QVBoxLayout *ecLayout = new PageLayout(ecPage);
@@ -787,7 +805,7 @@ QWidget *MainWindow::buildNetwork()
     layout->setSpacing(10);
     auto *head = new QHBoxLayout;
     head->addWidget(titleLabel("网络通信"));
-    head->addWidget(captionLabel("本地网络与上行连接"), 1);
+    head->addWidget(captionLabel("选择网络类型，查看接口状态；蜂窝连接需单独确认"), 1);
     layout->addLayout(head);
     auto *tabs = new SectionTabs;
     tabs->setObjectName("networkTabs");
@@ -822,9 +840,9 @@ QWidget *MainWindow::buildNetwork()
         }
         leftLayout->addLayout(form);
         auto *refresh = actionButton("刷新接口状态", "secondary");
+        refresh->setObjectName(QString("networkRefresh%1").arg(kind));
         refresh->setIcon(Visuals::icon("globe", Visuals::blue));
         connect(refresh, &QPushButton::clicked, this, &MainWindow::requestSnapshot);
-        leftLayout->addWidget(refresh);
         columns->addWidget(left, 3);
         auto *details = new QGroupBox(kind == 0 ? "本地链路" : "无线链路");
         auto *detailsLayout = new QVBoxLayout(details);
@@ -849,7 +867,12 @@ QWidget *MainWindow::buildNetwork()
         networkFieldGroups << fields;
         networkDetails << detail;
         connect(table, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateNetworkDetails);
-        tabs->addTab(scrollPage(interfaces), kind == 0 ? "有线网络" : "无线网络");
+        auto *section = new LayoutPage;
+        auto *sectionLayout = new PageLayout(section);
+        sectionLayout->setContentsMargins(0,0,0,0);
+        sectionLayout->addWidget(scrollPage(interfaces),1);
+        sectionLayout->addWidget(refresh);
+        tabs->addTab(section, kind == 0 ? "有线网络" : "无线网络");
     }
     networkTable = networkTables.first();
     networkFields = networkFieldGroups.first();
@@ -1002,7 +1025,7 @@ QWidget *MainWindow::buildDevices()
     layout->setSpacing(8);
     auto *heading = new QHBoxLayout;
     heading->addWidget(titleLabel("设备监控"));
-    heading->addWidget(captionLabel("采集读数与实时趋势"), 1);
+    heading->addWidget(captionLabel("查看读数与趋势；暂停仅冻结本页显示"), 1);
     auto *period = new QLabel("最近 60 秒");
     period->setObjectName("valueText");
     heading->addWidget(period);
@@ -1041,10 +1064,8 @@ QWidget *MainWindow::buildDevices()
     actions->addWidget(pauseMonitor, 1);
     auto *settings = actionButton("刷新与显示设置", "secondary");
     settings->setIcon(Visuals::icon("settings", Visuals::blue));
-    connect(settings, &QPushButton::clicked, this, [this]() {
-        showPage(5);
-        findChild<QTabWidget *>("settingsTabs")->setCurrentIndex(0);
-    });
+    settings->setObjectName("monitorSettings");
+    connect(settings, &QPushButton::clicked, this, [this]() { navigateApplication("settings"); });
     actions->addWidget(settings, 1);
     layout->addLayout(actions);
     devicePageStack=new QStackedWidget;
@@ -1226,7 +1247,7 @@ QWidget *MainWindow::buildAlarms()
         applyAlarmFilter();
         // Freeze the visible records before the file dialog runs its event loop.
         const QByteArray output = visibleAlarmCsv();
-        const QString name = QFileDialog::getSaveFileName(
+        const QString name = TouchFiles::saveFile(
             this, "导出当前可见告警", QDir::homePath() + "/dshancontrol-alarms.csv", "CSV (*.csv)");
         if (name.isEmpty())
             return;
@@ -1331,7 +1352,7 @@ QWidget *MainWindow::buildSettings()
     layout->setSpacing(10);
     QHBoxLayout *heading = new QHBoxLayout;
     heading->addWidget(titleLabel("系统设置"));
-    heading->addWidget(captionLabel("配置系统显示、服务、日志与应用更新"), 1);
+    heading->addWidget(captionLabel("选择分类，修改后保存；执行结果在操作日志中核对"), 1);
     layout->addLayout(heading);
     QTabWidget *settingsTabs = new SectionTabs;
     settingsTabs->setObjectName("settingsTabs");
@@ -1343,7 +1364,7 @@ QWidget *MainWindow::buildSettings()
     responsiveRows << columns;
     auto *screen = new QGroupBox("显示");
     auto *screenForm = new QFormLayout(screen);
-    screenForm->setVerticalSpacing(18);
+    screenForm->setVerticalSpacing(8);
     screenResolution = new QLabel;
     screenResolution->setObjectName("valueText");
     screenForm->addRow(iconLabel("monitor", "屏幕分辨率"), screenResolution);
@@ -1418,29 +1439,33 @@ QWidget *MainWindow::buildSettings()
     QFrame *footer = new QFrame;
     footer->setObjectName("panel");
     auto *footerLayout = new QHBoxLayout(footer);
-    footerLayout->addWidget(captionLabel("配置仅影响当前设备，不改变业务数据。"), 1);
+    auto *editState = captionLabel("等待设备连接后加载设置");
+    editState->setObjectName("settingsEditState");
+    footerLayout->addWidget(editState, 1);
     footerLayout->addWidget(displayProbe);
     QPushButton *save = actionButton("保存设置");
     save->setObjectName("saveSettings");
     save->setMinimumWidth(126);
     footerLayout->addWidget(save);
-    displayLayout->addWidget(footer);
     connect(brightnessSlider, &QSlider::valueChanged, this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
             ++settingsRevision;
+            updateSettingsControls();
         }
     });
     connect(demoCheck, &QCheckBox::toggled, this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
             ++settingsRevision;
+            updateSettingsControls();
         }
     });
     connect(refreshCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         if (!loadingSettings) {
             settingsDirty = true;
             ++settingsRevision;
+            updateSettingsControls();
         }
     });
     connect(save, &QPushButton::clicked, this, [this]() {
@@ -1449,8 +1474,12 @@ QWidget *MainWindow::buildSettings()
                                  {"demo_mode", demoCheck->isChecked()},
                                  {"refresh_ms", refreshCombo->currentData().toInt()}};
         const auto revision = settingsRevision;
-        if (QMessageBox::question(this, "保存设置", "确认保存显示设置并应用背光亮度？",
-                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+        QMessageBox confirmation(QMessageBox::Question, "保存设置", "确认保存显示设置并应用背光亮度？",
+                                  QMessageBox::Yes | QMessageBox::No, this);
+        confirmation.button(QMessageBox::Yes)->setText("保存并应用");
+        confirmation.button(QMessageBox::No)->setText("取消");
+        confirmation.setDefaultButton(QMessageBox::No);
+        if (confirmation.exec() != QMessageBox::Yes)
             return;
         if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision) return;
         savedSettingsRevision = revision;
@@ -1460,7 +1489,12 @@ QWidget *MainWindow::buildSettings()
         sendJson("PUT", "/settings", values, "settings");
     });
     save->setEnabled(false);
-    settingsTabs->addTab(scrollPage(display), "显示与交互");
+    auto *displaySection = new LayoutPage;
+    auto *displaySectionLayout = new PageLayout(displaySection);
+    displaySectionLayout->setContentsMargins(0,0,0,0);
+    displaySectionLayout->addWidget(scrollPage(display),1);
+    displaySectionLayout->addWidget(footer);
+    settingsTabs->addTab(displaySection, "显示与交互");
     auto *services = new LayoutPage;
     auto *serviceLayout = new PageLayout(services);
     serviceLayout->setContentsMargins(0, 10, 0, 0);
@@ -1582,6 +1616,12 @@ void MainWindow::setDesktopEmbedded(bool embedded)
     if (auto *footer = findChild<QFrame *>("footer")) footer->setVisible(!embedded);
 }
 
+void MainWindow::navigateApplication(const QString &id)
+{
+    if (desktopEmbedded) emit applicationNavigationRequested(id);
+    else openApplication(id);
+}
+
 bool MainWindow::openApplication(const QString &id, const QJsonObject &context)
 {
     DesktopV1::ApplicationRoute route;
@@ -1603,6 +1643,9 @@ bool MainWindow::openApplication(const QString &id, const QJsonObject &context)
     showPage(route.page);
     if (route.page == DesktopV1::ApplicationRoute::Video && route.context.contains("path"))
         mediaPanel->selectFile(route.context["path"].toString());
+    if (id == "settings") {
+        if (auto *tabs = findChild<QTabWidget *>("settingsTabs")) tabs->setCurrentIndex(0);
+    }
     if (id == "update") {
         if (auto *tabs = findChild<QTabWidget *>("settingsTabs")) {
             const int updateIndex = tabs->indexOf(applicationUpdatePage);
@@ -1739,8 +1782,13 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
     };
     if (!allowed())
         return;
-    if (QMessageBox::warning(this, "操作确认", description, QMessageBox::Yes | QMessageBox::No,
-                             QMessageBox::No) != QMessageBox::Yes)
+    QMessageBox confirmation(QMessageBox::Warning, "操作确认", description,
+                             QMessageBox::Yes | QMessageBox::No, this);
+    confirmation.setTextFormat(Qt::PlainText);
+    confirmation.button(QMessageBox::Yes)->setText("确认执行");
+    confirmation.button(QMessageBox::No)->setText("取消");
+    confirmation.setDefaultButton(QMessageBox::No);
+    if (confirmation.exec() != QMessageBox::Yes)
         return;
     // The modal confirmation runs an event loop; a snapshot may revoke access.
     if (!allowed())
@@ -1943,6 +1991,11 @@ void MainWindow::handleReply(QNetworkReply *reply)
 void MainWindow::updateSettingsControls()
 {
     const bool online = !latestSnapshot.isEmpty();
+    if (auto *state = findChild<QLabel *>("settingsEditState"))
+        state->setText(settingsPending ? "正在保存并应用，请等待设备确认…"
+            : !online ? "设备未连接，暂时不能保存设置"
+            : settingsDirty ? "有未保存的修改 · 点击“保存设置”后生效"
+                            : "设置已加载 · 修改后点击“保存设置”");
     findChild<QPushButton *>("saveSettings")->setEnabled(online && !settingsPending);
     rebootButton->setEnabled(online);
     for (auto *button : serviceButtons) {

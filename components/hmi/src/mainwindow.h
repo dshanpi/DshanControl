@@ -43,6 +43,7 @@ class MainWindow : public QMainWindow
     bool requestDesktopBrightness(int percent);
 
   signals:
+    void applicationNavigationRequested(QString id);
     void hmiSnapshotChanged(const QJsonObject &snapshot);
     void desktopSnapshotChanged(const QJsonObject &snapshot);
     void mediaFullscreenChanged(bool enabled);
@@ -58,6 +59,7 @@ class MainWindow : public QMainWindow
 
   private:
     friend class HmiUiTest;
+    void navigateApplication(const QString &id);
     bool desktopEmbedded = false;
     QWidget *applicationUpdatePage = nullptr;
     DesktopClient *desktopClient = nullptr;

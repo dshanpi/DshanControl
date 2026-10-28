@@ -46,3 +46,5 @@ HEADERS += desktop/desktoptrendpanel.h
 HEADERS += desktop/applicationregistry.h
 
 HEADERS += applicationshutdown.h
+
+HEADERS += touchfiledialog.h videofilepicker.h

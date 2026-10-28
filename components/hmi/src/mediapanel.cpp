@@ -1,5 +1,7 @@
 #include "mediapanel.h"
 #include "visuals.h"
+#include "videofilepicker.h"
+#include <QButtonGroup>
 #include <QApplication>
 #include <QComboBox>
 #include <QDesktopWidget>
@@ -40,9 +42,10 @@ QPushButton *button(const QString &name, bool secondary = true)
 }
 QPushButton *tool(const QString &name, const QString &icon, bool primary = false)
 {
-    auto *w = button("", !primary);
+    auto *w = button(name, !primary);
     w->setObjectName("mediaTool");
-    w->setFixedSize(primary ? 56 : 46, 46);
+    w->setMinimumSize(84, 48);
+    w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     w->setIcon(Visuals::icon(icon, primary ? QColor(Qt::white) : Visuals::blue));
     w->setIconSize(QSize(24, 24));
     w->setAccessibleName(name);
@@ -105,10 +108,12 @@ class VideoStage : public QWidget
 MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
 {
     setStyleSheet(
-        "QPushButton#mediaTool{padding:0;} QLabel#mediaTitle{font-size:25px;font-weight:700;} "
+        "QPushButton#mediaTool{padding:0 8px;} QLabel#mediaTitle{font-size:22px;font-weight:600;} "
+        "QPushButton#mediaSection:checked{background:#d0e2ff;color:#0043ce;border-bottom:3px solid #0f62fe;}"
         "QListWidget{border:none;background:white;} QListWidget::item{min-height:48px;padding:2px "
         "8px;} QListWidget::item:selected{background:#edf4ff;color:#0062ff;}");
     mediaDirectory = qEnvironmentVariable("DSHANCONTROL_MEDIA_DIRECTORY", "/mnt/UDISK/media");
+    if (mediaDirectory.trimmed().isEmpty()) mediaDirectory = "/mnt/UDISK/media";
     auto *root = new PageLayout(this);
     root->setContentsMargins(14, 8, 14, 8);
     root->setSpacing(8);
@@ -122,12 +127,23 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     labels->addWidget(title);
     labels->addWidget(filename);
     head->addLayout(labels, 1);
+    auto *sections = new QButtonGroup(this);
+    sections->setExclusive(true);
     for (int i = 0; i < 3; ++i)
     {
-        auto *b = button(QStringList{"正在播放", "本地视频", "播放设置"}[i]);
+        auto *b = button(QStringList{"播放器", "本地视频", "播放设置"}[i]);
+        b->setObjectName("mediaSection");
+        b->setProperty("section", i);
+        b->setCheckable(true);
+        b->setChecked(i == 0);
+        sections->addButton(b, i);
         head->addWidget(b);
         connect(b, &QPushButton::clicked, this, [this, i]() { showSection(i); });
     }
+    auto *chooseVideo = button("选择视频", false);
+    chooseVideo->setObjectName("chooseVideo");
+    head->addWidget(chooseVideo);
+    connect(chooseVideo, &QPushButton::clicked, this, &MediaPanel::choose);
     root->addWidget(heading);
     pages = new QStackedWidget;
     root->addWidget(pages, 1);
@@ -157,9 +173,9 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     });
     auto *controls = new QHBoxLayout;
     controls->setSpacing(6);
-    previous = tool("上一个视频", "previous");
+    previous = tool("上一个", "previous");
     play = tool("播放", "play", true);
-    next = tool("下一个视频", "next");
+    next = tool("下一个", "next");
     controls->addWidget(previous);
     controls->addWidget(play);
     controls->addWidget(next);
@@ -172,12 +188,14 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     volume->setFixedWidth(88);
     volume->setAccessibleName("播放音量");
     controls->addWidget(volume);
-    fullscreen = tool("全屏播放", "fullscreen");
+    fullscreen = tool("全屏", "fullscreen");
     controls->addWidget(fullscreen);
     video->addLayout(controls);
     connect(play, &QPushButton::clicked, this, [this]() {
         const auto value = state["state"].toString();
-        if (value == "playing" || value == "starting")
+        if (selectionNeedsOpen && !selectedFile.isEmpty())
+            open(selectedFile);
+        else if (value == "playing" || value == "starting")
             session.command("pause");
         else if (value == "paused" || value == "prepared")
             session.command("play");
@@ -202,8 +220,10 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     });
     connect(fullscreen, &QPushButton::clicked, this, [this]() {
         full = !full;
+        fullscreen->setText(full ? "退出全屏" : "全屏");
+        fullscreen->setAccessibleName(fullscreen->text());
         heading->setVisible(!full);
-        side->setVisible(!full && width() >= 740);
+        side->setVisible(!full && width() >= 900);
         note->setVisible(!full);
         emit fullscreenRequested(full);
         geometryTimer->start();
@@ -222,11 +242,13 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     right->addWidget(format);
     dimensions = label("画面：--", "caption");
     right->addWidget(dimensions);
-    auto *browse = button("打开视频", false);
+    auto *browse = button("选择其他视频");
     right->addWidget(browse);
     connect(browse, &QPushButton::clicked, this, &MediaPanel::choose);
+    connect(playlist, &QListWidget::itemClicked, this,
+            [this](QListWidgetItem *item) { selectFile(item->data(Qt::UserRole).toString()); });
     connect(playlist, &QListWidget::itemActivated, this,
-            [this](QListWidgetItem *item) { open(item->data(Qt::UserRole).toString()); });
+            [this](QListWidgetItem *item) { selectFile(item->data(Qt::UserRole).toString()); });
     pages->addWidget(playing);
     auto *library = new LayoutPage;
     auto *libraryLayout = new PageLayout(library);
@@ -237,7 +259,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     libraryHead->addStretch();
     auto *refresh = button("刷新列表");
     libraryHead->addWidget(refresh);
-    auto *browseFile = button("浏览文件", false);
+    auto *browseFile = button("选择其他位置的视频", false);
     libraryHead->addWidget(browseFile);
     libraryLayout->addLayout(libraryHead);
     connect(refresh, &QPushButton::clicked, this, &MediaPanel::scan);
@@ -292,7 +314,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     connect(geometryTimer, &QTimer::timeout, this, &MediaPanel::geometry);
     connect(&session, &MediaSession::changed, this, &MediaPanel::apply);
     connect(&session, &MediaSession::feedback, this,
-            [this](const QString &message) { note->setText(message); });
+            [this](const QString &message) { lastFeedback = message; apply(state); });
     connect(qApp, &QApplication::applicationStateChanged, this, [this](Qt::ApplicationState value) {
         if (value != Qt::ApplicationActive && state["available"] == true)
             session.command("suspend");
@@ -308,6 +330,9 @@ void MediaPanel::scan()
     playlist->clear();
     files->setRowCount(0);
     QDir directory(mediaDirectory);
+    static_cast<DataTable *>(files)->setEmptyText(directory.exists()
+        ? "这里还没有视频。点击“选择其他位置的视频”，浏览存储中的文件。"
+        : "视频文件夹尚不可用。请检查存储，或点击“选择其他位置的视频”。");
     for (const auto &entry :
          directory.entryInfoList({"*.mp4", "*.mkv", "*.avi", "*.mov", "*.ts", "*.webm"},
                                  QDir::Files | QDir::Readable | QDir::NoSymLinks, QDir::Name))
@@ -325,20 +350,19 @@ void MediaPanel::scan()
         files->setItem(
             row, 1,
             new QTableWidgetItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1) + " MB"));
-        auto *b = button("播放");
+        auto *b = button("选择");
         files->setCellWidget(row, 2, b);
-        connect(b, &QPushButton::clicked, this, [this, path]() { open(path); });
+        connect(b, &QPushButton::clicked, this, [this, path]() { selectFile(path); });
     }
 }
 void MediaPanel::choose()
 {
     if (state["available"] == true)
         session.command("suspend");
-    const auto path = QFileDialog::getOpenFileName(
-        this, "打开视频", mediaDirectory,
-        "视频文件 (*.mp4 *.mkv *.avi *.mov *.ts *.webm);;所有文件 (*)");
+    VideoFilePicker picker(this, mediaDirectory);
+    const auto path = picker.exec() == QDialog::Accepted ? picker.selectedFile() : QString();
     if (!path.isEmpty())
-        open(path);
+        selectFile(QDir::cleanPath(path));
     else if (pages->currentIndex() == 0 && state["first_frame"] == true)
         session.command("visible", {{"value", true}});
 }
@@ -351,6 +375,7 @@ bool MediaPanel::selectFile(const QString &path)
         if (state["available"] == true)
             session.command("close");
         selectedFile.clear();
+        selectionNeedsOpen = false;
         filename->setText("绑定的视频不可用");
         play->setEnabled(false);
         note->setText("绑定的视频不可用或存储已移除，未播放其他文件。");
@@ -358,6 +383,7 @@ bool MediaPanel::selectFile(const QString &path)
     }
     if (selectedFile != path)
     {
+        selectionNeedsOpen = true;
         if (state["available"] == true)
             session.command("close");
         selectedFile = path;
@@ -365,7 +391,8 @@ bool MediaPanel::selectFile(const QString &path)
     }
     showSection(0);
     session.start(true);
-    note->setText("已选择绑定的视频，点击播放开始。");
+    lastFeedback = "已选择：" + file.fileName() + "。点击“播放”开始。";
+    apply(session.snapshot());
     return true;
 }
 void MediaPanel::open(const QString &path)
@@ -377,6 +404,7 @@ void MediaPanel::open(const QString &path)
         return;
     }
     selectedFile = file.absoluteFilePath();
+    selectionNeedsOpen = false;
     filename->setText(file.fileName());
     showSection(0);
     session.start(true);
@@ -385,6 +413,9 @@ void MediaPanel::open(const QString &path)
 }
 void MediaPanel::showSection(int index)
 {
+    if (index < 0 || index >= pages->count()) return;
+    for (auto *tab : findChildren<QPushButton *>("mediaSection"))
+        tab->setChecked(tab->property("section").toInt() == index);
     if (index != 0 && state["available"] == true)
         session.command("suspend");
     pages->setCurrentIndex(index);
@@ -403,11 +434,13 @@ void MediaPanel::apply(const QJsonObject &status)
     state = status;
     const auto name = status["state"].toString();
     const bool available = status["available"] == true;
-    const bool active = available && (name == "playing" || name == "paused" || name == "starting" ||
+    const bool active = available && !selectionNeedsOpen && (name == "playing" || name == "paused" || name == "starting" ||
                                       name == "completed" || name == "prepared");
     play->setEnabled(available && (active || !selectedFile.isEmpty()));
-    play->setIcon(Visuals::icon(name == "playing" ? "pause" : "play", Qt::white));
-    play->setAccessibleName(name == "playing" ? "暂停" : "播放");
+    play->setIcon(Visuals::icon(!selectionNeedsOpen && name == "playing" ? "pause" : "play", Qt::white));
+    play->setText(!selectionNeedsOpen && (name == "playing" || name == "starting") ? "暂停" : "播放");
+    play->setAccessibleName(play->text());
+    play->setToolTip(play->text());
     const int i = mediaFiles.indexOf(selectedFile);
     previous->setEnabled(available && i > 0);
     next->setEnabled(available && i >= 0 && i + 1 < mediaFiles.size());
@@ -430,7 +463,9 @@ void MediaPanel::apply(const QJsonObject &status)
     loop->setChecked(status["loop"] == true);
     loading = false;
     mute->setIcon(Visuals::icon("volume", Visuals::blue));
-    mute->setToolTip(status["muted"] == true ? "恢复声音" : "静音");
+    mute->setText(status["muted"] == true ? "恢复声音" : "静音");
+    mute->setToolTip(mute->text());
+    mute->setAccessibleName(mute->text());
     const qint64 durationMs = qMax(qint64(0), qint64(status["duration_ms"].toDouble()));
     qint64 displayedPositionMs = qMax(qint64(0), qint64(status["position_ms"].toDouble()));
     // Cedar can report a position beyond the known end (including after its
@@ -452,7 +487,7 @@ void MediaPanel::apply(const QJsonObject &status)
                      .arg(available ? "CedarX / TPlayer" : "未运行")
                      .arg(Visuals::numberText(status["display_fps"], 1)));
     auto *surface = static_cast<VideoStage *>(stage);
-    surface->playingLayer = available && status["backend"] == "cedar-tplayer" &&
+    surface->playingLayer = !selectionNeedsOpen && available && status["backend"] == "cedar-tplayer" &&
                             name == "playing" && status["first_frame"] == true &&
                             status["visible"] == true;
     surface->message.clear();
@@ -479,6 +514,11 @@ void MediaPanel::apply(const QJsonObject &status)
         surface->message = "播放组件尚未就绪";
         surface->description = "当前构建或运行环境未提供解码能力";
     }
+    else if (selectionNeedsOpen)
+    {
+        surface->message = "视频已选择";
+        surface->description = "点击“播放”开始";
+    }
     else if (name == "preparing" || name == "starting")
     {
         surface->message = "正在准备视频";
@@ -504,10 +544,13 @@ void MediaPanel::apply(const QJsonObject &status)
                       ? "播放未完成（" + status["error"].toString() + "）。没有自动重试。"
                       : !available
                             ? "播放组件尚未就绪，不能开始播放。"
+                            : selectionNeedsOpen ? "视频已选择，等待点击“播放”。"
                             : name == "playing"
                                   ? "正在播放：" + QFileInfo(selectedFile).fileName()
                                   : name == "paused" ? "播放已暂停。"
                                                      : "选择视频后显示实际时长、画面和解码状态。");
+    if (!lastFeedback.isEmpty())
+        note->setText(note->text() + "\n最近操作：" + lastFeedback);
     if (status["width"].toInt() > 0)
         geometryTimer->start();
 }
@@ -562,6 +605,8 @@ void MediaPanel::hideEvent(QHideEvent *event)
     if (full)
     {
         full = false;
+        fullscreen->setText("全屏");
+        fullscreen->setAccessibleName(fullscreen->text());
         heading->show();
         note->show();
         emit fullscreenRequested(false);
@@ -577,7 +622,7 @@ void MediaPanel::showEvent(QShowEvent *event)
 void MediaPanel::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
-    side->setVisible(!full && width() >= 740);
+    side->setVisible(!full && width() >= 900);
     if (geometryTimer)
         geometryTimer->start();
 }

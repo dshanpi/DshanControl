@@ -168,6 +168,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     devices->verticalHeader()->hide();
     devices->verticalHeader()->setDefaultSectionSize(54);
     devices->setMinimumSize(180, 130);
+    static_cast<DataTable *>(devices)->setEmptyText("尚无家庭设备。接入服务连接后，点击“同步设备”。");
     devices->setSelectionBehavior(QAbstractItemView::SelectRows);
     devices->setSelectionMode(QAbstractItemView::SingleSelection);
     devices->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -190,9 +191,16 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     tabs->addTab(homePage, "家庭设备");
     note = label("接入服务未连接，家庭与语音操作暂不可用。", "infoNote");
     root->addWidget(note);
+    auto *operationFeedback = label("", "operationFeedback");
+    operationFeedback->setStyleSheet("background:#edf5ff;color:#393939;border-left:3px solid #0f62fe;padding:8px;font-size:14px;");
+    operationFeedback->hide();
+    root->addWidget(operationFeedback);
     connect(client, &DesktopClient::snapshotChanged, this, &FamilyPanel::apply);
     connect(client, &DesktopClient::feedback, this,
-            [this](const QString &message) { note->setText(message); });
+            [operationFeedback](const QString &message) {
+                operationFeedback->setText("最近服务反馈：" + message);
+                operationFeedback->setVisible(!message.isEmpty());
+            });
     apply({});
     qApp->installEventFilter(this);
 }
@@ -244,6 +252,8 @@ void FamilyPanel::control(const QString &id, const QString &code, const QJsonVal
                        QMessageBox::Yes | QMessageBox::No, this);
     dialog.setTextFormat(Qt::PlainText);
     dialog.setText(name + "\n" + code + "：" + valueText(value) + "\n\n发送后等待设备状态确认。");
+    dialog.button(QMessageBox::Yes)->setText("发送控制");
+    dialog.button(QMessageBox::No)->setText("取消");
     dialog.setDefaultButton(QMessageBox::No);
     if (dialog.exec() != QMessageBox::Yes || !canControl(id, code))
         return;
