@@ -135,6 +135,111 @@ class HmiUiTest : public QObject
     }
   private slots:
 
+    void applicationGuidesCoverRoutesAndPreserveDrafts()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *window=shell.findChild<MainWindow *>(); QVERIFY(window); isolate(*window);
+        window->updateSnapshot(snapshot()); window->refreshTimer.stop();
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()) QVERIFY(QDir().mkpath(output));
+        auto *help=shell.findChild<QPushButton *>("showApplicationGuide"); QVERIFY(help);
+        for(const auto &app:DesktopV1::catalog()) {
+            QVERIFY(shell.openApplication(app.id)); QTest::qWait(20);
+            QVERIFY(help->visibleRegion().contains(help->rect())); QVERIFY(help->height()>=44);
+            const int brightness=window->brightnessSlider->value();
+            bool reviewed=false;
+            QTimer::singleShot(40,[&]() {
+                auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                if(!dialog) return;
+                reviewed=dialog->objectName()=="applicationGuide";
+                for(const QString &name:{"guideBefore","guideSteps","guideResult","guideRecovery"}) {
+                    auto *label=dialog->findChild<QLabel *>(name);
+                    reviewed=reviewed && label && !label->text().isEmpty() &&
+                        label->textFormat()==Qt::PlainText;
+                }
+                auto *where=dialog->findChild<QLabel *>("guideLocation");
+                reviewed=reviewed && where && where->text().contains(app.name);
+                auto *close=dialog->findChild<QPushButton *>("guideClose");
+                reviewed=reviewed && close && close->visibleRegion().contains(close->rect());
+                if(!output.isEmpty()) reviewed=reviewed && dialog->grab().save(output+"/指引-"+app.id+".png");
+                QTest::keyClick(dialog,Qt::Key_Escape);
+            });
+            help->click(); QVERIFY(reviewed);
+            QCOMPARE(shell.activeApplication(),app.id);
+            QCOMPARE(window->brightnessSlider->value(),brightness);
+        }
+        QVERIFY(shell.openApplication("settings"));
+        window->brightnessSlider->setValue(170); QVERIFY(window->settingsDirty);
+        QTimer::singleShot(30,[](){
+            if(auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                d->findChild<QPushButton *>("guideClose")->click();
+        });
+        help->click(); QVERIFY(window->settingsDirty);
+        QCOMPARE(window->brightnessSlider->value(),170);
+        QVERIFY(shell.openApplication("video"));
+        QTimer::singleShot(30,[](){
+            if(auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                d->findChild<QPushButton *>("guideRelated")->click();
+        });
+        help->click(); QCOMPARE(shell.activeApplication(),QString("settings"));
+        QVERIFY(window->settingsDirty); QCOMPARE(window->brightnessSlider->value(),170);
+    }
+
+    void alarmEmptyFilterRecoveryAndRetainedRecordsAreExplicit()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop(); QVERIFY(shell.openApplication("alarms"));
+        QJsonObject a{{"id",1},{"ts",double(QDateTime::currentSecsSinceEpoch())},
+            {"severity","warning"},{"source","设备A"},{"state","active"},{"message","主机合成告警"}};
+        auto b=a;b["id"]=2;b["severity"]="error";b["source"]="设备B";b["state"]="acknowledged";
+        w->handleReply(new FixtureReply({{"ok",true},{"alarms",QJsonArray{a,b}}},"alarms"));
+        auto *summary=w->findChild<QLabel *>("alarmFilterSummary");
+        auto *reset=w->findChild<QPushButton *>("clearAlarmFilters");
+        auto *exportButton=w->findChild<QPushButton *>("alarmExport");
+        QVERIFY(summary);QVERIFY(reset);QVERIFY(exportButton);
+        QVERIFY(summary->text().contains("2 / 2"));QVERIFY(!reset->isEnabled());
+        w->alarmSeverity->setCurrentIndex(w->alarmSeverity->findData("info"));
+        QVERIFY(summary->text().contains("0 / 2"));QVERIFY(summary->text().contains("没有匹配"));
+        QVERIFY(reset->isEnabled());QVERIFY(!exportButton->isEnabled());QVERIFY(!w->alarmAck->isEnabled());
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()) QVERIFY(QDir().mkpath(output));
+        QTest::qWait(30);
+        QVERIFY(reset->visibleRegion().contains(reset->rect()));
+        QVERIFY(w->alarmAck->height()>=44);
+        QVERIFY(w->alarmAck->visibleRegion().contains(w->alarmAck->rect()));
+        QVERIFY(exportButton->visibleRegion().contains(exportButton->rect()));
+        if(!output.isEmpty()) QVERIFY(shell.grab().save(output+"/告警-无匹配.png"));
+        reset->click(); QVERIFY(summary->text().contains("2 / 2"));QVERIFY(exportButton->isEnabled());
+        w->alarmTabs->setCurrentIndex(1);w->alarmSource->setCurrentIndex(1);w->alarmTime->setCurrentIndex(1);
+        reset->click();
+        QCOMPARE(w->alarmTabs->currentIndex(),0);QCOMPARE(w->alarmSeverity->currentIndex(),0);
+        QCOMPARE(w->alarmSource->currentIndex(),0);QCOMPARE(w->alarmTime->currentIndex(),0);
+        w->markOffline();QVERIFY(summary->text().contains("最新状态未确认"));QVERIFY(exportButton->isEnabled());
+        QVERIFY(!w->alarmAck->isEnabled());
+        w->handleReply(new FixtureReply({{"ok",true},{"alarms",QJsonArray{}}},"alarms"));
+        QVERIFY(summary->text().contains("当前没有记录"));QVERIFY(!exportButton->isEnabled());
+        if(!output.isEmpty()) QVERIFY(shell.grab().save(output+"/告警-空记录.png"));
+    }
+
+    void monitoringActionsStayVisibleAndExplainPausedDisplay()
+    {
+        DesktopV1::DesktopShell shell;shell.show();
+        auto *window=shell.findChild<MainWindow *>();QVERIFY(window);isolate(*window);
+        window->updateSnapshot(snapshot());window->refreshTimer.stop();
+        QVERIFY(shell.openApplication("devices"));QTest::qWait(40);
+        for(const QString &name:{"pauseMonitor","monitorSettings"}) {
+            auto *button=window->findChild<QPushButton *>(name);QVERIFY(button);
+            QVERIFY(button->height()>=44);QVERIFY(button->visibleRegion().contains(button->rect()));
+        }
+        window->pauseMonitor->click();QVERIFY(window->monitorPaused);
+        QVERIFY(window->pauseMonitor->text().contains("当前已暂停"));
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()) QVERIFY(QDir().mkpath(output));
+        if(!output.isEmpty()) QVERIFY(shell.grab().save(output+"/监控-暂停显示.png"));
+        window->pauseMonitor->click();QVERIFY(!window->monitorPaused);
+    }
+
     void primaryFormActionsRemainVisibleAtDesktopResolution()
     {
         DesktopV1::DesktopShell shell; shell.show();
@@ -2176,6 +2281,7 @@ class HmiUiTest : public QObject
         const QString filename = folder.path() + "/visible.csv";
         auto *exportButton = w.findChild<QPushButton *>("alarmExport"); QVERIFY(exportButton);
         QStringList dialogs;
+        QString completionText;
         QString selectedDestination;
         int dialogTicks = 0;
         QTimer dialogTimer;
@@ -2205,21 +2311,28 @@ class HmiUiTest : public QObject
                 w.handleReply(new FixtureReply({{"ok", true}, {"alarms", QJsonArray{hidden}}}, "alarms"));
                 QMetaObject::invokeMethod(dialog, "accept");
             } else if (auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
-                dialogs << box->windowTitle(); box->accept();
+                dialogs << box->windowTitle(); completionText=box->text(); box->accept();
             }
         });
         dialogTimer.start(10); exportButton->click(); dialogTimer.stop();
         QCOMPARE(selectedDestination, filename);
         QVERIFY(dialogs.contains("导出完成"));
+        QVERIFY(completionText.contains("已保存 1 条"));
+        QVERIFY(completionText.contains(filename));
         QFile file(filename); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), expected); file.close();
         const QString output = qEnvironmentVariable("HMI_ALARM_CSV_OUT");
         if (!output.isEmpty()) QVERIFY(QFile::copy(filename, output));
+        // Restore a matching record: zero visible records intentionally disable export.
+        w.handleReply(new FixtureReply({{"ok", true}, {"alarms", QJsonArray{a}}}, "alarms"));
+        QVERIFY(exportButton->isEnabled());
         // Cancel preserves an existing file; failed open is reported as failure.
+        bool cancelOpened=false;
         disconnect(&dialogTimer, nullptr, &w, nullptr); dialogs.clear();
         connect(&dialogTimer, &QTimer::timeout, &w, [&]() {
-            if (auto *dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) dialog->reject();
+            if (auto *dialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) { cancelOpened=true; dialog->reject(); }
         });
         dialogTimer.start(10); exportButton->click(); dialogTimer.stop();
+        QVERIFY(cancelOpened);
         QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), expected); file.close();
         disconnect(&dialogTimer, nullptr, &w, nullptr);
         connect(&dialogTimer, &QTimer::timeout, &w, [&]() {

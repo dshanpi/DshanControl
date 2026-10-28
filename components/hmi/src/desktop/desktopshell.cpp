@@ -1,4 +1,5 @@
 #include "desktopshell.h"
+#include "applicationguide.h"
 #include "../mainwindow.h"
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -28,7 +29,18 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     applicationTitle->setTextFormat(Qt::PlainText);
     applicationTitle->setObjectName("applicationLocation");
     applicationTitle->setStyleSheet("font-size:18px;font-weight:600;");
+    applicationTitle->setWordWrap(true);
+    applicationTitle->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
+    applicationTitle->setMinimumWidth(0);
     bar->addWidget(applicationTitle, 1);
+    auto *guide = new QPushButton("使用指引");
+    guide->setObjectName("showApplicationGuide");
+    bar->addWidget(guide);
+    connect(guide,&QPushButton::clicked,this,[this]() {
+        ApplicationGuide dialog(activeId,applicationTitle->text(),this);
+        if(dialog.exec()==QDialog::Accepted && !dialog.target.isEmpty())
+            openApplication(dialog.target);
+    });
     auto *switcher = new QPushButton("全部应用");
     switcher->setObjectName("switchApplication");
     bar->addWidget(switcher);

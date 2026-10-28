@@ -3,6 +3,7 @@
 #endif
 #include "oneshotupload.h"
 #include "mainwindow.h"
+#include <QSignalBlocker>
 #include "touchfiledialog.h"
 #include "displayprobe.h"
 #include "updatepanel.h"
@@ -1067,9 +1068,16 @@ QWidget *MainWindow::buildDevices()
     settings->setObjectName("monitorSettings");
     connect(settings, &QPushButton::clicked, this, [this]() { navigateApplication("settings"); });
     actions->addWidget(settings, 1);
-    layout->addLayout(actions);
+    auto *monitorFooter = new QWidget;
+    monitorFooter->setObjectName("monitorFooter");
+    monitorFooter->setLayout(actions);
+    auto *monitorPage = new LayoutPage;
+    auto *monitorLayout = new PageLayout(monitorPage);
+    monitorLayout->setContentsMargins(0,0,0,0);
+    monitorLayout->addWidget(scrollPage(page),1);
+    monitorLayout->addWidget(monitorFooter);
     devicePageStack=new QStackedWidget;
-    devicePageStack->addWidget(page);
+    devicePageStack->addWidget(monitorPage);
     boundTrendPanel=new DesktopV1::DesktopTrendPanel;
     devicePageStack->addWidget(boundTrendPanel);
     devicePageStack->layout()->setSizeConstraint(QLayout::SetNoConstraint);
@@ -1163,8 +1171,9 @@ QWidget *MainWindow::buildAlarms()
     QHBoxLayout *top = new QHBoxLayout;
     top->addWidget(titleLabel("告警记录"));
     top->addStretch();
-    QPushButton *exportButton = actionButton("导出记录", "secondary");
+    QPushButton *exportButton = actionButton("导出筛选结果", "secondary");
     exportButton->setObjectName("alarmExport");
+    exportButton->setEnabled(false);
     exportButton->setIcon(Visuals::icon("document", Visuals::blue));
     top->addWidget(exportButton);
     layout->addLayout(top);
@@ -1204,7 +1213,23 @@ QWidget *MainWindow::buildAlarms()
             [this]() { applyAlarmFilter(); });
     connect(alarmTime, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             [this]() { applyAlarmFilter(); });
+    auto *reset = actionButton("清除筛选", "secondary");
+    reset->setObjectName("clearAlarmFilters");
+    reset->setEnabled(false);
+    connect(reset,&QPushButton::clicked,this,[this]() {
+        {
+            const QSignalBlocker state(alarmTabs), severity(alarmSeverity), source(alarmSource), time(alarmTime);
+            alarmTabs->setCurrentIndex(0);alarmSeverity->setCurrentIndex(0);
+            alarmSource->setCurrentIndex(0);alarmTime->setCurrentIndex(0);
+        }
+        applyAlarmFilter();
+    });
     contentLayout->addLayout(filters);
+    auto *summary = captionLabel("尚未获取告警记录");
+    summary->setObjectName("alarmFilterSummary");
+    summary->setContentsMargins(12,0,12,0);
+    top->insertWidget(top->count()-1,reset);
+    contentLayout->addWidget(summary);
     connect(alarmSeverity, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             [this]() { applyAlarmFilter(); });
     alarmTable = makeTable({"ID", "时间", "级别", "来源", "内容", "状态"});
@@ -1245,7 +1270,11 @@ QWidget *MainWindow::buildAlarms()
     });
     connect(exportButton, &QPushButton::clicked, this, [this]() {
         applyAlarmFilter();
-        // Freeze the visible records before the file dialog runs its event loop.
+        // Freeze records and count together before the file dialog runs its event loop.
+        int count=0;
+        for(int row=0;row<alarmTable->rowCount();++row)
+            if(!alarmTable->isRowHidden(row)) ++count;
+        if(count==0) return;
         const QByteArray output = visibleAlarmCsv();
         const QString name = TouchFiles::saveFile(
             this, "导出当前可见告警", QDir::homePath() + "/dshancontrol-alarms.csv", "CSV (*.csv)");
@@ -1258,8 +1287,12 @@ QWidget *MainWindow::buildAlarms()
         }
         if (file.write(output) != output.size() || !file.commit())
             QMessageBox::warning(this, "导出失败", file.errorString());
-        else
-            QMessageBox::information(this, "导出完成", "当前可见告警已保存。");
+        else {
+            QMessageBox result(QMessageBox::Information,"导出完成",QString(),QMessageBox::Ok,this);
+            result.setTextFormat(Qt::PlainText);
+            result.setText(QString("已保存 %1 条告警（点击导出时的筛选结果）。\n%2").arg(count).arg(name));
+            result.exec();
+        }
     });
     return page;
 }
@@ -1341,6 +1374,19 @@ void MainWindow::applyAlarmFilter()
         alarmTable->clearSelection();
         alarmTable->setCurrentCell(-1, -1);
     }
+    int visible=0;
+    for(int row=0;row<alarmTable->rowCount();++row)
+        if(!alarmTable->isRowHidden(row)) ++visible;
+    const bool filtered=alarmTabs->currentIndex()!=0 || alarmSeverity->currentIndex()!=0 ||
+                        alarmSource->currentIndex()!=0 || alarmTime->currentIndex()!=0;
+    const QString freshness=alarmsAvailable ? "记录已加载" : "最新状态未确认，保留记录仅供查看";
+    const QString hint=visible ? "导出仅包含当前可见记录" : filtered ? "没有匹配记录，可清除筛选" : "当前没有记录";
+    findChild<QLabel *>("alarmFilterSummary")->setText(
+        QString("显示 %1 / %2 条 · %3 · %4").arg(visible).arg(alarmTable->rowCount()).arg(freshness,hint));
+    findChild<QPushButton *>("clearAlarmFilters")->setEnabled(filtered);
+    findChild<QPushButton *>("alarmExport")->setEnabled(visible>0);
+    static_cast<DataTable *>(alarmTable)->setEmptyText(filtered ? "没有匹配记录 · 可清除筛选"
+        : alarmsAvailable ? "暂无告警记录" : "尚未获取最新告警记录");
     updateAlarmSelection();
 }
 
@@ -1814,7 +1860,7 @@ void MainWindow::handleReply(QNetworkReply *reply)
         alarmAckPending = false;
     if (kind == "alarms" || kind == "ack") {
         alarmsAvailable = false;
-        updateAlarmSelection();
+        applyAlarmFilter();
     }
     const QByteArray raw = reply->readAll();
     const QJsonDocument doc = QJsonDocument::fromJson(raw);
@@ -2010,7 +2056,7 @@ void MainWindow::markOffline()
 {
     emit hmiSnapshotChanged({});
     alarmsAvailable = false;
-    updateAlarmSelection();
+    applyAlarmFilter();
     connectionLabel->setText("● 数据服务离线");
     connectionLabel->setStyleSheet("color:#b52f40;");
     cpuValue->setText("CPU --");
