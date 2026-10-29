@@ -1,0 +1,66 @@
+{
+  "id": "P05",
+  "name": "未确认告警",
+  "group": "A",
+  "design_direction": "未确认标签激活，选中告警详情，等待确认禁止重入；确认仅知悉不消除故障，最近结果保留。",
+  "route": "alarms.active",
+  "status": "design_review",
+  "business_goal": "核对当前匹配数和其他筛选条件。",
+  "prerequisites": "当前页仅显示未确认告警；先判断现场故障是否需要处置。",
+  "operation_steps": [
+    "核对当前匹配数和其他筛选条件。",
+    "选择记录阅读详情，处理现场问题后按需要确认。",
+    "确认成功后记录可能从本页消失，可在已确认页核对。"
+  ],
+  "confirmed_result": "从未确认列表消失只表示确认状态变化，不表示故障消除。",
+  "failure_recovery": "没有记录时区分无匹配、无记录和离线；结果未知先刷新核对。",
+  "related_route": "devices",
+  "primary_action": "确认选中告警",
+  "business_flow": [
+    "筛选未确认记录",
+    "阅读并核对目标后确认",
+    "在已确认视图核对结果，现场故障另行处理"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "没有记录时区分无匹配、无记录和离线；结果未知先刷新核对。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "A-v2",
+    "preview_sha256": "96e14fd84aaa998b360c12f5a9b6942391910e951a7ace6400df6cc43b1f25fb",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

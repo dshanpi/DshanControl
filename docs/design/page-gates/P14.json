@@ -1,0 +1,67 @@
+{
+  "id": "P14",
+  "name": "显示与交互",
+  "group": "C",
+  "design_direction": "当前编辑与最近服务记录双栏；亮度220、样例数据、刷新1秒；标记未保存；保存并应用/撤销修改；固定底栏设置保存与背光结果分别显示。",
+  "route": "settings.display",
+  "status": "design_review",
+  "business_goal": "修改亮度、样例开关或刷新频率。",
+  "prerequisites": "编辑值与服务记录分开显示；只有保存并应用才提交设置。",
+  "operation_steps": [
+    "修改亮度、样例开关或刷新频率。",
+    "需要放弃编辑时点撤销修改并核对服务记录；默认仍继续编辑。",
+    "点保存并应用，核对实际提交值，再查看底部保存和背光结果。"
+  ],
+  "confirmed_result": "保存成功与背光已应用分别确认；编辑值不等于设备当前状态。",
+  "failure_recovery": "失败保留编辑和最近结果；断线后重新核对，不重复提交旧确认。",
+  "related_route": "overview",
+  "primary_action": "保存并应用／撤销修改",
+  "business_flow": [
+    "编辑表单或撤销至有效服务记录",
+    "确认实际值并保存",
+    "分别核对保存与背光应用结果"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "失败保留编辑和最近结果；断线后重新核对，不重复提交旧确认。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "C-v2",
+    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "背光范围和全部字段须对照 Qt 代码精修。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

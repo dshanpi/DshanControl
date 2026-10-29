@@ -1,0 +1,66 @@
+{
+  "id": "P15",
+  "name": "服务管理",
+  "group": "C",
+  "design_direction": "采集/桌面/Web服务状态与启动停止重启；单独危险区整机重启；先核对后确认，最近结果固定。",
+  "route": "settings.services",
+  "status": "design_review",
+  "business_goal": "核对服务名称与当前状态。",
+  "prerequisites": "服务启动、重启、停止及整机重启会影响业务；先确认维护条件。",
+  "operation_steps": [
+    "核对服务名称与当前状态。",
+    "在对应服务卡片选择操作，核对确认框；整机重启是单独操作。",
+    "等待结果并刷新状态，切到操作日志核对记录。"
+  ],
+  "confirmed_result": "命令完成不等于服务健康或设备完成重启。",
+  "failure_recovery": "连接中断或结果未知时先核对运行状态，避免再次重启。",
+  "related_route": "overview",
+  "primary_action": "操作选中服务",
+  "business_flow": [
+    "选择服务及操作",
+    "确认目标，发送一次操作",
+    "等待结果并核对状态和日志"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "连接中断或结果未知时先核对运行状态，避免再次重启。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "C-v2",
+    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

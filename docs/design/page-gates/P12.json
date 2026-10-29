@@ -1,0 +1,67 @@
+{
+  "id": "P12",
+  "name": "无线网络",
+  "group": "B",
+  "design_direction": "只读wlan0状态未接入、IPv4未获取；刷新连接信息。本页没有热点选择或密码设置；禁止绘制虚假WiFi连接功能。",
+  "route": "network.wifi",
+  "status": "design_review",
+  "business_goal": "选择无线接口，核对状态、地址与来源。",
+  "prerequisites": "本页查询无线接口；Wi-Fi 接入由系统网络服务管理。",
+  "operation_steps": [
+    "选择无线接口，核对状态、地址与来源。",
+    "点击刷新连接信息。",
+    "进入需要联网的应用核对服务连接。"
+  ],
+  "confirmed_result": "显示无线接口不表示已连接热点，获得地址也不代表云端可达。",
+  "failure_recovery": "本页没有热点选择或密码配置；未接入时先在系统网络服务完成配置。",
+  "related_route": "cloud_bind",
+  "primary_action": "刷新连接信息",
+  "business_flow": [
+    "选择无线接口",
+    "刷新接口记录",
+    "在目标应用验证服务连接"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "本页没有热点选择或密码配置；未接入时先在系统网络服务完成配置。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "B-v2",
+    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "补回刷新状态入口；只读，不增加网络配置。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

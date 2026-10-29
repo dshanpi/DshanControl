@@ -1,0 +1,66 @@
+{
+  "id": "P16",
+  "name": "操作日志",
+  "group": "C",
+  "design_direction": "全部/成功/失败筛选，时间动作目标结果表格；选中行详情摘要；查看选中详情主操作与刷新记录。",
+  "route": "settings.audit",
+  "status": "design_review",
+  "business_goal": "选择全部、成功或失败筛选。",
+  "prerequisites": "本页显示已加载的最近操作记录；没有记录不代表系统从未执行操作。",
+  "operation_steps": [
+    "选择全部、成功或失败筛选。",
+    "点击刷新记录获取最近记录，选择一条后查看选中详情。",
+    "对照时间、动作、目标与结果，核对对应设备的实际状态。"
+  ],
+  "confirmed_result": "日志成功只表示该动作记录成功，不能替代现场结果验证。",
+  "failure_recovery": "无匹配时先选择全部；获取失败检查连接，勿为生成日志而重复执行控制。",
+  "related_route": "overview",
+  "primary_action": "刷新记录／查看选中详情",
+  "business_flow": [
+    "筛选并刷新日志",
+    "选择可见记录打开详情",
+    "对照设备状态核对日志结果"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "无匹配时先选择全部；获取失败检查连接，勿为生成日志而重复执行控制。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "C-v2",
+    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

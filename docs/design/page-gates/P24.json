@@ -1,0 +1,66 @@
+{
+  "id": "P24",
+  "name": "应用更新",
+  "group": "D",
+  "design_direction": "检查→下载校验→安装三阶段，当前版本与兼容信息，服务未连接时禁用检查更新并解释；应用更新不是系统烧写。",
+  "route": "update",
+  "status": "design_review",
+  "business_goal": "检查更新，查看可用版本与兼容性检查结果。",
+  "prerequisites": "需要兼容的更新服务、当前版本记录和维护条件；本页不更新系统固件。",
+  "operation_steps": [
+    "检查更新，查看可用版本与兼容性检查结果。",
+    "可用时下载更新，等待完整性校验。",
+    "仅在允许维护时安装，查看明确的成功或失败结果。"
+  ],
+  "confirmed_result": "找到版本、下载完成与安装完成是三个不同阶段。",
+  "failure_recovery": "检查失败先查看兼容性详情；安装结果未知时核对记录，不要重复安装或重启。",
+  "related_route": "settings",
+  "primary_action": "检查／下载／安装",
+  "business_flow": [
+    "检查兼容性",
+    "下载并校验完整包",
+    "维护条件成立后安装并核对终态"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "检查失败先查看兼容性详情；安装结果未知时核对记录，不要重复安装或重启。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "D-v2",
+    "preview_sha256": "023b4db3af405ee8635026e80c11c2f9eb5d55cdf0be601bc1c236240a765fee",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

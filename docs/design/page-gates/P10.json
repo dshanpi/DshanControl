@@ -1,0 +1,67 @@
+{
+  "id": "P10",
+  "name": "EtherCAT",
+  "group": "B",
+  "design_direction": "接口不可用提示，从站/索引/子索引/十六进制数据；CoE写入与周期测试禁用并说明原因；1000周期×1000微秒。",
+  "route": "fieldbus.ethercat",
+  "status": "design_review",
+  "business_goal": "填写从站、对象索引、子索引和十六进制数据。",
+  "prerequisites": "需要唯一可用的 EtherCAT 接口和正确从站；写对象与周期测试均会产生现场操作。",
+  "operation_steps": [
+    "填写从站、对象索引、子索引和十六进制数据。",
+    "写对象时点击 CoE 写入并核对确认内容。",
+    "需要周期测试时单独启动测试；本次为 1000 个周期、周期 1000 微秒。"
+  ],
+  "confirmed_result": "测试完成与从站正常是不同结果，需查看真实从站响应与日志。",
+  "failure_recovery": "接口不唯一或能力不可用时先修正设备配置；失败或未知结果先查日志。",
+  "related_route": "settings",
+  "primary_action": "CoE 写入／周期测试",
+  "business_flow": [
+    "核对对象或周期测试参数",
+    "分别确认写入与测试操作",
+    "等待回复并核对从站实际状态"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "接口不唯一或能力不可用时先修正设备配置；失败或未知结果先查日志。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "B-v2",
+    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "周期测试参数需按实际控件补全。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

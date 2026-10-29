@@ -1,0 +1,67 @@
+{
+  "id": "P08",
+  "name": "CANopen · SDO",
+  "group": "B",
+  "design_direction": "节点1、对象索引0x2000、子索引0x00、写入值0，固定4字节；写入SDO为主操作；对象字典核对说明，不虚构读回按钮。",
+  "route": "fieldbus.sdo",
+  "status": "design_review",
+  "business_goal": "先核对 CAN 通道与速率。",
+  "prerequisites": "确认 CANopen 能力、节点和对象字典。写入对象可能改变现场行为。",
+  "operation_steps": [
+    "先核对 CAN 通道与速率。",
+    "填写节点 1–127、对象索引、子索引和写入值；当前写入长度为 4 字节。",
+    "点写入 SDO，核对目标后确认；到设备侧读取目标对象验证。"
+  ],
+  "confirmed_result": "请求成功不代表参数已持久化；以设备对象读回及实际行为为准。",
+  "failure_recovery": "地址、数据类型或长度不匹配时先查设备对象字典，不能反复写入。",
+  "related_route": "settings",
+  "primary_action": "写入 SDO",
+  "business_flow": [
+    "核对通道及对象地址",
+    "确认四字节写入参数",
+    "提交后独立读取设备对象验证"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "地址、数据类型或长度不匹配时先查设备对象字典，不能反复写入。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "B-v2",
+    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "SDO 长度字段与说明示例必须统一。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

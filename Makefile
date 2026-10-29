@@ -11,7 +11,7 @@ test-bootstrap:
 test: build-native build-native-fixtures build-desktop
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
-package:
+package: check-ui-pages
 	./scripts/package_release.sh "$(RELEASE_DIR)"
 
 HMI_QMAKE ?= qmake
@@ -34,7 +34,7 @@ build-native-fixtures:
 	mkdir -p dist/native-development-release-tests
 	cd dist/native-development-release-tests && $(HMI_QMAKE) ../../tests/native/development-release-test.pro && $(MAKE)
 .PHONY: test-hmi
-test-hmi:
+test-hmi: check-ui-pages
 	mkdir -p dist/ui-test
 	cd dist/ui-test && $(HMI_QMAKE) ../../tests/hmi/hmi-ui.pro && $(MAKE)
 	cd dist/ui-test && QT_QPA_PLATFORM=offscreen ./hmi-ui-test
@@ -77,3 +77,7 @@ test-application-registry:
 	cd dist/application-registry-tests && ./application-registry-test
 
 test-hmi: test-application-registry
+
+.PHONY: check-ui-pages
+check-ui-pages:
+	$(PYTHON) scripts/check_ui_page_gates.py

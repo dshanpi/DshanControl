@@ -1,0 +1,67 @@
+{
+  "id": "P23",
+  "name": "播放设置",
+  "group": "D",
+  "design_direction": "画面比例与循环开关，解码状态未验证、失败原因区；返回播放器主操作，不虚构保存按钮。",
+  "route": "video.settings",
+  "status": "design_review",
+  "business_goal": "选择画面比例和循环播放选项。",
+  "prerequisites": "播放设置影响当前播放器；解码组件状态需单独确认。",
+  "operation_steps": [
+    "选择画面比例和循环播放选项。",
+    "查看解码组件状态与错误提示。",
+    "返回播放器后播放并核对画面比例和循环行为。"
+  ],
+  "confirmed_result": "选项改变不代表播放已成功，需实际画面验证。",
+  "failure_recovery": "组件不可用时先处理组件提示；不要靠切换比例或循环掩盖播放失败。",
+  "related_route": "settings",
+  "primary_action": "调整比例／循环播放",
+  "business_flow": [
+    "调整比例与循环选项",
+    "核对解码状态",
+    "返回播放器实际验证行为"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "组件不可用时先处理组件提示；不要靠切换比例或循环掩盖播放失败。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "D-v2",
+    "preview_sha256": "023b4db3af405ee8635026e80c11c2f9eb5d55cdf0be601bc1c236240a765fee",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "补回返回播放器，核对循环状态来源。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

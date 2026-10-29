@@ -1,0 +1,67 @@
+{
+  "id": "P13",
+  "name": "蜂窝网络",
+  "group": "C",
+  "design_direction": "模块1/模块2卡片含设备/接口/状态；未识别模块时拨号/断开禁用并解释；固定最近操作结果。",
+  "route": "network.cellular",
+  "status": "design_review",
+  "business_goal": "查看两张模块卡片的设备、接口和当前状态。",
+  "prerequisites": "确认所选蜂窝模块与对应接口；断开可能中断远程连接。",
+  "operation_steps": [
+    "查看两张模块卡片的设备、接口和当前状态。",
+    "在目标卡片选择拨号或断开，核对确认内容。",
+    "等待结果，再刷新接口与地址；进入目标应用验证连接。"
+  ],
+  "confirmed_result": "拨号命令完成不代表已获得地址或联网。",
+  "failure_recovery": "模块映射变化或执行结果未知时先核对设备与日志，避免重复拨号。",
+  "related_route": "cloud_bind",
+  "primary_action": "拨号／断开",
+  "business_flow": [
+    "选择真实蜂窝模块",
+    "确认拨号或断开目标",
+    "等待结果，刷新地址并验证服务"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "模块映射变化或执行结果未知时先核对设备与日志，避免重复拨号。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "C-v2",
+    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。",
+      "只允许一个标签选中；未识别设备时拨号不可用并显示原因。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

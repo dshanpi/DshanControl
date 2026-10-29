@@ -1,0 +1,66 @@
+{
+  "id": "P07",
+  "name": "CANopen · NMT",
+  "group": "B",
+  "design_direction": "CAN/RS485/EtherCAT标签及NMT/SDO子标签；通道can0、500k、节点1、状态选择；发送NMT确认；节点0为广播。",
+  "route": "fieldbus.nmt",
+  "status": "design_review",
+  "business_goal": "需要改变通道速率时先填写 CAN 参数，再点应用并确认。",
+  "prerequisites": "确认 CAN 通道、速率和目标节点；节点 0 表示广播，会影响总线上所有节点。",
+  "operation_steps": [
+    "需要改变通道速率时先填写 CAN 参数，再点应用并确认。",
+    "填写 NMT 节点编号，选择目标状态；核对是否为广播。",
+    "点击发送 NMT，确认目标，再查看设备状态与操作日志。"
+  ],
+  "confirmed_result": "NMT 发送完成只证明请求完成；节点是否进入目标状态需设备回报。",
+  "failure_recovery": "结果未知先检查节点与日志，不能连续发送复位或广播。",
+  "related_route": "settings",
+  "primary_action": "应用 CAN 参数／发送 NMT",
+  "business_flow": [
+    "核对通道参数与现场条件",
+    "应用参数或发送指定节点 NMT",
+    "等待服务回复并核对现场设备状态"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "结果未知先检查节点与日志，不能连续发送复位或广播。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "B-v2",
+    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

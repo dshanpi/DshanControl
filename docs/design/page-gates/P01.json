@@ -1,0 +1,66 @@
+{
+  "id": "P01",
+  "name": "运行总览",
+  "group": "A",
+  "design_direction": "样例数据标记，数据连接/设备状态/未确认告警三摘要，趋势预览与最近事件；主操作查看设备监控。",
+  "route": "overview",
+  "status": "design_review",
+  "business_goal": "查看连接、资源和告警概况。",
+  "prerequisites": "先看数据来源：样例仅用于演示，离线表示当前无法读取设备。",
+  "operation_steps": [
+    "查看连接、资源和告警概况。",
+    "需要读数细节时打开设备监控；需要处理告警时进入告警记录。",
+    "进入相应应用完成操作，再返回总览核对状态。"
+  ],
+  "confirmed_result": "以新收到的设备数据为准；页面打开或按钮点击不表示设备恢复。",
+  "failure_recovery": "数据不更新时先查看连接状态，不要反复发送控制命令。",
+  "related_route": "devices",
+  "primary_action": "查看设备监控／告警记录",
+  "business_flow": [
+    "读取当前连接和资源概况",
+    "按问题进入设备监控或告警记录",
+    "处理后返回核对状态来源"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "数据不更新时先查看连接状态，不要反复发送控制命令。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "A-v2",
+    "preview_sha256": "96e14fd84aaa998b360c12f5a9b6942391910e951a7ace6400df6cc43b1f25fb",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

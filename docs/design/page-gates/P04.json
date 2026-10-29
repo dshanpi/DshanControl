@@ -1,0 +1,66 @@
+{
+  "id": "P04",
+  "name": "全部告警",
+  "group": "A",
+  "design_direction": "全部/未确认/已确认标签，级别来源时间筛选，匹配/加载数，列表与详情；确认选中告警/导出筛选结果。",
+  "route": "alarms.all",
+  "status": "design_review",
+  "business_goal": "选择记录查看详情。",
+  "prerequisites": "当前页汇集已加载告警，仍受级别、来源和时间筛选影响。",
+  "operation_steps": [
+    "选择记录查看详情。",
+    "确认选中告警前核对设备和内容。",
+    "导出当前筛选结果；结果为空可清除全部筛选。"
+  ],
+  "confirmed_result": "确认仅表示已知悉，不会清除现场故障；导出以保存完成为准。",
+  "failure_recovery": "离线保留记录不是最新状态；无匹配先清除筛选。",
+  "related_route": "devices",
+  "primary_action": "查看详情／确认／导出",
+  "business_flow": [
+    "筛选并阅读告警详情",
+    "核对目标后确认知悉",
+    "导出冻结的筛选结果并确认文件"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "离线保留记录不是最新状态；无匹配先清除筛选。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "A-v2",
+    "preview_sha256": "96e14fd84aaa998b360c12f5a9b6942391910e951a7ace6400df6cc43b1f25fb",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

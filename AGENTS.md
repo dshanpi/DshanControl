@@ -25,3 +25,6 @@ an app update archive, firmware, production release or proof that a board was up
 
 ## Qt application interaction design
 For Qt UI, application workflows, subpages or dialogs, read .agents/skills/qt-industrial-ui/SKILL.md and docs/design/qt-application-interaction.md. Exercise actual application flows and isolated host states; keep hardware acceptance separate.
+
+## Mandatory page delivery ledger
+Before UI implementation, read docs/design/page-delivery-gate.md and update affected docs/design/page-gates/Pxx.json records. Show renderings before implementation and record actual user review, workflows, operation steps and function additions/changes/removals. Run the design-phase gate before coding and make check-ui-pages before HMI verification or packaging. Do not approve your own designs, alter the baseline or omit affected pages to bypass the gate. Shared surfaces and dialogs require explicit coverage.

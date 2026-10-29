@@ -1,0 +1,66 @@
+{
+  "id": "P17",
+  "name": "官网绑定",
+  "group": "C",
+  "design_direction": "设备编号设计示例、服务未连接、归属未确认；查询绑定码→官网绑定→重新查询归属；查询码禁用有原因，不虚构二维码。",
+  "route": "cloud_bind",
+  "status": "design_review",
+  "business_goal": "查看设备编号、接入连接和账号归属。",
+  "prerequisites": "需要网络、接入服务和设备登记；绑定码属于设备归属流程。",
+  "operation_steps": [
+    "查看设备编号、接入连接和账号归属。",
+    "连接就绪后查询绑定码，按绑定步骤到官网设备管理中完成绑定。",
+    "返回本页重新查询归属，核对是否已绑定到正确账号。"
+  ],
+  "confirmed_result": "显示绑定码不表示绑定完成；以设备归属查询结果为准。",
+  "failure_recovery": "未连接先看网络；绑定码失效需重新查询，不能使用旧码判断成功。",
+  "related_route": "network",
+  "primary_action": "查询绑定码／查询归属",
+  "business_flow": [
+    "检查连接与设备归属",
+    "查询绑定码并由用户在官网完成绑定",
+    "重新查询并核对归属"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "未连接先看网络；绑定码失效需重新查询，不能使用旧码判断成功。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "C-v2",
+    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

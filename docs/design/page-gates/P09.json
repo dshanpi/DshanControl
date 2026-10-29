@@ -1,0 +1,66 @@
+{
+  "id": "P09",
+  "name": "RS485 · Modbus",
+  "group": "B",
+  "design_direction": "串口、波特率、从站地址、轮询间隔表单；保存配置；当前服务记录与采样区分开，保存不代表通信成功。",
+  "route": "fieldbus.rs485",
+  "status": "design_review",
+  "business_goal": "填写串口、波特率、从站地址和轮询间隔。",
+  "prerequisites": "确认实际串口、波特率及从站地址；本页配置首个 Modbus 从站。",
+  "operation_steps": [
+    "填写串口、波特率、从站地址和轮询间隔。",
+    "点击保存配置，核对确认内容。",
+    "保存后到设备监控检查真实采样，确认运行中的采集是否采用新配置。"
+  ],
+  "confirmed_result": "配置保存不代表串口通信成功；空寄存器列表不表示读数为零。",
+  "failure_recovery": "先核对接线与设备参数；运行状态未确认时保留错误信息，不反复保存。",
+  "related_route": "devices",
+  "primary_action": "保存配置",
+  "business_flow": [
+    "编辑串口与轮询参数",
+    "确认后保存配置",
+    "核对采集是否采用新配置"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "先核对接线与设备参数；运行状态未确认时保留错误信息，不反复保存。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "B-v2",
+    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

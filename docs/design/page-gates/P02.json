@@ -1,0 +1,66 @@
+{
+  "id": "P02",
+  "name": "设备监控",
+  "group": "A",
+  "design_direction": "点位表名称/读数/单位/时间/质量，固定暂停显示/继续显示与显示设置；解释暂停仅冻结本页。",
+  "route": "devices",
+  "status": "design_review",
+  "business_goal": "查看读数、单位和时间趋势。",
+  "prerequisites": "确认数据来源与点位；没有读数时不把空白趋势当作零值。",
+  "operation_steps": [
+    "查看读数、单位和时间趋势。",
+    "需要仔细查看时点击暂停监控显示；这只冻结本页，现场采集仍继续。",
+    "点击继续显示恢复最新数据；刷新频率在显示设置中调整。"
+  ],
+  "confirmed_result": "暂停期间显示的是旧数据；恢复后趋势从新片段开始。",
+  "failure_recovery": "数据缺失时查看现场总线和采集服务，不能据此判断设备数值为零。",
+  "related_route": "fieldbus",
+  "primary_action": "暂停／继续显示",
+  "business_flow": [
+    "读取设备数据与采样状态",
+    "暂停仅冻结显示，现场采集继续",
+    "继续显示恢复最新数据"
+  ],
+  "state_coverage": {
+    "normal": "按页面真实能力设计与验证",
+    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
+    "empty": "区分无记录、无匹配、未绑定与不可用",
+    "pending": "显示等待对象与阶段，不重复提交",
+    "failure": "数据缺失时查看现场总线和采集服务，不能据此判断设备数值为零。",
+    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+  },
+  "function_changes": {
+    "retained": [
+      "现有能力检查、维护确认、生命周期限制和取消行为"
+    ],
+    "added": [],
+    "changed": [
+      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+    ],
+    "removed": [],
+    "proposed_not_implemented": []
+  },
+  "design_review": {
+    "decision": "pending",
+    "reference": "",
+    "preview_id": "A-v2",
+    "preview_sha256": "96e14fd84aaa998b360c12f5a9b6942391910e951a7ace6400df6cc43b1f25fb",
+    "known_gaps": [
+      "总览只评审方向；实现前须单页精修字段、控件与状态。",
+      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+      "图中数值与状态是设计示意，不能作真实验证证明。"
+    ]
+  },
+  "implementation": {
+    "summary": "",
+    "source_hashes": {},
+    "verification": [],
+    "actual_screenshots": [],
+    "remaining_risks": [],
+    "history": []
+  },
+  "hardware_validation": {
+    "status": "not_started_for_new_design",
+    "evidence": []
+  }
+}

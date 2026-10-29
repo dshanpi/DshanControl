@@ -22,3 +22,6 @@ Use the accompanying design contract: neutral surfaces, blue primary action/focu
 
 ## Stop conditions
 Do not disguise missing integrations as working controls. Keep unavailable reasons and recovery steps visible. No synthetic touch, media playback or host screenshots can establish physical touch, decoder, audio or fieldbus acceptance.
+
+## Required design-first page gate
+Follow docs/design/page-delivery-gate.md. Render before implementation, show the user, resolve recorded gaps and preserve actual review references. Keep an individual page ledger for business flow, operation steps, function changes, failure recovery, source hashes and verification. Run the design-phase gate before implementation and make check-ui-pages before UI verification/package. Generated concepts do not qualify as actual Qt screenshots. Never manufacture approval or hardware evidence.
