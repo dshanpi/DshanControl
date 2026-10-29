@@ -67,9 +67,23 @@ def check(root, phase="verify", selected=()):
         if page_id not in pages:
             errors.append("unknown affected page: " + str(page_id))
             return
+        authorization = pages[page_id].get("implementation_authorization", {})
+        authorized = (authorization.get("decision") == "explicit_user_request"
+                      and text(authorization.get("reference"))
+                      and text(authorization.get("scope")))
+        if phase == "design" and authorized:
+            return
         review = pages[page_id].get("design_review", {})
-        require(review.get("decision") == "approved" and text(review.get("reference")),
-                page_id + ": design needs actual user review reference")
+        reviewed = review.get("decision") == "approved" and text(review.get("reference"))
+        if authorized and not reviewed:
+            resolution = pages[page_id].get("implementation_design_review", {})
+            require(resolution.get("decision") == "reviewed_against_authorized_direction"
+                    and text(resolution.get("reference"))
+                    and texts(resolution.get("resolved_discrepancies"))
+                    and texts(resolution.get("actual_review_screenshots")),
+                    page_id + ": authorized implementation still needs actual design resolution")
+        else:
+            require(reviewed, page_id + ": design needs actual user review reference")
         require(review.get("known_gaps") == [], page_id + ": unresolved rendering gaps")
 
     if phase == "design":

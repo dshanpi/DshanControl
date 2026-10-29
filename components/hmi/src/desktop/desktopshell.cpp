@@ -34,7 +34,12 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     applicationTitle->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
     applicationTitle->setMinimumWidth(0);
     auto *context = new QVBoxLayout;
-    context->setSpacing(0); context->addWidget(applicationTitle);
+    context->setSpacing(0);
+    auto *titleLine=new QHBoxLayout;titleLine->setContentsMargins(0,0,0,0);
+    titleLine->addWidget(applicationTitle,1);
+    auto *dataStatus=new QLabel("采集：未连接");dataStatus->setObjectName("applicationDataStatus");
+    dataStatus->setStyleSheet("font-size:12px;color:#61758b;");
+    titleLine->addWidget(dataStatus);context->addLayout(titleLine);
     pageHint = new QLabel; pageHint->setObjectName("applicationPageHint");
     pageHint->setTextFormat(Qt::PlainText); pageHint->setStyleSheet("font-size:13px;color:#525252;");
     pageHint->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
@@ -49,12 +54,12 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     });
     auto *switcher = new QPushButton("全部应用");
     switcher->setObjectName("switchApplication");
-    bar->addWidget(switcher);
+    bar->insertWidget(bar->count()-1, switcher);
     connect(switcher, &QPushButton::clicked, this, &DesktopShell::chooseApplication);
     auto *back = new QPushButton("返回工作台");
     back->setObjectName("backToDesktop");
     back->setMinimumSize(132, 48);
-    bar->addWidget(back);
+    bar->insertWidget(0, back);
     layout->addWidget(toolbar);
     applications = new MainWindow;
     applications->setDesktopPointSource(surface);
@@ -107,6 +112,12 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     connect(applications, &MainWindow::desktopBrightnessFinished, this,
             [this](bool, int, const QString &) { brightnessReader->setSuspended(false); });
     connect(applications, &MainWindow::hmiSnapshotChanged, surface, &DesktopCanvas::applyHmi);
+    connect(applications,&MainWindow::hmiSnapshotChanged,this,[dataStatus](const QJsonObject &snapshot) {
+        const bool connected=!snapshot.isEmpty();
+        const bool demo=snapshot.value("settings").toObject().value("demo_mode").toBool();
+        dataStatus->setText(!connected?"采集：离线":demo?"采集：样例":"采集：在线");
+        dataStatus->setStyleSheet(QString("font-size:12px;color:%1;").arg(!connected?"#61758b":demo?"#9c6500":"#168345"));
+    });
     connect(applications, &MainWindow::desktopSnapshotChanged, surface,
             &DesktopCanvas::applyServices);
     connect(surface, &DesktopCanvas::overlayChanged, this, [this](bool covered) {
@@ -291,9 +302,8 @@ void DesktopShell::backToDesktop()
 void DesktopShell::positionContent()
 {
     surface->setGeometry(rect());
-    applicationFrame->setGeometry(fullscreen ? rect()
-                                             : QRect(0, qRound(53 * height() / 600.0), width(),
-                                                     qRound(489 * height() / 600.0)));
+    // Application navigation is self-contained; reserve the full LCD for its controls.
+    applicationFrame->setGeometry(rect());
 }
 
 void DesktopShell::closeEvent(QCloseEvent *event)

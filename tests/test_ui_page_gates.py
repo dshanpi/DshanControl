@@ -106,6 +106,43 @@ class PageGateTest(unittest.TestCase):
         self.save()
         self.assertTrue(gate.check(self.root))
 
+    def test_explicit_user_implementation_request_does_not_bypass_final_gate(self):
+        self.page["implementation_authorization"] = {
+            "decision": "explicit_user_request", "reference": "fixture user request",
+            "scope": "implement pages while resolving recorded design discrepancies"}
+        self.save()
+        self.assertEqual(gate.check(self.root, "design", ["P01"]), [])
+        self.source.write_text("changed")
+        self.assertTrue(gate.check(self.root))
+
+    def test_empty_authorization_reference_cannot_start_implementation(self):
+        self.page["implementation_authorization"] = {
+            "decision": "explicit_user_request", "reference": "", "scope": "implement"}
+        self.save()
+        self.assertTrue(gate.check(self.root, "design", ["P01"]))
+
+    def test_authorized_final_requires_resolution_gaps_and_all_delivery_evidence(self):
+        self.source.write_text("changed")
+        self.completed(gate.fingerprints(self.root)["components/hmi/page.cpp"])
+        self.page["design_review"].update(decision="pending", reference="")
+        self.page["implementation_authorization"] = {
+            "decision": "explicit_user_request", "reference": "fixture user request", "scope": "all pages"}
+        self.save()
+        self.assertTrue(gate.check(self.root))
+        self.page["implementation_design_review"] = {
+            "decision": "reviewed_against_authorized_direction", "reference": "fixture agent review",
+            "resolved_discrepancies": ["Real capability preserved"],
+            "actual_review_screenshots": ["fixture actual capture"]}
+        self.save()
+        self.assertEqual(gate.check(self.root), [])
+        self.page["design_review"]["known_gaps"] = ["unresolved detail"]
+        self.save()
+        self.assertTrue(gate.check(self.root))
+        self.page["design_review"]["known_gaps"] = []
+        self.page["implementation"]["verification"] = []
+        self.save()
+        self.assertTrue(gate.check(self.root))
+
     def test_missing_verification(self):
         self.source.write_text("changed")
         self.completed(gate.fingerprints(self.root)["components/hmi/page.cpp"])

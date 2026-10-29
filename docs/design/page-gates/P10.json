@@ -4,22 +4,22 @@
   "group": "B",
   "design_direction": "接口不可用提示，从站/索引/子索引/十六进制数据；CoE写入与周期测试禁用并说明原因；1000周期×1000微秒。",
   "route": "fieldbus.ethercat",
-  "status": "design_review",
+  "status": "implemented",
   "business_goal": "填写从站、对象索引、子索引和十六进制数据。",
   "prerequisites": "需要唯一可用的 EtherCAT 接口和正确从站；写对象与周期测试均会产生现场操作。",
   "operation_steps": [
-    "填写从站、对象索引、子索引和十六进制数据。",
-    "写对象时点击 CoE 写入并核对确认内容。",
-    "需要周期测试时单独启动测试；本次为 1000 个周期、周期 1000 微秒。"
+    "核对EtherCAT能力和从站对象字典",
+    "填写1至32字节十六进制数据并确认写入",
+    "需要时单独执行1000次/1毫秒周期测试并核对结果"
   ],
   "confirmed_result": "测试完成与从站正常是不同结果，需查看真实从站响应与日志。",
   "failure_recovery": "接口不唯一或能力不可用时先修正设备配置；失败或未知结果先查日志。",
   "related_route": "settings",
   "primary_action": "CoE 写入／周期测试",
   "business_flow": [
-    "核对对象或周期测试参数",
-    "分别确认写入与测试操作",
-    "等待回复并核对从站实际状态"
+    "核对EtherCAT能力和从站对象字典",
+    "填写1至32字节十六进制数据并确认写入",
+    "需要时单独执行1000次/1毫秒周期测试并核对结果"
   ],
   "state_coverage": {
     "normal": "按页面真实能力设计与验证",
@@ -31,13 +31,18 @@
   },
   "function_changes": {
     "retained": [
-      "现有能力检查、维护确认、生命周期限制和取消行为"
+      "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
     ],
-    "added": [],
+    "added": [
+      "增加对象写入/周期测试步骤面板"
+    ],
     "changed": [
-      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+      "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+      "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
     ],
-    "removed": [],
+    "removed": [
+      "未连接数据的占位表/装饰诊断视图"
+    ],
     "proposed_not_implemented": []
   },
   "design_review": {
@@ -45,20 +50,255 @@
     "reference": "",
     "preview_id": "B-v2",
     "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
-    "known_gaps": [
-      "总览只评审方向；实现前须单页精修字段、控件与状态。",
-      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
-      "图中数值与状态是设计示意，不能作真实验证证明。",
-      "周期测试参数需按实际控件补全。"
-    ]
+    "known_gaps": []
   },
   "implementation": {
-    "summary": "",
-    "source_hashes": {},
-    "verification": [],
-    "actual_screenshots": [],
-    "remaining_risks": [],
-    "history": []
+    "summary": "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+    "source_hashes": {
+      "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
+      "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
+      "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
+      "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
+      "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
+      "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
+      "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+      "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+      "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+    },
+    "verification": [
+      "DO/delivery-final-hmi-03.log: final HMI 7/120/6/15 PASS; final-tracked-binding-02 unchanged throughout",
+      "DO/delivery-complete-repository.log: core5/repository390 PASS,11 environment permission skips; binds final-tracked-binding-01",
+      "After repository matrix only bound-trend narrow presentation and its capture/assertions changed; backend/lifecycle matrix not repeated",
+      "DO/narrow-final-targeted-02.log: 3 PASS; 640x600 actual width asserted, retained value/history and offline behavior; two PNGs visually reviewed",
+      "DO/production-builds-final.json: formal host and ARM entries built; build alone is not board qualification"
+    ],
+    "actual_screenshots": [
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/007-现场总线.png SHA256 c25598f10fcfb8cb0c3a98e30f34e0f34c6e52119c229a0a1611de83428a9aa9"
+    ],
+    "remaining_risks": [
+      "真实网络、现场总线、云家庭、语音和媒体能力仍需设备实证；本记录只覆盖UI实现与主机验证。",
+      "本版整机候选与烧写验证尚未完成；不代表原73项验收或24小时验证完成。"
+    ],
+    "history": [
+      {
+        "id": "DO-implementation-01",
+        "date": "2026-10-30",
+        "summary": "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+        "business_flow": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "operation_steps": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [
+            "增加对象写入/周期测试步骤面板"
+          ],
+          "changed": [
+            "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+            "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
+          ],
+          "removed": [
+            "未连接数据的占位表/装饰诊断视图"
+          ],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
+          "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
+          "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
+          "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
+          "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
+          "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
+          "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "53e1a559ffab2d23bb64e0e1440560590b0f8284b67c0305b6d54cddb3120057",
+          "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+        },
+        "verification": [
+          "SDK DO/ui-full-review-01.log:119 PASS 1 FAIL; old 542px desktop-footer assertion, retained",
+          "SDK DO/implementation-source-binding-01.json: runtime unchanged through test; full-LCD visibility assertion follow-up pending"
+        ],
+        "actual_screenshots": [
+          "SDK DO/review-all-captures; host fixture only"
+        ],
+        "status": "implementation_review_in_progress",
+        "remaining_risks": [
+          "最终完整HMI/仓库/ARM/整机及实板仍待执行"
+        ]
+      },
+      {
+        "id": "DO-implementation-02",
+        "date": "2026-10-30",
+        "summary": "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+        "business_flow": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "operation_steps": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [
+            "增加对象写入/周期测试步骤面板"
+          ],
+          "changed": [
+            "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+            "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
+          ],
+          "removed": [
+            "未连接数据的占位表/装饰诊断视图"
+          ],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
+          "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
+          "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
+          "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
+          "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
+          "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
+          "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "53e1a559ffab2d23bb64e0e1440560590b0f8284b67c0305b6d54cddb3120057",
+          "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+        },
+        "verification": [
+          "SDK DO/ui-full-review-02.log: 120 PASS 0 FAIL; actual Qt host fixture",
+          "SDK DO/gate-tests-authorization-final.log: 13 PASS; ledger semantics only",
+          "SDK DO/actual-page-capture-manifest.json: 24 representative pages with full SHA; not all business states"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/007-现场总线.png SHA256 c25598f10fcfb8cb0c3a98e30f34e0f34c6e52119c229a0a1611de83428a9aa9"
+        ],
+        "remaining_risks": [
+          "真实网络、现场总线、云家庭、语音和媒体能力仍以实际服务/板端结果为准；本记录不把主机截图判为业务实证。",
+          "完整HMI入口、仓库检查、整机候选和本版烧写验证将在后续交付记录中绑定。"
+        ]
+      },
+      {
+        "id": "DO-narrow-trend-review-03",
+        "date": "2026-10-30",
+        "summary": "窄屏绑定趋势补齐当前值、质量与稳定点位 ID；不新增采集。原全量验证绑定1已通过，新布局复验待完成。",
+        "business_flow": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "operation_steps": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [
+            "增加对象写入/周期测试步骤面板"
+          ],
+          "changed": [
+            "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+            "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
+          ],
+          "removed": [
+            "未连接数据的占位表/装饰诊断视图"
+          ],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
+          "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
+          "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
+          "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
+          "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
+          "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
+          "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+        },
+        "verification": [
+          "DO/delivery-complete-hmi-02.log: 7/120/6/15 PASS, before narrow-only follow-up",
+          "DO/delivery-complete-repository.log: core5/repository390 PASS,11 environment skips, before narrow-only follow-up",
+          "DO/final-tracked-consistency-02.json: unchanged",
+          "Narrow-only final HMI follow-up pending"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/007-现场总线.png SHA256 c25598f10fcfb8cb0c3a98e30f34e0f34c6e52119c229a0a1611de83428a9aa9"
+        ],
+        "remaining_risks": [
+          "真实网络、现场总线、云家庭、语音和媒体能力仍以实际服务/板端结果为准；本记录不把主机截图判为业务实证。",
+          "完整HMI入口、仓库检查、整机候选和本版烧写验证将在后续交付记录中绑定。"
+        ]
+      },
+      {
+        "id": "DO-ui-delivery-04",
+        "date": "2026-10-30",
+        "summary": "逐页业务与操作流程已记录，实际页面按认可方向核对；最终全量HMI通过，窄屏补齐不改变采集/命令语义。",
+        "business_flow": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "operation_steps": [
+          "核对EtherCAT能力和从站对象字典",
+          "填写1至32字节十六进制数据并确认写入",
+          "需要时单独执行1000次/1毫秒周期测试并核对结果"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [
+            "增加对象写入/周期测试步骤面板"
+          ],
+          "changed": [
+            "CoE写入四行表单在左，周期测试和核对步骤在右；两个动作分别确认。",
+            "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
+          ],
+          "removed": [
+            "未连接数据的占位表/装饰诊断视图"
+          ],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
+          "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
+          "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
+          "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
+          "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
+          "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
+          "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+        },
+        "verification": [
+          "DO/delivery-final-hmi-03.log: final HMI 7/120/6/15 PASS; final-tracked-binding-02 unchanged throughout",
+          "DO/delivery-complete-repository.log: core5/repository390 PASS,11 environment permission skips; binds final-tracked-binding-01",
+          "After repository matrix only bound-trend narrow presentation and its capture/assertions changed; backend/lifecycle matrix not repeated",
+          "DO/narrow-final-targeted-02.log: 3 PASS; 640x600 actual width asserted, retained value/history and offline behavior; two PNGs visually reviewed",
+          "DO/production-builds-final.json: formal host and ARM entries built; build alone is not board qualification"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/007-现场总线.png SHA256 c25598f10fcfb8cb0c3a98e30f34e0f34c6e52119c229a0a1611de83428a9aa9"
+        ],
+        "remaining_risks": [
+          "真实网络、现场总线、云家庭、语音和媒体能力仍以实际服务/板端结果为准；本记录不把主机截图判为业务实证。",
+          "完整HMI入口、仓库检查、整机候选和本版烧写验证将在后续交付记录中绑定。"
+        ]
+      }
+    ]
   },
   "hardware_validation": {
     "status": "not_started_for_new_design",
@@ -68,5 +308,49 @@
     "decision": "approved_direction_only",
     "reference": "user reply call_5ca2afbb692041a296ef55747d2f35f0: 认可方向，继续逐页精修",
     "scope": "整体布局和风格，不等同逐页细节已批准"
+  },
+  "implementation_authorization": {
+    "decision": "explicit_user_request",
+    "reference": "2026-10-29 human: 继续给我一比一的做啊，你生成了那么多页面，全都给我坐好再给我说，自己搞个任务",
+    "scope": "按已展示图稿统一实施全部页面，代理修正已记录的能力/字段/布局偏差；无需逐页重复确认，最终验收仍须关闭偏差与绑定记录。"
+  },
+  "work_in_progress": {
+    "id": "DO-system-validation-pending",
+    "summary": "本页UI实现与主机UI验证完成；完整交付与本版烧写尚未完成。",
+    "not_claimed": [
+      "全部实际业务完成",
+      "本版已烧写",
+      "整机24小时验证完成"
+    ]
+  },
+  "design_discrepancies_under_review": [
+    "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数"
+  ],
+  "design_gap_history": [
+    {
+      "id": "DO-gap-resolution-01",
+      "original_known_gaps": [
+        "总览只评审方向；实现前须单页精修字段、控件与状态。",
+        "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
+        "图中数值与状态是设计示意，不能作真实验证证明。",
+        "周期测试参数需按实际控件补全。"
+      ],
+      "resolution": [
+        "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数",
+        "公共导航、准确子页选中态和操作入口已在真实Qt截图逐页核对；1024×600及其他响应式尺寸由原行为断言验证。"
+      ]
+    }
+  ],
+  "implementation_design_review": {
+    "decision": "reviewed_against_authorized_direction",
+    "reference": "DO actual Qt visual review 2026-10-30; user unified implementation authorization retained separately",
+    "resolved_discrepancies": [
+      "移除未接入的空从站表和装饰诊断图；不假定固定4字节或增加测试参数",
+      "真实Qt字段与服务能力核对；实际按钮、导航和步骤保留"
+    ],
+    "actual_review_screenshots": [
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/007-现场总线.png SHA256 c25598f10fcfb8cb0c3a98e30f34e0f34c6e52119c229a0a1611de83428a9aa9"
+    ],
+    "scope": "代理实施评审，不冒充用户对未展示细节的逐项批准；截图是主机合成数据"
   }
 }

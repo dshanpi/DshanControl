@@ -93,9 +93,12 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
     }
     form->addRow("当前版本", version);
     columns->addWidget(info, 1);
-    auto *preflight = new QGroupBox("更新前检查");
+    auto *preflight = new QGroupBox("更新流程与检查");
     auto *checks = new QFormLayout(preflight);
     checks->setVerticalSpacing(10);
+    auto *flow = new QLabel("1  检查兼容版本与签名\n2  下载应用包并校验完整性\n3  进入维护流程后安装，核对最终结果");
+    flow->setObjectName("updateWorkflowSteps"); flow->setWordWrap(true);
+    checks->addRow(flow);
     int iconIndex = 0;
     const QStringList symbols = {"chip", "server", "check"};
     for (const QString &name : {QString("设备匹配"), QString("运行环境"), QString("发布清单签名")}) {
@@ -113,10 +116,6 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
     }
     columns->addWidget(preflight, 1);
     layout->addLayout(columns, 1);
-    auto *checkNote = new QLabel("安装包下载后仍需校验完整性；安装必须进入设备维护流程。");
-    checkNote->setObjectName("caption");
-    checkNote->setWordWrap(true);
-    checks->addRow(checkNote);
     status = valueLabel();
     status->setObjectName("warningNote");
     layout->addWidget(status);

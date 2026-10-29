@@ -172,6 +172,7 @@ class OverviewDashboard : public QWidget
     explicit OverviewDashboard(bool trendOnly = false);
     void setSnapshot(const QJsonObject &value);
     void setOffline();
+    void setTopologyVisible(bool visible);
     bool online() const
     {
         return connected;
@@ -182,7 +183,7 @@ class OverviewDashboard : public QWidget
     }
     QSize sizeHint() const override
     {
-        return QSize(880, 528);
+        return QSize(880, 430);
     }
   signals:
     void alarmsRequested();
@@ -202,6 +203,7 @@ class OverviewDashboard : public QWidget
     QJsonObject data;
     bool connected = false;
     bool trendOnly = false;
+    bool topologyVisible = false;
     QVector<QPointF> temperatures, pressures;
     QRectF alarmAction;
 };

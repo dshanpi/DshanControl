@@ -54,7 +54,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     auto *root = new PageLayout(this);
     root->setContentsMargins(14, 6, 14, 8);
     root->setSpacing(6);
-    root->addWidget(label("云服务", "cloudTitle"));
+    // The shared application header identifies the route.
     auto *tabs = new SectionTabs;
     tabs->setObjectName("cloudTabs");
     root->addWidget(tabs, 1);
@@ -66,7 +66,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     columns->addWidget(panel(&left), 3);
     auto *pair = panel(&right);
     columns->addWidget(pair, 2);
-    left->addWidget(label("连接 100ask 官网", "panelTitle"));
+    left->addWidget(label("设备身份与连接", "panelTitle"));
     left->addWidget(label("在官网设备管理中输入本机绑定码，将设备加入你的账号。", "caption"));
     identity = label("待设备登记");
     field(left, "设备编号", identity);
@@ -85,7 +85,8 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
                                  "net，登录你的账号，在设备管理中输入本机显示的六位绑定码。\n\n已绑"
                                  "定的设备无需重新登记。涂鸦家庭账号需另外授权。");
     });
-    right->addWidget(label("设备绑定", "panelTitle"));
+    right->addWidget(label("绑定步骤", "panelTitle"));
+    right->addWidget(label("1  查询绑定码与当前归属", "panelTitle"));
     code = label("—  —  —  —  —  —", "pairingCode");
     code->setAlignment(Qt::AlignCenter);
     right->addWidget(code, 1);
@@ -94,6 +95,10 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     right->addWidget(expiry);
     refresh = new QPushButton("查询 / 获取绑定码");
     right->addWidget(refresh);
+    right->addWidget(label("2  在官网设备管理输入有效绑定码", "panelTitle"));
+    right->addWidget(label("在 www.100ask.net 登录账号后完成绑定。", "caption"));
+    right->addWidget(label("3  再次查询，核对账号归属", "panelTitle"));
+    right->addWidget(label("只有服务返回最新归属才算确认；过期码需重新获取。", "caption"));
     connect(refresh, &QPushButton::clicked, this, [this]() { client->request("cloud.refresh"); });
     tabs->addTab(binding, "官网绑定");
     auto *reporting = new LayoutPage;
@@ -103,7 +108,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     QVBoxLayout *readings, *options;
     row->addWidget(panel(&readings), 3);
     auto *settings = panel(&options);
-    settings->setMaximumWidth(260);
+    settings->setMinimumWidth(240);
     row->addWidget(settings, 2);
     readings->addWidget(label("点位上报", "panelTitle"));
     reportState = label("接入服务未连接", "caption");
@@ -131,6 +136,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     period->addItem("每 60 秒", 60);
     period->addItem("每 5 分钟", 300);
     options->addWidget(period);
+    options->addWidget(label("开关与周期修改立即提交；仅在服务可用时生效。", "caption"));
     options->addWidget(label("最近代理确认", "caption"));
     lastAck = label("--");
     options->addWidget(lastAck);

@@ -71,9 +71,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     auto *root = new PageLayout(this);
     root->setContentsMargins(14, 6, 14, 8);
     root->setSpacing(6);
-    auto *title = label("家庭与对话", "sectionTitle");
-    title->setStyleSheet("font-size:25px;");
-    root->addWidget(title);
+    // The shared header and selected section identify this task.
     auto *tabs = new SectionTabs;
     tabs->setObjectName("familyTabs");
     root->addWidget(tabs, 1);
@@ -84,7 +82,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     QVBoxLayout *left, *right;
     columns->addWidget(panel(&left), 3);
     auto *settings = panel(&right);
-    settings->setMaximumWidth(260);
+    settings->setMinimumWidth(240);
     columns->addWidget(settings, 2);
     auto *head = new QHBoxLayout;
     head->addWidget(label("对话记录", "panelTitle"));
@@ -175,6 +173,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     body->addWidget(devices, 3);
     QVBoxLayout *controls;
     auto *detail = panel(&controls);
+    detail->setObjectName("homeControlPanel");
     detail->setMinimumWidth(190);
     detail->setMaximumWidth(310);
     body->addWidget(detail, 2);
@@ -367,6 +366,9 @@ void FamilyPanel::apply(const QJsonObject &state)
                                                   {"error", "对话服务异常"}};
     voiceState->setText(
         !connected ? "服务未连接" : !ready ? "语音尚未就绪" : states.value(status, "等待服务状态"));
+    transcript->setPlaceholderText(ready
+        ? "按住下方按钮说话，松开后等待识别与回复。"
+        : "语音服务尚未就绪\n请先在设备上完成语音服务接入与录放音配置，再开始对话。");
     activation->setText(ready ? "激活与录放音已就绪"
                               : voice["configured"] == true ? "等待激活与录放音就绪"
                                                             : "涂鸦运行时尚未接入");
@@ -432,6 +434,14 @@ void FamilyPanel::apply(const QJsonObject &state)
             }
     }
     loading = false;
+    if (auto *panel=findChild<QFrame *>("homeControlPanel"))
+        panel->setVisible(devices->rowCount()>0);
+    static_cast<DataTable *>(devices)->setEmptyText(!connected
+        ? "接入服务未连接，暂时无法获取家庭设备。"
+        : home["authorization"] != "authorized"
+            ? "请先在官网关联家庭账号，再同步设备。"
+            : rooms->currentIndex()>0 ? "当前房间没有匹配设备，可选择全部房间。"
+            : "尚未发现家庭设备，请检查接入后同步设备。");
     const auto signature = selectedDevice.toUtf8() +
                            QJsonDocument(home["functions"].toObject()[selectedDevice].toArray())
                                .toJson(QJsonDocument::Compact);

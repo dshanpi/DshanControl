@@ -359,7 +359,7 @@ void NavigationButton::paintEvent(QPaintEvent *)
 
 OverviewDashboard::OverviewDashboard(bool trendOnly) : trendOnly(trendOnly)
 {
-    setMinimumSize(320, trendOnly ? 220 : 528);
+    setMinimumSize(320, trendOnly ? 220 : 430);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setAccessibleName("运行总览");
 }
@@ -367,7 +367,7 @@ void OverviewDashboard::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     if (!trendOnly)
-        setMinimumHeight(width() < 760 ? 1110 : 528);
+        setMinimumHeight(width() < 760 ? (topologyVisible ? 880 : 740) : 430);
 }
 void OverviewDashboard::setSnapshot(const QJsonObject &value)
 {
@@ -422,26 +422,30 @@ void OverviewDashboard::paintEvent(QPaintEvent *)
     }
     const qreal x = 12, w = width() - 24;
     const bool narrow = width() < 760;
-    Visuals::text(p, QRectF(x + 4, 10, 126, 38), "运行总览", 27, Visuals::ink, true);
-    if (!narrow)
-        Visuals::text(p, QRectF(x + 140, 16, w - 144, 30), "现场运行状态与通信链路", 14, Visuals::muted);
-    qreal y = 58, summary = narrow ? 86 : 43;
-    drawSummary(p, QRectF(x, y, w, summary));
-    y += summary + 10;
-    const qreal topology = narrow ? 556 : 228;
-    drawTopology(p, QRectF(x, y, w, topology), narrow);
-    y += topology + 10;
-    if (narrow) {
-        drawTrend(p, QRectF(x, y, w, 180));
-        y += 190;
-        drawAlarms(p, QRectF(x, y, w, 180));
+    qreal y = 10;
+    const qreal summary = narrow ? 282 : 114;
+    drawSummary(p, QRectF(x,y,w,summary));
+    y += summary + 12;
+    alarmAction = {};
+    if(topologyVisible) {
+        drawTopology(p,QRectF(x,y,w,narrow ? 556 : qMax(228.0,height()-y-12)),narrow);
+    } else if(narrow) {
+        drawTrend(p,QRectF(x,y,w,180)); y+=192;
+        drawAlarms(p,QRectF(x,y,w,qMax(180.0,height()-y-12)));
     } else {
-        const qreal left = (w - 10) * .625;
-        const qreal h = qMax(160.0, height() - y - 18);
-        drawTrend(p, QRectF(x, y, left, h));
-        drawAlarms(p, QRectF(x + left + 10, y, w - left - 10, h));
+        const qreal left=(w-12)*.625;
+        const qreal h=qMax(220.0,height()-y-12);
+        drawTrend(p,QRectF(x,y,left,h));
+        drawAlarms(p,QRectF(x+left+12,y,w-left-12,h));
     }
 }
+void OverviewDashboard::setTopologyVisible(bool visible)
+{
+    topologyVisible=visible;
+    setMinimumHeight(width()<760 ? (visible?880:740) : 430);
+    updateGeometry();update();
+}
+
 QStringList OverviewDashboard::summaryValues() const
 {
     const auto summary = data.value("summary").toObject();
@@ -465,33 +469,27 @@ QStringList OverviewDashboard::summaryValues() const
     return {summary.value("status").toString("--"), countText(summary["online_devices"]),
             countText(data["alarms"].toObject()["active"]), duration};
 }
-void OverviewDashboard::drawSummary(QPainter &p, const QRectF &r)
+void OverviewDashboard::drawSummary(QPainter &p,const QRectF &r)
 {
     using namespace Visuals;
-    panel(p, r);
-    const bool healthy = data["summary"].toObject()["status"].toString() == "正常";
-    const QColor healthColor = healthy ? QColor("#18824c") : QColor("#bb7900");
-    const QStringList labels = {"系统运行", "在线设备", "未确认告警", "运行时长"};
-    const QStringList values = summaryValues();
-    const QStringList symbols = {"", "server", "bell", "clock"};
-    const int cols = r.height() > 60 ? 2 : 4;
-    const qreal cell = r.width() / cols;
-    for (int i = 0; i < 4; i++) {
-        const qreal xx = r.x() + i % cols * cell, yy = r.y() + i / cols * 43;
-        if (i % cols) {
-            p.setPen(QColor("#c9d9ef"));
-            p.drawLine(QPointF(xx, yy + 12), QPointF(xx, yy + 31));
-        }
-        if (i == 0) {
-            p.setPen(Qt::NoPen);
-            p.setBrush(connected ? healthColor : muted);
-            p.drawEllipse(QRectF(xx + 20, yy + 15, 14, 14));
-        } else
-            icon(p, QRectF(xx + 20, yy + 13, 18, 18), symbols[i], i == 2 ? QColor("#b63752") : ink);
-        text(p, QRectF(xx + 48, yy, cell * .43, 43), labels[i], 13, ink);
-        const qreal valueX = i == 3 ? xx + 104 : xx + cell * .60;
-        text(p, QRectF(valueX, yy, xx + cell - valueX - 9, 43), connected ? values[i] : "--",
-             i == 3 ? 15 : 17, i == 0 ? healthColor : (i == 2 ? QColor("#b63752") : blue), true);
+    const bool narrow=r.height()>200;
+    const qreal w=narrow?r.width():(r.width()-24)/3;
+    const auto values=summaryValues();
+    const QStringList titles={"数据连接","设备状态","未确认告警"};
+    for(int i=0;i<3;++i) {
+        const QRectF card(r.x()+(narrow?0:i*(w+12)),r.y()+(narrow?i*94:0),w,narrow?86:r.height());
+        panel(p,card);
+        text(p,QRectF(card.x()+14,card.y()+8,w-28,22),titles[i],15,ink,true);
+        const bool demo=data.value("settings").toObject().value("demo_mode").toBool();
+        const QString value=i==0?(connected?(demo?QString("样例数据"):QString("已连接")):QString("服务离线")):values[i];
+        const QColor color=i==0?(connected?green:muted):i==2?QColor("#c22b3d"):blue;
+        text(p,QRectF(card.x()+14,card.y()+30,w-28,32),value+(i==1?" 台在线":i==2?" 条":""),24,color,true);
+        const QString detail=i==0?("运行状态："+values[0]+" · 时长 "+values[3]):
+            i==1?QString("设备数量来自最近服务记录"):QString("确认记录不消除现场故障");
+        text(p,QRectF(card.x()+14,card.y()+65,w-28,22),detail,12,muted);
+        if(!narrow && i==0)
+            text(p,QRectF(card.x()+14,card.y()+87,w-28,18),
+                 connected?"以最新服务响应为准":"当前设备状态未确认",11,muted);
     }
 }
 void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
@@ -582,7 +580,7 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
     text(p, QRectF(center.x() + 60, center.y() + 35, center.width() - 66, 18), "工业控制网关", 12, muted);
     p.setPen(border);
     p.drawLine(QPointF(center.x() + 18, center.y() + 59), QPointF(center.right() - 18, center.y() + 59));
-    const QStringList meta = {"采集周期", "数据点", "状态"};
+    const QStringList meta = {"显示刷新", "数据点", "状态"};
     const auto settings = data.value("settings").toObject();
     const QStringList values = {connected ? QString::number(settings.value("refresh_ms").toInt(1000)) + " ms"
                                           : "--",
@@ -604,7 +602,7 @@ void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)
         panel(p, outputs[i], QColor("#f6f9fe"));
         icon(p, QRectF(outputs[i].x() + 17, outputs[i].y() + 20, 32, 32), i == 0 ? "server" : "cloud");
         const QJsonObject net = i < networks.size() ? networks[i].toObject() : QJsonObject();
-        text(p, outputs[i].adjusted(71, 5, -5, -outputs[i].height() + 29), i == 0 ? "本地网络" : "无线网络",
+        text(p, outputs[i].adjusted(71, 5, -5, -outputs[i].height() + 29), net.value("name").toString("网络接口未提供"),
              14, ink, true);
         text(p, outputs[i].adjusted(71, 27, -5, -outputs[i].height() + 45),
              !connected

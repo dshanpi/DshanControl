@@ -149,6 +149,8 @@ class HmiUiTest : public QObject
         auto *details=w->findChild<QPushButton *>("auditDetails");QVERIFY(details);
         w->auditTable->setCurrentCell(0,0);QTest::qWait(20);
         QVERIFY(details->isEnabled());QVERIFY(details->visibleRegion().contains(details->rect()));
+        auto *preview=w->findChild<QLabel *>("auditSelectedPreview");QVERIFY(preview);
+        QCOMPARE(preview->textFormat(),Qt::PlainText);QVERIFY(preview->text().contains("can0/node1"));
         bool visible=false;
         QTimer::singleShot(20,[&]() {
             auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
@@ -162,6 +164,7 @@ class HmiUiTest : public QObject
         details->click();QVERIFY(visible);
         w->auditResult->setCurrentIndex(1);
         QVERIFY(!details->isEnabled());QVERIFY(w->auditCount->text().contains("1 / 2"));
+        QVERIFY(!preview->text().contains("can0/node1"));
         w->auditTable->setCurrentCell(1,0);QVERIFY(details->isEnabled());
         w->auditResult->setCurrentIndex(2);QVERIFY(!details->isEnabled());
     }
@@ -252,6 +255,38 @@ class HmiUiTest : public QObject
         w.markOffline();QCOMPARE(result->text(),failure);
     }
 
+    void refinedSettingsSeparatesDraftFromRecordedValues()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("settings")); QTest::qWait(40);
+        auto *editor=w->findChild<QGroupBox *>("settingsEditorPanel");
+        auto *record=w->findChild<QGroupBox *>("settingsRecordPanel");
+        QVERIFY(editor && record);
+        QVERIFY(editor->isAncestorOf(w->brightnessSlider));
+        QVERIFY(editor->isAncestorOf(w->refreshCombo));
+        QVERIFY(editor->isAncestorOf(w->demoCheck));
+        QVERIFY(record->isAncestorOf(w->findChild<QLabel *>("settingsRecordedValues")));
+        QVERIFY(!record->isAncestorOf(w->brightnessSlider));
+        QVERIFY(editor->mapTo(&shell,QPoint()).x()<record->mapTo(&shell,QPoint()).x());
+        auto *back=shell.findChild<QPushButton *>("backToDesktop");
+        auto *location=shell.findChild<QLabel *>("applicationLocation");
+        auto *switcher=shell.findChild<QPushButton *>("switchApplication");
+        auto *steps=shell.findChild<QPushButton *>("showApplicationGuide");
+        QVERIFY(back && location && switcher && steps);
+        QVERIFY(back->mapTo(&shell,QPoint()).x()<location->mapTo(&shell,QPoint()).x());
+        QVERIFY(switcher->mapTo(&shell,QPoint()).x()<steps->mapTo(&shell,QPoint()).x());
+        for (const auto &name : {"saveSettings","discardSettingsDraft","settingsViewServices","openDisplayProbe"}) {
+            auto *button=w->findChild<QPushButton *>(name); QVERIFY(button);
+            QVERIFY(button->height()>=48);
+            QVERIFY2(button->visibleRegion().contains(button->rect()),name);
+        }
+        auto *services=w->findChild<QPushButton *>("settingsViewServices");
+        w->markOffline(); QVERIFY(services->isEnabled());
+        services->click(); QCOMPARE(w->findChild<QTabWidget *>("settingsTabs")->currentIndex(),1);
+    }
+
     void settingsDraftRestoreIsExplicitAndDoesNotApplyHardware()
     {
         DesktopV1::DesktopShell shell; shell.show();
@@ -271,7 +306,8 @@ class HmiUiTest : public QObject
         QTimer::singleShot(20,[&](){
             auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
             if (!box) return;
-            sawCancel=box->defaultButton()==box->button(QMessageBox::No) && box->text().contains("不调节背光");
+            sawCancel=box->defaultButton()==box->button(QMessageBox::No) && box->text().contains("不调节背光") &&
+                box->text().contains("数据刷新：1 秒") && box->text().contains("演示数据：开启");
             box->button(QMessageBox::No)->click();
         });
         discard->click(); QVERIFY(sawCancel); QCOMPARE(w.brightnessSlider->value(),100); QVERIFY(w.settingsDirty);
@@ -280,7 +316,7 @@ class HmiUiTest : public QObject
         auto fresh=snapshot(); auto values=fresh["settings"].toObject();
         values["brightness"]=180; values["refresh_ms"]=1500; values["demo_mode"]=false; fresh["settings"]=values;
         w.updateSnapshot(fresh); w.refreshTimer.stop(); QCOMPARE(w.brightnessSlider->value(),100);
-        QVERIFY(record->text().contains("1.5")); QCOMPARE(result->text(),feedback);
+        QVERIFY(w.findChild<QLabel *>("settingsRecordedRefresh")->text().contains("1.5")); QCOMPARE(result->text(),feedback);
         QTest::qWait(20);
         qRegisterMetaType<QNetworkReply *>("QNetworkReply*");
         QSignalSpy replies(&w.networkManager,&QNetworkAccessManager::finished);
@@ -612,6 +648,61 @@ class HmiUiTest : public QObject
         QVERIFY(!panel->play->isEnabled());
         QVERIFY(panel->findChild<QPushButton *>("chooseVideo")->isEnabled());
         QVERIFY(panel->note->text().contains("不能开始播放"));
+    }
+
+    void refinedLibraryRequiresExplicitSelectionAndRejectsMissingFile()
+    {
+        QTemporaryDir directory;QVERIFY(directory.isValid());
+        const QString path=directory.filePath("选择流程.mp4");
+        QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write("fixture");file.close();
+        const auto previous=qgetenv("DSHANCONTROL_MEDIA_DIRECTORY");
+        qputenv("DSHANCONTROL_MEDIA_DIRECTORY",directory.path().toUtf8());
+        MainWindow w;isolate(w);
+        if(previous.isNull())qunsetenv("DSHANCONTROL_MEDIA_DIRECTORY");
+        else qputenv("DSHANCONTROL_MEDIA_DIRECTORY",previous);
+        w.resize(1024,600);w.show();QVERIFY(w.openApplication("video"));
+        auto *panel=w.mediaPanel;panel->showSection(1);QTest::qWait(40);
+        auto *select=panel->findChild<QPushButton *>("selectLibraryVideo");
+        auto *detail=panel->findChild<QLabel *>("mediaSelectedFileDetail");
+        QVERIFY(select);QVERIFY(detail);QVERIFY(!select->isEnabled());
+        QCOMPARE(panel->files->rowCount(),1);
+        panel->files->setCurrentCell(0,0);panel->files->selectRow(0);
+        QVERIFY(select->isEnabled());QVERIFY(detail->text().contains("选择流程.mp4"));
+        QVERIFY(panel->selectedFile.isEmpty());QVERIFY(panel->session.queue.isEmpty());
+        select->click();QCOMPARE(panel->selectedFile,path);QCOMPARE(panel->pages->currentIndex(),0);
+        QVERIFY(panel->session.queue.isEmpty());
+        panel->showSection(1);QVERIFY(QFile::remove(path));select->click();
+        QVERIFY(panel->session.queue.isEmpty());QVERIFY(!panel->play->isEnabled());
+        panel->scan();QVERIFY(!select->isEnabled());QCOMPARE(panel->files->rowCount(),0);
+    }
+
+    void refinedMonitorAndOverviewNavigationPreserveReadings()
+    {
+        DesktopV1::DesktopShell shell;shell.show();
+        auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("devices"));QTest::qWait(40);
+        auto *toggle=w->findChild<QPushButton *>("showMonitorTrend");QVERIFY(toggle);
+        QVERIFY(!w->deviceTrend->isVisible());
+        const auto before=w->deviceTrend->temperatures;
+        toggle->click();QVERIFY(w->deviceTrend->isVisible());
+        QCOMPARE(w->deviceTrend->temperatures,before);
+        QVERIFY(w->pauseMonitor->visibleRegion().contains(w->pauseMonitor->rect()));
+        toggle->click();QVERIFY(!w->deviceTrend->isVisible());
+        auto *tabs=w->findChild<QTabBar *>("monitorSections");QVERIFY(tabs);
+        QVERIFY(!tabs->isTabEnabled(1));
+        QVERIFY(shell.openApplication("devices",{{"point_id","sensor/test"}}));
+        QCOMPARE(tabs->currentIndex(),1);QVERIFY(tabs->isTabEnabled(1));
+        tabs->setCurrentIndex(0);QCOMPARE(w->devicePageStack->currentIndex(),0);
+        tabs->setCurrentIndex(1);QCOMPARE(w->boundTrendPanel->context()["point_id"].toString(),QString("sensor/test"));
+        QVERIFY(shell.openApplication("overview"));QTest::qWait(40);
+        const auto overviewBefore=w->dashboard->temperatures;
+        auto *topology=w->findChild<QPushButton *>("overviewTopology");QVERIFY(topology);
+        topology->click();QVERIFY(w->dashboard->topologyVisible);
+        topology->click();QVERIFY(!w->dashboard->topologyVisible);
+        QCOMPARE(w->dashboard->temperatures,overviewBefore);
+        w->findChild<QPushButton *>("overviewMonitor")->click();
+        QCOMPARE(shell.activeApplication(),QString("devices"));
     }
 
     void serviceFeedbackSurvivesSnapshotRefresh()
@@ -3135,9 +3226,26 @@ class HmiUiTest : public QObject
         embedded->setDesktopPointSource(&source);
         QVERIFY(shell.openApplication("devices",qvariant_cast<QJsonObject>(context[0][1])));
         shell.resize(1024,600);shell.show();QTest::qWait(30);
-        QVERIFY(embedded->boundTrendPanel->mapTo(&shell,embedded->boundTrendPanel->rect().bottomRight()).y()<=542);
+        // Applications now own the full LCD; the former desktop footer is not overlaid.
+        const QRect trendRect(embedded->boundTrendPanel->mapTo(&shell,QPoint(0,0)),embedded->boundTrendPanel->size());
+        QVERIFY(shell.rect().contains(trendRect));
+        QVERIFY(embedded->boundTrendPanel->visibleRegion().contains(embedded->boundTrendPanel->rect()));
+        for(const QString &name:{"backToDesktop","switchApplication","showApplicationGuide"}) {
+            auto *button=shell.findChild<QPushButton *>(name);QVERIFY(button);
+            QVERIFY(button->height()>=48);QVERIFY(button->visibleRegion().contains(button->rect()));
+            QVERIFY(!trendRect.intersects(QRect(button->mapTo(&shell,QPoint(0,0)),button->size())));
+        }
         QDir().mkpath("screenshots");QVERIFY(shell.grab().save("screenshots/desktop-trend-context.png"));
+        window.resize(640,600);QTest::qWait(30);
+        QCOMPARE(window.size(),QSize(640,600));
+        QVERIFY(window.boundTrendPanel->width()<760);
+        QCOMPARE(embedded->boundTrendPanel->reading()["value"].toDouble(),0.62);
+        QCOMPARE(source.boundHistory(0).size(),1);
+        QVERIFY(embedded->boundTrendPanel->visibleRegion().contains(embedded->boundTrendPanel->rect()));
+        QVERIFY(window.grab().save("screenshots/desktop-trend-context-narrow.png"));
         source.applyServices({});QVERIFY(window.boundTrendPanel->reading()["value"].isNull());
+        QTest::qWait(30);
+        QVERIFY(window.grab().save("screenshots/desktop-trend-context-narrow-offline.png"));
         QVERIFY(window.openApplication("devices"));QCOMPARE(window.devicePageStack->currentIndex(),0);
         QVERIFY(!window.openApplication("devices",{{"point_id","invalid"}}));
     }
@@ -3170,6 +3278,11 @@ class HmiUiTest : public QObject
         auto *devices=window.familyPanel->findChild<QTableWidget *>("homeDevices");
         QVERIFY(devices->currentRow()>=0);
         QCOMPARE(devices->item(devices->currentRow(),0)->data(Qt::UserRole).toString(),QString("lamp-b"));
+        auto *controls=window.familyPanel->findChild<QFrame *>("homeControlPanel");QVERIFY(controls);
+        QVERIFY(!controls->isHidden());
+        window.familyPanel->apply({});QVERIFY(controls->isHidden());QCOMPARE(devices->rowCount(),0);
+        window.familyPanel->apply(snapshot);QVERIFY(!controls->isHidden());
+
         QVERIFY(window.openApplication("video",{{"path",media}}));
         QCOMPARE(window.mediaPanel->selectedFile,media);
         QVERIFY(window.mediaPanel->session.queue.isEmpty());

@@ -123,6 +123,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     auto *labels = new QVBoxLayout;
     labels->setSpacing(2);
     title = label("视频播放", "mediaTitle");
+    title->hide();
     filename = label("从本地存储选择视频", "caption");
     labels->addWidget(title);
     labels->addWidget(filename);
@@ -233,7 +234,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     side = panel(&right);
     side->setFixedWidth(228);
     columns->addWidget(side);
-    right->addWidget(label("播放列表", "panelTitle"));
+    right->addWidget(label("当前视频与播放列表", "panelTitle"));
     playlist = new QListWidget;
     playlist->setMinimumHeight(90);
     right->addWidget(playlist, 1);
@@ -260,22 +261,49 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     libraryHead->addStretch();
     auto *refresh = button("刷新列表");
     libraryHead->addWidget(refresh);
-    auto *browseFile = button("选择其他位置的视频", false);
-    libraryHead->addWidget(browseFile);
     libraryLayout->addLayout(libraryHead);
     connect(refresh, &QPushButton::clicked, this, &MediaPanel::scan);
-    connect(browseFile, &QPushButton::clicked, this, &MediaPanel::choose);
-    files = new DataTable(3);
+    files = new DataTable(2);
     files->setObjectName("mediaFiles");
-    files->setHorizontalHeaderLabels({"文件名", "大小", "操作"});
+    files->setHorizontalHeaderLabels({"文件名", "大小"});
+    files->setSelectionBehavior(QAbstractItemView::SelectRows);
+    files->setSelectionMode(QAbstractItemView::SingleSelection);
     files->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     files->verticalHeader()->hide();
     files->verticalHeader()->setDefaultSectionSize(54);
     files->setMinimumSize(220, 130);
     files->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    libraryLayout->addWidget(files, 1);
+    auto *libraryColumns = new PageRowLayout(nullptr);
+    libraryColumns->addWidget(files,3);
+    QVBoxLayout *selectedLayout;
+    auto *selectedPanel=panel(&selectedLayout);
+    selectedPanel->setObjectName("mediaSelectedFilePanel");
+    selectedLayout->addWidget(label("选中视频详情","panelTitle"));
+    auto *selectedDetail=label("在列表中选择一个视频。","mediaSelectedFileDetail");
+    selectedLayout->addWidget(selectedDetail); selectedLayout->addStretch();
+    auto *select=button("选择此视频",false);
+    select->setObjectName("selectLibraryVideo"); select->setEnabled(false);
+    selectedLayout->addWidget(select);
+    auto *browseOther=button("浏览其他位置");
+    selectedLayout->addWidget(browseOther);
+    connect(browseOther,&QPushButton::clicked,this,&MediaPanel::choose);
+    connect(files,&QTableWidget::itemSelectionChanged,this,[this,selectedDetail,select]() {
+        const int row=files->currentRow(); const auto *item=files->item(row,0);
+        const bool selected=item && files->item(row,1) && !files->selectedItems().isEmpty();
+        select->setEnabled(selected);
+        selectedDetail->setText(selected
+            ? QString("文件名：%1\n\n大小：%2\n\n选择后返回播放器，再点击播放。")
+                .arg(item->text(),files->item(row,1)->text())
+            : "在列表中选择一个视频。");
+    });
+    connect(select,&QPushButton::clicked,this,[this]() {
+        const auto *item=files->item(files->currentRow(),0);
+        if (item && !files->selectedItems().isEmpty()) selectFile(item->data(Qt::UserRole).toString());
+    });
+    libraryColumns->addWidget(selectedPanel,2);
+    libraryLayout->addLayout(libraryColumns,1);
     libraryLayout->addWidget(
-        label("列表只读取可访问的媒体文件；能否播放取决于实际解码能力。", "caption"));
+        label("列表只读取可访问的媒体文件；选择不自动播放，能否播放取决于实际解码能力。", "caption"));
     pages->addWidget(library);
     auto *settings = new LayoutPage;
     auto *settingsLayout = new PageRowLayout(settings);
@@ -284,7 +312,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     QVBoxLayout *options, *information;
     settingsLayout->addWidget(panel(&options), 1);
     settingsLayout->addWidget(panel(&information), 1);
-    options->addWidget(label("画面与声音", "panelTitle"));
+    options->addWidget(label("播放选项", "panelTitle"));
     options->addWidget(label("画面比例", "caption"));
     aspect = new QComboBox;
     aspect->addItems({"保持原始比例", "适应显示区域"});
@@ -332,8 +360,8 @@ void MediaPanel::scan()
     files->setRowCount(0);
     QDir directory(mediaDirectory);
     static_cast<DataTable *>(files)->setEmptyText(directory.exists()
-        ? "这里还没有视频。点击“选择其他位置的视频”，浏览存储中的文件。"
-        : "视频文件夹尚不可用。请检查存储，或点击“选择其他位置的视频”。");
+        ? "这里还没有视频。点击“浏览其他位置”，浏览存储中的文件。"
+        : "视频文件夹尚不可用。请检查存储，或点击“浏览其他位置”。");
     for (const auto &entry :
          directory.entryInfoList({"*.mp4", "*.mkv", "*.avi", "*.mov", "*.ts", "*.webm"},
                                  QDir::Files | QDir::Readable | QDir::NoSymLinks, QDir::Name))
@@ -348,12 +376,11 @@ void MediaPanel::scan()
         const int row = files->rowCount();
         files->insertRow(row);
         files->setItem(row, 0, new QTableWidgetItem(entry.fileName()));
+        files->item(row,0)->setData(Qt::UserRole,path);
         files->setItem(
             row, 1,
             new QTableWidgetItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1) + " MB"));
-        auto *b = button("选择");
-        files->setCellWidget(row, 2, b);
-        connect(b, &QPushButton::clicked, this, [this, path]() { selectFile(path); });
+
     }
 }
 void MediaPanel::choose()
