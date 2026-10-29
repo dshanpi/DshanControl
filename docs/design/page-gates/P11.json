@@ -9,33 +9,35 @@
   "prerequisites": "本页查询有线接口；地址配置由系统网络服务管理。",
   "operation_steps": [
     "选择接口，核对名称、状态、IPv4 地址和来源。",
-    "点击刷新连接信息，查看新的接口状态。",
+    "点击刷新接口状态，查看新的接口状态。",
     "有地址后进入目标应用验证连接。"
   ],
   "confirmed_result": "网线连接、有 IP 地址和外部服务可达分别确认。",
   "failure_recovery": "本页不能修改 IP 地址；接口未出现时先检查系统网络服务与接线。",
   "related_route": "cloud_bind",
-  "primary_action": "刷新连接信息",
+  "primary_action": "刷新接口状态",
   "business_flow": [
     "选择有线接口",
     "刷新接口记录",
     "分别验证链路、地址和目标服务"
   ],
   "state_coverage": {
-    "normal": "按页面真实能力设计与验证",
+    "normal": "选中接口核对四字段，刷新后在目标应用核对服务",
     "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
-    "empty": "区分无记录、无匹配、未绑定与不可用",
-    "pending": "显示等待对象与阶段，不重复提交",
-    "failure": "本页不能修改 IP 地址；接口未出现时先检查系统网络服务与接线。",
-    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+    "empty": "请求返回空列表：说明未发现接口、详情为空，不等同服务断线",
+    "pending": "依据真实快照请求状态反馈，不用虚构进度",
+    "failure": "读取失败与空列表分开，保留旧值须标明当前未知",
+    "cancel": "本页只读，无保存确认，离开不改系统网络配置"
   },
   "function_changes": {
     "retained": [
-      "现有能力检查、维护确认、生命周期限制和取消行为"
+      "现有能力检查、维护确认、生命周期限制和取消行为",
+      "全部应用、返回工作台、本页步骤及原子页导航",
+      "接口/状态/IPv4/来源四列，选中详情及只读查询"
     ],
     "added": [],
     "changed": [
-      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+      "拟强化表格选中与详情层级、固定刷新入口、补空列表和可达性说明"
     ],
     "removed": [],
     "proposed_not_implemented": []
@@ -43,13 +45,25 @@
   "design_review": {
     "decision": "pending",
     "reference": "",
-    "preview_id": "B-v2",
-    "preview_sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca",
+    "preview_id": "DN-P11",
+    "preview_sha256": "db3f6780d9865422a7a0e4c22ab9344b828bd1094c8f87643bf186fef2dfa711",
     "known_gaps": [
-      "总览只评审方向；实现前须单页精修字段、控件与状态。",
-      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
-      "图中数值与状态是设计示意，不能作真实验证证明。",
-      "补回刷新状态入口；只读，不增加网络配置。"
+      "需补1024×600尺寸标注，实际主按钮不小于48px；比例图不能直接缩放验收。",
+      "尚未单独绘制所有等待、成功、服务失败状态，按记录继续完善。"
+    ],
+    "previous_previews": [
+      {
+        "preview_id": "B-v2",
+        "sha256": "593c3a8b491949ce6714f08cd6a13b907bd08f4b78edbc10c75bde163c41fdca"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "wired",
+        "file": "renders/wired.png",
+        "sha256": "db3f6780d9865422a7a0e4c22ab9344b828bd1094c8f87643bf186fef2dfa711",
+        "bytes": 1212124
+      }
     ]
   },
   "implementation": {
@@ -63,5 +77,11 @@
   "hardware_validation": {
     "status": "not_started_for_new_design",
     "evidence": []
-  }
+  },
+  "direction_review": {
+    "decision": "approved_direction_only",
+    "reference": "user reply call_5ca2afbb692041a296ef55747d2f35f0: 认可方向，继续逐页精修",
+    "scope": "整体布局和风格，不等同逐页细节已批准"
+  },
+  "design_spec": "docs/design/page-gates/refinement-batch-01.md"
 }

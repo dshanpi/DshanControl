@@ -22,34 +22,69 @@
     "分别核对保存与背光应用结果"
   ],
   "state_coverage": {
-    "normal": "按页面真实能力设计与验证",
-    "offline": "保留历史数据和最近结果，标记当前状态未知；相关命令禁用",
-    "empty": "区分无记录、无匹配、未绑定与不可用",
-    "pending": "显示等待对象与阶段，不重复提交",
-    "failure": "失败保留编辑和最近结果；断线后重新核对，不重复提交旧确认。",
-    "cancel": "默认取消，保留先前选择、筛选与未保存编辑"
+    "normal": "编辑与服务记录分开；确认列明提交值，默认取消；保存后自动申请背光并分别核对结果",
+    "offline": "保留编辑和最近结果，保存/撤销禁用，服务页可导航",
+    "empty": "服务记录不完整时提示原因并禁止撤销，不虚填有效值",
+    "pending": "保存与背光应用分别显示；禁止重复事务及撤销",
+    "failure": "保存未确认保留编辑；背光未确认单独提示，不等同硬件故障",
+    "cancel": "保存取消保留编辑；撤销默认继续编辑，恢复前重查记录、编辑和连接"
   },
   "function_changes": {
     "retained": [
-      "现有能力检查、维护确认、生命周期限制和取消行为"
+      "现有能力检查、维护确认、生命周期限制和取消行为",
+      "全部应用、返回工作台、本页步骤及原子页导航",
+      "分辨率、色彩/比例校验、查看服务；亮度刷新实际取值及演示开关"
     ],
     "added": [],
     "changed": [
-      "拟优化信息层级、主操作位置和结果反馈；具体改动须逐项补充"
+      "拟将当前编辑与服务记录分栏，突出未保存状态，固定结果/操作区"
     ],
     "removed": [],
-    "proposed_not_implemented": []
+    "proposed_not_implemented": [
+      "撤销确认展示恢复值摘要",
+      "保存确认补充两阶段结果核对说明"
+    ]
   },
   "design_review": {
     "decision": "pending",
     "reference": "",
-    "preview_id": "C-v2",
-    "preview_sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764",
+    "preview_id": "DN-P14",
+    "preview_sha256": "a91a7f74b4f7c73d3b0dca6694c713450518e62fbbc0dbf30e1f38a94905e8bd",
     "known_gaps": [
-      "总览只评审方向；实现前须单页精修字段、控件与状态。",
-      "各页补齐或核对全部应用、返回工作台、本页步骤和当前子页导航。",
-      "图中数值与状态是设计示意，不能作真实验证证明。",
-      "背光范围和全部字段须对照 Qt 代码精修。"
+      "需补1024×600尺寸标注，实际主按钮不小于48px；比例图不能直接缩放验收。",
+      "尚未单独绘制所有等待、成功、服务失败状态，按记录继续完善。"
+    ],
+    "previous_previews": [
+      {
+        "preview_id": "C-v2",
+        "sha256": "08936aff05d8745c6782ccb314eecd6444ce90c6c96f7025ef76bdb6f70a4764"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "main",
+        "file": "renders/main.png",
+        "sha256": "a91a7f74b4f7c73d3b0dca6694c713450518e62fbbc0dbf30e1f38a94905e8bd",
+        "bytes": 1235209
+      },
+      {
+        "id": "confirm_v2",
+        "file": "renders/confirm_v2.png",
+        "sha256": "36e905a2f82decd0f46ce1d77f5cf2f9e78a127c14678623c73305c50b99dd33",
+        "bytes": 1355058
+      },
+      {
+        "id": "discard",
+        "file": "renders/discard.png",
+        "sha256": "bc7a04c49f819a562fd1959ab753230ad74d0c5f13c52ed2cd23f2f1a983ed42",
+        "bytes": 1362250
+      },
+      {
+        "id": "offline_v3",
+        "file": "renders/offline_v3.png",
+        "sha256": "f61676792349d7519969045ea4fdacf6a5ba2091199826c628526c2aa7b56c79",
+        "bytes": 1524020
+      }
     ]
   },
   "implementation": {
@@ -63,5 +98,11 @@
   "hardware_validation": {
     "status": "not_started_for_new_design",
     "evidence": []
-  }
+  },
+  "direction_review": {
+    "decision": "approved_direction_only",
+    "reference": "user reply call_5ca2afbb692041a296ef55747d2f35f0: 认可方向，继续逐页精修",
+    "scope": "整体布局和风格，不等同逐页细节已批准"
+  },
+  "design_spec": "docs/design/page-gates/refinement-batch-01.md"
 }

@@ -63,5 +63,10 @@
   "hardware_validation": {
     "status": "not_started_for_new_design",
     "evidence": []
+  },
+  "direction_review": {
+    "decision": "approved_direction_only",
+    "reference": "user reply call_5ca2afbb692041a296ef55747d2f35f0: 认可方向，继续逐页精修",
+    "scope": "整体布局和风格，不等同逐页细节已批准"
   }
 }
