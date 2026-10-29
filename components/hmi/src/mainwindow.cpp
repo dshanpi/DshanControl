@@ -449,10 +449,6 @@ QWidget *MainWindow::buildFieldbus()
     QWidget *page = new LayoutPage;
     QVBoxLayout *layout = new PageLayout(page);
     layout->setContentsMargins(14, 6, 14, 6);
-    auto *pageHeading = new QHBoxLayout;
-    pageHeading->addWidget(titleLabel("现场总线"));
-    pageHeading->addWidget(captionLabel("选择协议 → 设置参数 → 确认执行 → 查看设备状态"), 1);
-    layout->addLayout(pageHeading);
     QTabWidget *tabs = new SectionTabs;
 
     QWidget *canPage = new LayoutPage;
@@ -795,6 +791,7 @@ QWidget *MainWindow::buildFieldbus()
     ecLayout->addLayout(ecColumns, 1);
     tabs->addTab(scrollPage(ecPage), "EtherCAT");
     layout->addWidget(tabs, 1);
+    layout->addWidget(makeActionFeedback("fieldbusActionResult"));
     return page;
 }
 
@@ -804,10 +801,6 @@ QWidget *MainWindow::buildNetwork()
     auto *layout = new PageLayout(page);
     layout->setContentsMargins(12, 10, 12, 12);
     layout->setSpacing(10);
-    auto *head = new QHBoxLayout;
-    head->addWidget(titleLabel("网络通信"));
-    head->addWidget(captionLabel("选择网络类型，查看接口状态；蜂窝连接需单独确认"), 1);
-    layout->addLayout(head);
     auto *tabs = new SectionTabs;
     tabs->setObjectName("networkTabs");
     for (int kind = 0; kind < 2; ++kind) {
@@ -939,6 +932,7 @@ QWidget *MainWindow::buildNetwork()
     controls->addWidget(notice);
     tabs->addTab(scrollPage(cellular), "蜂窝网络");
     layout->addWidget(tabs, 1);
+    layout->addWidget(makeActionFeedback("networkActionResult"));
     return page;
 }
 
@@ -1077,6 +1071,7 @@ QWidget *MainWindow::buildDevices()
     monitorLayout->addWidget(scrollPage(page),1);
     monitorLayout->addWidget(monitorFooter);
     devicePageStack=new QStackedWidget;
+    devicePageStack->setObjectName("devicePageStack");
     devicePageStack->addWidget(monitorPage);
     boundTrendPanel=new DesktopV1::DesktopTrendPanel;
     devicePageStack->addWidget(boundTrendPanel);
@@ -1178,6 +1173,7 @@ QWidget *MainWindow::buildAlarms()
     top->addWidget(exportButton);
     layout->addLayout(top);
     alarmTabs = new QTabBar;
+    alarmTabs->setObjectName("alarmTabs");
     alarmTabs->addTab("全部");
     alarmTabs->addTab("未确认");
     alarmTabs->addTab("已确认");
@@ -1639,7 +1635,12 @@ QWidget *MainWindow::buildSettings()
             [this]() { postAction("system_reboot", {}, "确认重启 DshanControl？所有现场通信将暂时中断。"); });
     systemRow->addWidget(reboot);
     serviceLayout->addWidget(system);
-    settingsTabs->addTab(scrollPage(services), "服务管理");
+    auto *serviceSection=new QWidget;
+    auto *serviceSectionLayout=new QVBoxLayout(serviceSection);
+    serviceSectionLayout->setContentsMargins(0,0,0,0);
+    serviceSectionLayout->addWidget(scrollPage(services),1);
+    serviceSectionLayout->addWidget(makeActionFeedback("serviceActionResult"));
+    settingsTabs->addTab(serviceSection, "服务管理");
     auto *audit = new LayoutPage;
     auto *auditLayout = new PageLayout(audit);
     auditLayout->setContentsMargins(0, 10, 0, 0);
@@ -1660,6 +1661,25 @@ QWidget *MainWindow::buildSettings()
     auditBody->addLayout(auditHeader);
     auditTable = makeTable({"时间", "动作", "目标", "结果"});
     static_cast<DataTable *>(auditTable)->setEmptyText("暂无操作记录");
+    auto *details=actionButton("查看选中详情","secondary");
+    details->setObjectName("auditDetails");details->setEnabled(false);
+    auditHeader->insertWidget(auditHeader->count()-1,details);
+    connect(auditTable,&QTableWidget::itemSelectionChanged,this,[this,details]() {
+        const int row=auditTable->currentRow();
+        details->setEnabled(row>=0 && !auditTable->isRowHidden(row) && auditTable->item(row,3));
+    });
+    connect(details,&QPushButton::clicked,this,[this]() {
+        const int row=auditTable->currentRow();
+        if(row<0 || auditTable->isRowHidden(row) || !auditTable->item(row,3)) return;
+        QStringList lines;
+        for(int col=0;col<4;++col)
+            lines << auditTable->horizontalHeaderItem(col)->text()+"："+auditTable->item(row,col)->text();
+        const auto detail=auditTable->item(row,3)->toolTip();
+        lines << "详细结果："+(detail.isEmpty() ? QString("服务未提供详情") : detail);
+        QMessageBox dialog(QMessageBox::Information,"操作记录详情",lines.join("\n"),QMessageBox::Ok,this);
+        dialog.setTextFormat(Qt::PlainText);dialog.button(QMessageBox::Ok)->setText("返回日志");
+        dialog.exec();
+    });
     auditBody->addWidget(auditTable, 1);
     auditCount = captionLabel("显示最近 200 条操作记录");
     auditBody->addWidget(auditCount);
@@ -1810,8 +1830,25 @@ void MainWindow::sendJson(const QByteArray &method, const QString &path, const Q
     });
 }
 
+QLabel *MainWindow::makeActionFeedback(const QString &name)
+{
+    auto *label=new QLabel("最近操作：尚未提交。执行后在此核对结果；设备状态以刷新结果为准。");
+    label->setObjectName(name);
+    label->setTextFormat(Qt::PlainText);
+    label->setWordWrap(true);
+    label->setStyleSheet("font-size:14px;color:#525252;background:#edf5ff;padding:2px;");
+    label->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
+    return label;
+}
+
 void MainWindow::postAction(const QString &action, const QJsonObject &params, const QString &description)
 {
+    // Covers modal confirmation and the outstanding request, including navigation away.
+    if (actionPending) return;
+    const QString resultName=action=="ec20" ? "networkActionResult" :
+        (action=="service" || action=="system_reboot") ? "serviceActionResult" : "fieldbusActionResult";
+    auto *feedback=findChild<QLabel *>(resultName);
+    const quint64 connectionRevision=settingsConnectionRevision;
     QJsonObject actionParams = params;
     const auto cellular = action == "ec20" ? cellularMapping(latestSnapshot, params["profile"].toString()) : QJsonObject();
     if (action == "ec20") {
@@ -1828,7 +1865,7 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
     const auto allowed = [this, &action, &params, &actionParams, ethercat, cellular]() {
         if (latestSnapshot.isEmpty()) return false;
         if (action == "service")
-            return latestSnapshot["services"].toObject()[params["service"].toString()]
+            return latestSnapshot.value("services").toObject()[params["service"].toString()]
                 .toObject()["available"] == QJsonValue(true);
         if (action == "ec20")
             return !cellular.isEmpty() && cellularMapping(latestSnapshot, params["profile"].toString()) == cellular;
@@ -1843,7 +1880,7 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
         const QString device = params["interface"].toString();
         if (device.trimmed().isEmpty())
             return false;
-        const auto platform = latestSnapshot["platform"].toObject();
+        const auto platform = latestSnapshot.value("platform").toObject();
         const auto capabilities = platform["capabilities"].toArray();
         if ((action != "can_apply" && !capabilities.contains("canopen")) ||
             (params["fd"].toBool() && !capabilities.contains("can-fd")))
@@ -1856,19 +1893,49 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
         }
         return false;
     };
-    if (!allowed())
+    if (!allowed()) {
+        if (feedback) feedback->setText("未提交：连接、能力或目标不可用，请刷新后核对。");
         return;
-    QMessageBox confirmation(QMessageBox::Warning, "操作确认", description,
+    }
+    static const QMap<QString,QString> parameterNames = {
+        {"interface","接口"},{"device","设备"},{"profile","模块配置"},{"port","串口"},
+        {"baud","波特率"},{"baudrate","波特率"},{"unit","从站地址"},{"poll_ms","轮询间隔（毫秒）"},
+        {"node_id","节点"},{"state","目标状态"},{"index","对象索引"},{"subindex","子索引"},
+        {"value","写入值"},{"size","写入字节数"},{"bitrate","仲裁波特率"},
+        {"data_bitrate","数据波特率"},{"fd","CAN-FD"},{"restart_ms","恢复间隔（毫秒）"},
+        {"slave","从站"},{"data","十六进制数据"},{"cycles","周期数"},{"period_us","周期（微秒）"},
+        {"service","服务"},{"operation","操作"}
+    };
+    QStringList submitted;
+    for (auto it=actionParams.constBegin();it!=actionParams.constEnd();++it) {
+        QString value=it.value().isBool() ? (it.value().toBool() ? "开启" : "关闭")
+                                        : it.value().toVariant().toString();
+        if(it.key()=="index") value="0x"+QString::number(it.value().toInt(),16);
+        if(it.key()=="operation") value=QMap<QString,QString>{{"start","启动"},{"stop","停止"},
+            {"restart","重启"},{"connect","拨号"},{"disconnect","断开"}}.value(value,value);
+        submitted << parameterNames.value(it.key(),it.key())+"："+value;
+    }
+    const QString confirmationText=description+(submitted.isEmpty()?QString():"\n\n本次提交：\n"+submitted.join("\n"));
+    QMessageBox confirmation(QMessageBox::Warning, "操作确认", confirmationText,
                              QMessageBox::Yes | QMessageBox::No, this);
     confirmation.setTextFormat(Qt::PlainText);
     confirmation.button(QMessageBox::Yes)->setText("确认执行");
     confirmation.button(QMessageBox::No)->setText("取消");
     confirmation.setDefaultButton(QMessageBox::No);
-    if (confirmation.exec() != QMessageBox::Yes)
+    actionPending=true;
+    if (confirmation.exec() != QMessageBox::Yes) {
+        actionPending=false;
         return;
+    }
     // The modal confirmation runs an event loop; a snapshot may revoke access.
-    if (!allowed())
+    if (connectionRevision!=settingsConnectionRevision || !allowed()) {
+        actionPending=false;
+        if (feedback) feedback->setText("未提交：确认期间连接或目标发生变化，请重新核对。");
         return;
+    }
+    actionResultLabel=feedback;
+    actionDescription=description;
+    if (feedback) feedback->setText("等待设备回复："+description+" 请勿重复提交。");
     sendJson("POST", "/actions", {{"action", action}, {"params", actionParams}, {"confirmed", true}}, "action");
 }
 
@@ -1933,6 +2000,18 @@ void MainWindow::handleReply(QNetworkReply *reply)
         }
         reply->deleteLater();
         return;
+    }
+    if (kind == "action") {
+        actionPending=false;
+        QString outcome;
+        if (reply->error()!=QNetworkReply::NoError || !doc.isObject())
+            outcome="执行结果未确认，请先核对设备与操作日志；不要直接重试。";
+        else if (doc.object().value("ok")==QJsonValue(true))
+            outcome="命令已完成；实际设备状态仍需刷新核对。";
+        else
+            outcome="服务返回失败："+doc.object().value("error").toString("未提供原因")+"；先核对设备与日志。";
+        if (actionResultLabel) actionResultLabel->setText("最近操作："+actionDescription+" "+outcome);
+        actionResultLabel.clear();
     }
     if (reply->error() != QNetworkReply::NoError || !doc.isObject()) {
         if (kind == "snapshot")
@@ -2358,6 +2437,13 @@ void MainWindow::updateAuditFilter()
         auditTable->setRowHidden(row, !show);
         visible += show;
     }
+    if (auto *details=findChild<QPushButton *>("auditDetails")) {
+        const int row=auditTable->currentRow();
+        details->setEnabled(row>=0 && !auditTable->isRowHidden(row) && auditTable->item(row,3));
+    }
+    static_cast<DataTable *>(auditTable)->setEmptyText(auditTable->rowCount()==0
+        ? "尚未加载操作记录；可以刷新记录。"
+        : "没有匹配记录；请选择全部执行结果。");
     auditCount->setText(
         QString("显示 %1 / %2 条记录 · 最近 200 条").arg(visible).arg(auditTable->rowCount()));
 }

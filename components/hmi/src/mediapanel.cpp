@@ -146,6 +146,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     connect(chooseVideo, &QPushButton::clicked, this, &MediaPanel::choose);
     root->addWidget(heading);
     pages = new QStackedWidget;
+    pages->setObjectName("mediaPages");
     root->addWidget(pages, 1);
     auto *playing = new LayoutPage;
     auto *columns = new PageRowLayout(playing);

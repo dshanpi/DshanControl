@@ -135,6 +135,123 @@ class HmiUiTest : public QObject
     }
   private slots:
 
+    void auditDetailsAreTouchAccessibleAndBoundToSelection()
+    {
+        DesktopV1::DesktopShell shell;shell.show();
+        auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("settings"));
+        w->findChild<QTabWidget *>("settingsTabs")->setCurrentIndex(2);
+        w->handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{
+            QJsonObject{{"ts",1791817200},{"action","canopen_nmt"},{"target","can0/node1"},{"result","failed"},{"detail","<device> refused"}},
+            QJsonObject{{"ts",1791817201},{"action","service"},{"target","ntp"},{"result","success"},{"detail","completed"}}
+        }}}, "audit"));
+        auto *details=w->findChild<QPushButton *>("auditDetails");QVERIFY(details);
+        w->auditTable->setCurrentCell(0,0);QTest::qWait(20);
+        QVERIFY(details->isEnabled());QVERIFY(details->visibleRegion().contains(details->rect()));
+        bool visible=false;
+        QTimer::singleShot(20,[&]() {
+            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            if(!box)return;
+            visible=box->textFormat()==Qt::PlainText && box->text().contains("<device> refused") &&
+                box->text().contains("can0/node1");
+            const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+            if(!output.isEmpty()) {QDir().mkpath(output);visible=visible && box->grab().save(output+"/操作日志详情.png");}
+            box->accept();
+        });
+        details->click();QVERIFY(visible);
+        w->auditResult->setCurrentIndex(1);
+        QVERIFY(!details->isEnabled());QVERIFY(w->auditCount->text().contains("1 / 2"));
+        w->auditTable->setCurrentCell(1,0);QVERIFY(details->isEnabled());
+        w->auditResult->setCurrentIndex(2);QVERIFY(!details->isEnabled());
+    }
+
+    void subpageGuidesFollowActualSelection()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();
+        auto *help=shell.findChild<QPushButton *>("showApplicationGuide");
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()) QVERIFY(QDir().mkpath(output));
+        const auto check=[&](const QString &key,const QString &expected) {
+            bool correct=false;
+            QTimer::singleShot(20,[&]() {
+                auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+                if(!dialog) return;
+                correct=dialog->property("helpSection").toString()==key &&
+                    dialog->findChild<QLabel *>("guideSteps")->text().contains(expected);
+                if(!output.isEmpty()) correct=correct && dialog->grab().save(output+"/子页步骤-"+key+".png");
+                dialog->reject();
+            });
+            help->click();QVERIFY2(correct,qPrintable(key));
+            QCOMPARE(shell.findChild<QLabel *>("applicationPageHint")->textFormat(),Qt::PlainText);
+            QVERIFY(help->visibleRegion().contains(help->rect()));
+            if(!output.isEmpty()) QVERIFY(shell.grab().save(output+"/子页-"+key+".png"));
+        };
+        QVERIFY(shell.openApplication("fieldbus"));
+        auto *protocol=w->findChild<QTabWidget *>("protocolTabs");
+        protocol->setCurrentIndex(0);w->findChild<QTabWidget *>("canControls")->setCurrentIndex(0);
+        check("fieldbus.nmt","NMT");
+        w->findChild<QTabWidget *>("canControls")->setCurrentIndex(1);check("fieldbus.sdo","4 字节");
+        protocol->setCurrentIndex(1);check("fieldbus.rs485","从站");
+        protocol->setCurrentIndex(2);check("fieldbus.ethercat","1000");
+        QVERIFY(shell.openApplication("network"));
+        auto *net=w->findChild<QTabWidget *>("networkTabs");
+        net->setCurrentIndex(0);check("network.wired","IPv4");
+        net->setCurrentIndex(1);check("network.wifi","无线");
+        net->setCurrentIndex(2);check("network.cellular","拨号");
+        QVERIFY(shell.openApplication("settings"));
+        auto *settings=w->findChild<QTabWidget *>("settingsTabs");
+        settings->setCurrentIndex(0);check("settings.display","撤销");
+        settings->setCurrentIndex(1);check("settings.services","整机重启");
+        settings->setCurrentIndex(2);check("settings.audit","刷新记录");
+        QVERIFY(shell.openApplication("video"));
+        for(int i=0;i<3;++i) {
+            w->mediaPanel->showSection(i);
+            check(QStringList{"video.player","video.library","video.settings"}[i],
+                  QStringList{"播放","文件","比例"}[i]);
+        }
+        QVERIFY(shell.openApplication("devices",{{"point_id","sensor/test"}}));
+        check("devices.trend","主点位");
+        QVERIFY(shell.openApplication("alarms"));
+        for(int i=0;i<3;++i) {
+            w->alarmTabs->setCurrentIndex(i);
+            check(QStringList{"alarms.all","alarms.active","alarms.acknowledged"}[i],
+                  QStringList{"详情","消失","导出"}[i]);
+        }
+    }
+
+    void actionConfirmationRejectsReconnectAndKeepsFailure()
+    {
+        MainWindow w;isolate(w);w.updateSnapshot(snapshot());w.refreshTimer.stop();
+        auto *result=w.findChild<QLabel *>("fieldbusActionResult");QVERIFY(result);
+        const QJsonObject params{{"interface","can0"},{"node_id",1},{"state","STOPPED"}};
+        bool confirmed=false;
+        QTimer::singleShot(20,[&]() {
+            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            if(!box) return;
+            confirmed=w.actionPending && box->defaultButton()==box->button(QMessageBox::No);
+            w.postAction("canopen_nmt",params,"重复请求");
+            w.markOffline();w.updateSnapshot(snapshot());w.refreshTimer.stop();
+            box->button(QMessageBox::Yes)->click();
+        });
+        w.postAction("canopen_nmt",params,"确认停止节点 1");
+        QVERIFY(confirmed);QVERIFY(!w.actionPending);
+        QVERIFY(result->text().contains("未提交"));
+        for(auto *reply:w.networkManager.findChildren<QNetworkReply *>())
+            QVERIFY(reply->property("kind")!="action");
+        w.actionPending=true;w.actionResultLabel=result;w.actionDescription="停止节点 1";
+        QTimer::singleShot(20,[](){
+            if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();
+        });
+        w.handleReply(new FixtureReply({{"ok",false},{"error","设备拒绝"}}, "action"));
+        QVERIFY(!w.actionPending);QVERIFY(result->text().contains("设备拒绝"));
+        const auto failure=result->text();
+        w.updateSnapshot(snapshot());w.refreshTimer.stop();QCOMPARE(result->text(),failure);
+        w.markOffline();QCOMPARE(result->text(),failure);
+    }
+
     void settingsDraftRestoreIsExplicitAndDoesNotApplyHardware()
     {
         DesktopV1::DesktopShell shell; shell.show();
@@ -3634,6 +3751,14 @@ class HmiUiTest : public QObject
     {
         MainWindow w;
         isolate(w);
+        connect(&w.networkManager,&QNetworkAccessManager::finished,&w,[&](QNetworkReply *reply) {
+            if(reply->property("kind")=="action") {
+                QTimer::singleShot(0,[](){
+                    if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();
+                });
+                w.handleReply(reply);
+            }
+        });
         QTcpServer server;
         QVERIFY(server.listen(QHostAddress::LocalHost));
         QList<QJsonObject> requests;
@@ -3733,7 +3858,7 @@ class HmiUiTest : public QObject
         QCOMPARE(poll->text(), QString("3600000"));
         w.findChild<QSpinBox *>("rsUnit")->setValue(247);
         clickDialog(save, "操作确认", QMessageBox::Yes);
-        QTRY_COMPARE(requests.size(), 1);
+        QTRY_COMPARE(requests.size(), 1); QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests[0]["action"].toString(), QString("rs485_config"));
         QCOMPARE(requests[0]["params"].toObject()["unit_id"].toInt(), 247);
         QCOMPARE(requests[0]["params"].toObject()["baudrate"].toInt(), 4000000);
@@ -3741,7 +3866,7 @@ class HmiUiTest : public QObject
         w.findChild<QSpinBox *>("ecSlave")->setValue(65535);
         w.findChild<QSpinBox *>("ecSub")->setValue(255);
         clickDialog(write, "操作确认", QMessageBox::Yes);
-        QTRY_COMPARE(requests.size(), 2);
+        QTRY_COMPARE(requests.size(), 2); QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests[1]["action"].toString(), QString("ethercat_sdo_write"));
         QCOMPARE(requests[1]["params"].toObject()["interface"].toString(), QString("ethTEST"));
         QCOMPARE(requests[1]["params"].toObject()["index"].toInt(), 65535);
@@ -3749,7 +3874,7 @@ class HmiUiTest : public QObject
         QCOMPARE(requests[1]["params"].toObject()["subindex"].toInt(), 255);
         QCOMPARE(requests[1]["params"].toObject()["value"].toString(), QString("06 00"));
         clickDialog(cycle, "操作确认", QMessageBox::Yes);
-        QTRY_COMPARE(requests.size(), 3);
+        QTRY_COMPARE(requests.size(), 3); QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests[2]["action"].toString(), QString("ethercat_cycle"));
         QCOMPARE(requests[2]["params"].toObject()["count"].toInt(), 1000);
         QCOMPARE(requests[2]["params"].toObject()["period_us"].toInt(), 1000);
@@ -3815,6 +3940,14 @@ class HmiUiTest : public QObject
     {
         MainWindow w;
         isolate(w);
+        connect(&w.networkManager,&QNetworkAccessManager::finished,&w,[&](QNetworkReply *reply) {
+            if(reply->property("kind")=="action") {
+                QTimer::singleShot(0,[](){
+                    if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();
+                });
+                w.handleReply(reply);
+            }
+        });
         QTcpServer server;
         QVERIFY(server.listen(QHostAddress::LocalHost));
         QList<QJsonObject> requests;
@@ -3892,8 +4025,8 @@ class HmiUiTest : public QObject
             w.updateSnapshot(invalid); w.refreshTimer.stop(); QVERIFY(!start->isEnabled());
         }
         restore(); click(start, QMessageBox::Yes, 0);
-        QTRY_COMPARE(requests.size(), 1);
-        click(stop, QMessageBox::Yes, 0); QTRY_COMPARE(requests.size(), 2);
+        QTRY_COMPARE(requests.size(), 1); QTRY_VERIFY(!w.actionPending);
+        click(stop, QMessageBox::Yes, 0); QTRY_COMPARE(requests.size(), 2); QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests[0]["params"].toObject()["operation"].toString(), QString("connect"));
         QCOMPARE(requests[1]["params"].toObject()["operation"].toString(), QString("disconnect"));
         for (const auto &request : requests) {
@@ -3927,6 +4060,14 @@ class HmiUiTest : public QObject
     {
         MainWindow w;
         isolate(w);
+        connect(&w.networkManager,&QNetworkAccessManager::finished,&w,[&](QNetworkReply *reply) {
+            if(reply->property("kind")=="action") {
+                QTimer::singleShot(0,[](){
+                    if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();
+                });
+                w.handleReply(reply);
+            }
+        });
         QTcpServer server;
         QVERIFY(server.listen(QHostAddress::LocalHost));
         QList<QJsonObject> requests;
@@ -3969,8 +4110,17 @@ class HmiUiTest : public QObject
                 if (!box) return;
                 seen = true;
                 QCOMPARE(box->windowTitle(), title);
-                if (title == "操作确认")
+                if (title == "操作确认") {
                     QCOMPARE(box->defaultButton(), box->button(QMessageBox::No));
+                    QCOMPARE(box->textFormat(),Qt::PlainText);
+                    QVERIFY(box->text().contains("本次提交："));
+                    QVERIFY(box->text().contains("接口："));
+                    if(button==sdo) {
+                        QVERIFY(box->text().contains("对象索引：0xffff"));
+                        QVERIFY(box->text().contains("写入字节数：4"));
+                        QVERIFY(box->text().contains("写入值：4294967295"));
+                    }
+                }
                 if (offline) w.markOffline();
                 if (revoke) {
                     auto data = snapshot(); data["platform"] = QJsonObject();
@@ -4015,7 +4165,10 @@ class HmiUiTest : public QObject
         QCOMPARE(requests.size(), 0);
         restore();
         clickDialog(apply, "操作确认", QMessageBox::Yes);
+        QVERIFY(w.actionPending);
+        w.postAction("canopen_nmt",{{"interface","can0"},{"node_id",1},{"state","STOPPED"}},"重复请求");
         QTRY_COMPARE(requests.size(), 1);
+        QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests.last()["action"].toString(), QString("can_apply"));
         QCOMPARE(requests.last()["params"].toObject()["bitrate"].toInt(), 500000);
         QVERIFY(!requests.last()["params"].toObject()["fd"].toBool());
@@ -4023,11 +4176,13 @@ class HmiUiTest : public QObject
         fd->setChecked(true); dataRate->setText("8000000");
         clickDialog(apply, "操作确认", QMessageBox::Yes);
         QTRY_COMPARE(requests.size(), 2);
+        QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests.last()["params"].toObject()["data_bitrate"].toInt(), 8000000);
         w.canInterfaces[1]->setCurrentText("can1");
         w.findChild<QSpinBox *>("canNmtNode")->setValue(0);
         clickDialog(nmt, "操作确认", QMessageBox::Yes);
         QTRY_COMPARE(requests.size(), 3);
+        QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests.last()["action"].toString(), QString("canopen_nmt"));
         QCOMPARE(requests.last()["params"].toObject()["interface"].toString(), QString("can1"));
         QCOMPARE(requests.last()["params"].toObject()["node_id"].toInt(-1), 0);
@@ -4035,6 +4190,7 @@ class HmiUiTest : public QObject
         w.findChild<QSpinBox *>("canSdoSubindex")->setValue(255);
         clickDialog(sdo, "操作确认", QMessageBox::Yes);
         QTRY_COMPARE(requests.size(), 4);
+        QTRY_VERIFY(!w.actionPending);
         QCOMPARE(requests.last()["action"].toString(), QString("canopen_sdo_write"));
         const auto params = requests.last()["params"].toObject();
         QCOMPARE(params["node_id"].toInt(), 127);

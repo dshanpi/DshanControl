@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
+#include <QTabBar>
 
 namespace DesktopV1
 {
@@ -28,16 +29,21 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     applicationTitle = new QLabel;
     applicationTitle->setTextFormat(Qt::PlainText);
     applicationTitle->setObjectName("applicationLocation");
-    applicationTitle->setStyleSheet("font-size:18px;font-weight:600;");
-    applicationTitle->setWordWrap(true);
+    applicationTitle->setStyleSheet("font-size:16px;font-weight:600;");
+    applicationTitle->setWordWrap(false);
     applicationTitle->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
     applicationTitle->setMinimumWidth(0);
-    bar->addWidget(applicationTitle, 1);
-    auto *guide = new QPushButton("使用指引");
+    auto *context = new QVBoxLayout;
+    context->setSpacing(0); context->addWidget(applicationTitle);
+    pageHint = new QLabel; pageHint->setObjectName("applicationPageHint");
+    pageHint->setTextFormat(Qt::PlainText); pageHint->setStyleSheet("font-size:13px;color:#525252;");
+    pageHint->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Preferred);
+    context->addWidget(pageHint); bar->addLayout(context, 1);
+    auto *guide = new QPushButton("本页步骤");
     guide->setObjectName("showApplicationGuide");
     bar->addWidget(guide);
     connect(guide,&QPushButton::clicked,this,[this]() {
-        ApplicationGuide dialog(activeId,applicationTitle->text(),this);
+        ApplicationGuide dialog(activeId,applicationTitle->text(),this,activeHelpKey);
         if(dialog.exec()==QDialog::Accepted && !dialog.target.isEmpty())
             openApplication(dialog.target);
     });
@@ -70,6 +76,15 @@ DesktopShell::DesktopShell(QWidget *parent) : QWidget(parent)
     watchSections("protocolTabs", {"fieldbus", "fieldbus", "fieldbus"});
     watchSections("canControls", {"fieldbus", "fieldbus"});
     watchSections("networkTabs", {"network", "network", "network"});
+    for (const QString &name : {QString("mediaPages"), QString("devicePageStack")})
+        if (auto *stack=applications->findChild<QStackedWidget *>(name))
+            connect(stack,&QStackedWidget::currentChanged,this,[this,stack]() {
+                if (surface->appActive && stack->isVisibleTo(applications)) recordApplication(activeId);
+            });
+    if (auto *tabs=applications->findChild<QTabBar *>("alarmTabs"))
+        connect(tabs,&QTabBar::currentChanged,this,[this,tabs]() {
+            if (surface->appActive && tabs->isVisibleTo(applications)) recordApplication("alarms");
+        });
     applicationFrame->hide();
     connect(back, &QPushButton::clicked, this, &DesktopShell::backToDesktop);
     connect(surface, &DesktopCanvas::homeRequested, this, &DesktopShell::backToDesktop);
@@ -147,6 +162,66 @@ void DesktopShell::recordApplication(const QString &id)
             if (auto *can=applications->findChild<QTabWidget *>("canControls"))
                 location += " / " + can->tabText(can->currentIndex());
     }
+    activeHelpKey=id;
+    if (tabs) {
+        if (id=="fieldbus") {
+            activeHelpKey=QStringList{"fieldbus.nmt","fieldbus.rs485","fieldbus.ethercat"}.value(tabs->currentIndex(),id);
+            if (tabs->currentIndex()==0)
+                if (auto *can=applications->findChild<QTabWidget *>("canControls"))
+                    activeHelpKey=can->currentIndex()==1 ? "fieldbus.sdo" : "fieldbus.nmt";
+        } else if (id=="network") {
+            activeHelpKey=QStringList{"network.wired","network.wifi","network.cellular"}.value(tabs->currentIndex(),id);
+        } else if (id=="settings") {
+            activeHelpKey=QStringList{"settings.display","settings.services","settings.audit","update"}.value(tabs->currentIndex(),id);
+        }
+    }
+    if (id=="video")
+        if (auto *stack=applications->findChild<QStackedWidget *>("mediaPages")) {
+            activeHelpKey=QStringList{"video.player","video.library","video.settings"}.value(stack->currentIndex(),id);
+            location+=" / "+QStringList{"播放器","本地视频","播放设置"}.value(stack->currentIndex());
+        }
+    if (id=="devices")
+        if (auto *stack=applications->findChild<QStackedWidget *>("devicePageStack"))
+            if (stack->currentIndex()==1) {activeHelpKey="devices.trend";location+=" / 绑定点位趋势";}
+    if (id=="alarms")
+        if (auto *filter=applications->findChild<QTabBar *>("alarmTabs")) {
+            activeHelpKey=QStringList{"alarms.all","alarms.active","alarms.acknowledged"}.value(filter->currentIndex(),id);
+            location+=" / "+filter->tabText(filter->currentIndex());
+        }
+    static const QMap<QString,QString> hints = {
+        {"overview","先核对数据来源，再进入需要处理的应用"},
+        {"fieldbus","核对通道与目标 → 确认执行 → 核对设备"},
+        {"network","选择接口 → 刷新状态 → 验证目标服务"},
+        {"devices","核对点位与采样质量，再查看趋势"},
+        {"alarms","筛选并选择记录 → 查看详情 → 按需确认"},
+        {"settings","核对当前子页与操作目标，再查看最近结果"},
+        {"cloud_bind","核对连接 → 查询绑定码 → 核对账号归属"},
+        {"reporting","核对配置和数据 → 上报 → 云端核对"},
+        {"voice","确认语音服务 → 开始对话 → 结束对话"},
+        {"home","选择设备和功能 → 控制 → 等待状态回报"},
+        {"video","选择文件 → 核对名称 → 点击播放"},
+        {"update","检查版本 → 下载校验 → 维护时安装"}
+    };
+    static const QMap<QString,QString> sectionHints = {
+        {"fieldbus.nmt","核对节点；节点 0 为广播 → 发送 NMT"},
+        {"fieldbus.sdo","核对节点、对象地址与 4 字节写入值"},
+        {"fieldbus.rs485","填写首个从站配置 → 保存 → 验证采样"},
+        {"fieldbus.ethercat","核对从站与对象；写入和周期测试分开执行"},
+        {"network.wired","选择接口 → 刷新；IP 配置由系统服务管理"},
+        {"network.wifi","选择无线接口 → 刷新；本页只查询连接"},
+        {"network.cellular","核对模块 → 拨号或断开 → 核对地址"},
+        {"settings.display","编辑或撤销 → 保存并应用 → 核对底部结果"},
+        {"settings.services","核对服务 → 确认操作 → 刷新并查看日志"},
+        {"settings.audit","筛选 → 选择记录 → 查看选中详情"},
+        {"devices.trend","核对绑定点位与采样质量 → 查看趋势"},
+        {"video.player","选择文件 → 核对名称 → 点击播放"},
+        {"video.library","选择本地文件 → 返回播放器 → 点击播放"},
+        {"video.settings","选择比例与循环 → 返回播放器验证"},
+        {"alarms.all","筛选并选择记录 → 查看详情 → 按需确认"},
+        {"alarms.active","确认后记录移至已确认页；现场故障仍需处理"},
+        {"alarms.acknowledged","已确认表示已知悉；现场故障恢复需另行核对"}
+    };
+    pageHint->setText(sectionHints.value(activeHelpKey,hints.value(id)));
     applicationTitle->setText(location);
     const bool changed=activeId!=id;
     activeId=id;

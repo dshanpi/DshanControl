@@ -111,6 +111,10 @@ class MainWindow : public QMainWindow
     bool settingsDirty = false;
     bool loadingSettings = false;
     bool settingsPending = false;
+    bool actionPending = false;
+    QPointer<QLabel> actionResultLabel;
+    QString actionDescription;
+    QLabel *makeActionFeedback(const QString &name);
     bool desktopBrightnessRequest = false;
     quint64 settingsRevision = 0;
     quint64 settingsConnectionRevision = 0;

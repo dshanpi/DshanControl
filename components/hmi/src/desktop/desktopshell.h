@@ -29,6 +29,8 @@ class DesktopShell : public QWidget
     QWidget *applicationFrame;
     QWidget *toolbar;
     QLabel *applicationTitle;
+    QLabel *pageHint;
+    QString activeHelpKey;
     bool fullscreen = false;
     QString activeId;
     void positionContent();
