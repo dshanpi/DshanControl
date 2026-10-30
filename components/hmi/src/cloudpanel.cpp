@@ -66,7 +66,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     columns->addWidget(panel(&left), 3);
     auto *pair = panel(&right);
     columns->addWidget(pair, 2);
-    left->addWidget(label("设备身份与连接", "panelTitle"));
+    left->addWidget(label("设备身份与连接", "cardHeading"));
     left->addWidget(label("在官网设备管理中输入本机绑定码，将设备加入你的账号。", "caption"));
     identity = label("待设备登记");
     field(left, "设备编号", identity);
@@ -85,7 +85,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
                                  "net，登录你的账号，在设备管理中输入本机显示的六位绑定码。\n\n已绑"
                                  "定的设备无需重新登记。涂鸦家庭账号需另外授权。");
     });
-    right->addWidget(label("绑定步骤", "panelTitle"));
+    right->addWidget(label("绑定步骤", "cardHeading"));
     right->addWidget(label("1  查询绑定码与当前归属", "panelTitle"));
     code = label("—  —  —  —  —  —", "pairingCode");
     code->setAlignment(Qt::AlignCenter);
@@ -99,6 +99,11 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     right->addWidget(label("在 www.100ask.net 登录账号后完成绑定。", "caption"));
     right->addWidget(label("3  再次查询，核对账号归属", "panelTitle"));
     right->addWidget(label("只有服务返回最新归属才算确认；过期码需重新获取。", "caption"));
+    auto *recheck = new QPushButton("重新查询归属");
+    recheck->setObjectName("cloudRecheckOwnership");
+    recheck->setProperty("kind", "secondary");
+    right->addWidget(recheck);
+    connect(recheck, &QPushButton::clicked, refresh, &QPushButton::click);
     connect(refresh, &QPushButton::clicked, this, [this]() { client->request("cloud.refresh"); });
     tabs->addTab(binding, "官网绑定");
     auto *reporting = new LayoutPage;
@@ -110,7 +115,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     auto *settings = panel(&options);
     settings->setMinimumWidth(240);
     row->addWidget(settings, 2);
-    readings->addWidget(label("点位上报", "panelTitle"));
+    readings->addWidget(label("点位上报", "cardHeading"));
     reportState = label("接入服务未连接", "caption");
     readings->addWidget(reportState);
     points = new DataTable(4);
@@ -125,7 +130,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     points->setSelectionBehavior(QAbstractItemView::SelectRows);
     readings->addWidget(points, 1);
     readings->addWidget(label("缺测和过期读数不填零；本地采集持续运行。", "caption"));
-    options->addWidget(label("自动上报", "panelTitle"));
+    options->addWidget(label("自动上报", "cardHeading"));
     enabled = new ToggleSwitch("启用上报");
     enabled->setObjectName("reportingEnabled");
     options->addWidget(enabled);
@@ -207,6 +212,7 @@ void CloudPanel::apply(const QJsonObject &state)
                                  ? (p["fresh"] == true ? "已绑定" : "上次已绑定 · 待查询")
                                  : owner == "unbound" && p["fresh"] == true ? "未绑定" : "待确认");
     refresh->setEnabled(available && c["configured"] == true && c["busy"] != true);
+    findChild<QPushButton *>("cloudRecheckOwnership")->setEnabled(refresh->isEnabled());
     remaining = available ? p["expires_in"].toInt() : 0;
     since.restart();
     const auto token = p["code"].toString();

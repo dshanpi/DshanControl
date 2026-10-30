@@ -33,12 +33,9 @@
     "retained": [
       "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
     ],
-    "added": [
-      "明确开关和周期修改立即提交"
-    ],
+    "added": [],
     "changed": [
-      "点位数据表左侧，上报开关/周期/最近代理确认/立即上报右侧。",
-      "不把本地数据表改成虚构JSON或宣称云端已收到"
+      "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
     ],
     "removed": [],
     "proposed_not_implemented": []
@@ -51,31 +48,32 @@
     "known_gaps": []
   },
   "implementation": {
-    "summary": "点位数据表左侧，上报开关/周期/最近代理确认/立即上报右侧。",
+    "summary": "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。",
     "source_hashes": {
-      "components/hmi/src/mediapanel.cpp": "5c1482e341fb568dace832777ed79d95860c750221a57b12fbf74eadda2a21c4",
-      "components/hmi/src/visuals.h": "2956aaac758ba0efd9d0a0cde3bb32c9b5ecb64fa2c3fbbc5af38ae2499bac25",
-      "components/hmi/src/updatepanel.cpp": "d8bcef3712d6fd5d447521b522f38bb5991b5b3d3e75cbb8ec52e75f02beb21f",
-      "components/hmi/src/mainwindow.cpp": "17cbcd8421dd5460260153097a112f6f9bf9298ea47345d3da6e6ab9459e1f11",
-      "components/hmi/src/visuals.cpp": "d9ff8d8d9afe9bd6883ba33e807390cc4c303789c067a34f065e85703c5486a9",
-      "components/hmi/src/cloudpanel.cpp": "9597adc311038fd2d3d750b1ffa1b481484b777fe4ba4d994d0d3bba2a00161f",
-      "components/hmi/src/familypanel.cpp": "a6ae7ff54990b9355de9559ca3d8fced744c04fc9218177b8f473d78fcd24f55",
+      "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+      "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
       "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
-      "components/hmi/src/desktop/desktopshell.cpp": "7efa2c15609fa6cc476cf15509380ff5981b42b8c9fc411bc07672ddb2f58797"
+      "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+      "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+      "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+      "components/hmi/src/updatepanel.cpp": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+      "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+      "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
     },
     "verification": [
-      "DO/delivery-final-hmi-03.log: final HMI 7/120/6/15 PASS; final-tracked-binding-02 unchanged throughout",
-      "DO/delivery-complete-repository.log: core5/repository390 PASS,11 environment permission skips; binds final-tracked-binding-01",
-      "After repository matrix only bound-trend narrow presentation and its capture/assertions changed; backend/lifecycle matrix not repeated",
-      "DO/narrow-final-targeted-02.log: 3 PASS; 640x600 actual width asserted, retained value/history and offline behavior; two PNGs visually reviewed",
-      "DO/production-builds-final.json: formal host and ARM entries built; build alone is not board qualification"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02.log: make test-hmi PASS; registry7/main121/isolation6/reporting15, 0 failures/skips; native update bridge/flow prerequisite commands also exit0.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02-source-consistency.json: all tracked files unchanged throughout final full HMI run.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01.log: make test PASS; core5/repository390, 11 environment/privilege skips; backend sources unchanged.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01-source-consistency.json: during backend tests only UI whitespace/hidden title and ledger changed; later service spacing covered by final HMI.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/production-host-03.json and production-arm-03.json: final formal builds, no hardware qualification."
     ],
     "actual_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/024-数据上报.png SHA256 f4d0b2ea262f39782d608d61bd735a105329bcbd761bba91c3042b4f39f381ca"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
     ],
     "remaining_risks": [
-      "真实网络、现场总线、云家庭、语音和媒体能力仍需设备实证；本记录只覆盖UI实现与主机验证。",
-      "本版整机候选与烧写验证尚未完成；不代表原73项验收或24小时验证完成。"
+      "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
+      "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
+      "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
     ],
     "history": [
       {
@@ -287,12 +285,263 @@
           "真实网络、现场总线、云家庭、语音和媒体能力仍以实际服务/板端结果为准；本记录不把主机截图判为业务实证。",
           "完整HMI入口、仓库检查、整机候选和本版烧写验证将在后续交付记录中绑定。"
         ]
+      },
+      {
+        "id": "DP-visual-state-implementation-01",
+        "date": "2026-10-30",
+        "summary": "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。",
+        "business_flow": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "operation_steps": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [],
+          "changed": [
+            "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+          "components/hmi/src/mainwindow.cpp": "06224e0a0c5a4a03e18295123446b7d0e54cbf946ac41c540d99641584b08806",
+          "components/hmi/src/mediapanel.cpp": "8e0309268f32a9ee44918bb8aab25c309f4525b36b983019bc35bf9a8dfd8830",
+          "components/hmi/src/updatepanel.cpp": "87d780f541c3a6553203b3643b29f552ead845bf80aec60a98e2925fe381b738",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06.log: 11 PASS, 0 FAIL, 0 SKIP (9 test methods plus init/cleanup); host state fixtures only.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/build-draft-06.log: independent Qt host test build succeeded.",
+          "DP draft02 compiler failure and draft05 unbound trend fixture failure retained; corrected in draft06. Full make test-hmi and production/board validation still pending."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+        ],
+        "remaining_risks": [
+          "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
+          "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
+          "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
+        ]
+      },
+      {
+        "id": "DP-format-binding-02",
+        "date": "2026-10-30",
+        "summary": "仅清理媒体源码行尾空白，行为和像素不变；绑定最终源码供完整检查。",
+        "business_flow": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "operation_steps": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [],
+          "changed": [
+            "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+          "components/hmi/src/mainwindow.cpp": "06224e0a0c5a4a03e18295123446b7d0e54cbf946ac41c540d99641584b08806",
+          "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+          "components/hmi/src/updatepanel.cpp": "87d780f541c3a6553203b3643b29f552ead845bf80aec60a98e2925fe381b738",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06.log: 11 PASS, 0 FAIL, 0 SKIP (9 test methods plus init/cleanup); host state fixtures only.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/build-draft-06.log: independent Qt host test build succeeded.",
+          "DP draft02 compiler failure and draft05 unbound trend fixture failure retained; corrected in draft06. Full make test-hmi and production/board validation still pending."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+        ],
+        "remaining_risks": [
+          "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
+          "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
+          "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
+        ]
+      },
+      {
+        "id": "DP-final-code-review-03",
+        "date": "2026-10-30",
+        "summary": "移除更新页已隐藏且无父对象的重复标题，避免遗留控件；去掉Qt不使用的line-height样式，布局语义不变。",
+        "business_flow": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "operation_steps": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [],
+          "changed": [
+            "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+          "components/hmi/src/mainwindow.cpp": "06224e0a0c5a4a03e18295123446b7d0e54cbf946ac41c540d99641584b08806",
+          "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+          "components/hmi/src/updatepanel.cpp": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06.log: 11 PASS, 0 FAIL, 0 SKIP (9 test methods plus init/cleanup); host state fixtures only.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/build-draft-06.log: independent Qt host test build succeeded.",
+          "DP draft02 compiler failure and draft05 unbound trend fixture failure retained; corrected in draft06. Full make test-hmi and production/board validation still pending."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+        ],
+        "remaining_risks": [
+          "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
+          "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
+          "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
+        ]
+      },
+      {
+        "id": "DP-responsive-fix-04",
+        "date": "2026-10-30",
+        "summary": "服务卡片标题与说明间距减为2px，修复独立MainWindow1024×600的4px垂直溢出；不降低触屏或尺寸断言。",
+        "business_flow": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "operation_steps": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [],
+          "changed": [
+            "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+          "components/hmi/src/updatepanel.cpp": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-responsive-08.log: 4 PASS, responsiveScreens covers five dimensions and refined state test.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-01.log: preserved 120 PASS/1 FAIL before spacing fix; full rerun pending."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+        ],
+        "remaining_risks": [
+          "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
+          "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
+          "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
+        ]
+      },
+      {
+        "id": "DP-ui-final-verification-05",
+        "date": "2026-10-30",
+        "summary": "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。",
+        "business_flow": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "operation_steps": [
+          "核对点位来源与质量",
+          "调整自动开关或周期即提交",
+          "需要时立即上报；以代理确认和云端核对结果为准"
+        ],
+        "function_changes": {
+          "retained": [
+            "原能力校验、确认默认取消、真实服务契约、生命周期和失败恢复约束"
+          ],
+          "added": [],
+          "changed": [
+            "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+          "components/hmi/src/updatepanel.cpp": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02.log: make test-hmi PASS; registry7/main121/isolation6/reporting15, 0 failures/skips; native update bridge/flow prerequisite commands also exit0.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02-source-consistency.json: all tracked files unchanged throughout final full HMI run.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01.log: make test PASS; core5/repository390, 11 environment/privilege skips; backend sources unchanged.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01-source-consistency.json: during backend tests only UI whitespace/hidden title and ledger changed; later service spacing covered by final HMI.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/production-host-03.json and production-arm-03.json: final formal builds, no hardware qualification."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+        ],
+        "remaining_risks": [
+          "主机验证不代表板端物理显示、触摸或真实业务验收。",
+          "DP整机打包、源码同步及最终烧写结果另行记录。"
+        ]
       }
     ]
   },
   "hardware_validation": {
-    "status": "not_started_for_new_design",
-    "evidence": []
+    "status": "pending_for_DP",
+    "evidence": [],
+    "historical": "DO image already flashed and identity verified; physical LCD illumination still unconfirmed by human."
   },
   "direction_review": {
     "decision": "approved_direction_only",
@@ -305,13 +554,8 @@
     "scope": "按已展示图稿统一实施全部页面，代理修正已记录的能力/字段/布局偏差；无需逐页重复确认，最终验收仍须关闭偏差与绑定记录。"
   },
   "work_in_progress": {
-    "id": "DO-system-validation-pending",
-    "summary": "本页UI实现与主机UI验证完成；完整交付与本版烧写尚未完成。",
-    "not_claimed": [
-      "全部实际业务完成",
-      "本版已烧写",
-      "整机24小时验证完成"
-    ]
+    "id": "DP-full-host-verified-package-pending",
+    "summary": "全部24页UI审计、专项状态、完整HMI/仓库检查和正式主机/ARM构建完成；继续源码同步、整机打包及获授权烧写。"
   },
   "design_discrepancies_under_review": [
     "不把本地数据表改成虚构JSON或宣称云端已收到"
@@ -328,18 +572,43 @@
         "不把本地数据表改成虚构JSON或宣称云端已收到",
         "公共导航、准确子页选中态和操作入口已在真实Qt截图逐页核对；1024×600及其他响应式尺寸由原行为断言验证。"
       ]
+    },
+    {
+      "id": "DP-initial-audit-01",
+      "observed": [
+        "表格替代图稿JSON有真实契约理由；右卡标题缺分隔；结果与连接状态需分离核实",
+        "自动开关和周期即时提交"
+      ],
+      "evidence": {
+        "path": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/024-数据上报.png",
+        "sha256": "f4d0b2ea262f39782d608d61bd735a105329bcbd761bba91c3042b4f39f381ca",
+        "scope": "actual Qt host fixture screenshot; not board acceptance"
+      }
+    },
+    {
+      "id": "DP-visual-resolution-02",
+      "original_known_gaps": [
+        "DP初审：表格替代图稿JSON有真实契约理由；右卡标题缺分隔；结果与连接状态需分离核实"
+      ],
+      "resolution": [
+        "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。",
+        "不把本地数据表改成虚构JSON或宣称云端已收到"
+      ],
+      "evidence": [
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/draft-captures-06/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
+      ]
     }
   ],
   "implementation_design_review": {
     "decision": "reviewed_against_authorized_direction",
-    "reference": "DO actual Qt visual review 2026-10-30; user unified implementation authorization retained separately",
+    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/DP-visual-review-02.json",
     "resolved_discrepancies": [
-      "不把本地数据表改成虚构JSON或宣称云端已收到",
-      "真实Qt字段与服务能力核对；实际按钮、导航和步骤保留"
+      "点位表与自动上报双栏，标题一致；保留点位/质量/代理确认真实契约，不改成图稿虚构JSON编辑器。",
+      "不把本地数据表改成虚构JSON或宣称云端已收到"
     ],
     "actual_review_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/图稿逐页实现_DO/review-final-captures/024-数据上报.png SHA256 f4d0b2ea262f39782d608d61bd735a105329bcbd761bba91c3042b4f39f381ca"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/024-数据上报.png SHA256 d6872df5b7e44d1ec96fe17e1f0e10586cae79e7983a23a831de3c284a422e44"
     ],
-    "scope": "代理实施评审，不冒充用户对未展示细节的逐项批准；截图是主机合成数据"
+    "scope": "实际Qt逐图代理核对；用户统一授权单列，保留原pending细节评审，不冒充用户批准。"
   }
 }

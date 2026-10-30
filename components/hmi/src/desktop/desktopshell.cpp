@@ -197,7 +197,7 @@ void DesktopShell::recordApplication(const QString &id)
     if (id=="alarms")
         if (auto *filter=applications->findChild<QTabBar *>("alarmTabs")) {
             activeHelpKey=QStringList{"alarms.all","alarms.active","alarms.acknowledged"}.value(filter->currentIndex(),id);
-            location+=" / "+filter->tabText(filter->currentIndex());
+            location+=" / "+QStringList{"全部","未确认","已确认"}.value(filter->currentIndex());
         }
     static const QMap<QString,QString> hints = {
         {"overview","先核对数据来源，再进入需要处理的应用"},

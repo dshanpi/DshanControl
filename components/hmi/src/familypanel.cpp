@@ -15,6 +15,7 @@
 #include <QScrollArea>
 #include <QSignalBlocker>
 #include <QSpinBox>
+#include <QStackedWidget>
 #include <QTableWidget>
 #include <QUuid>
 #include <cmath>
@@ -36,6 +37,28 @@ QFrame *panel(QVBoxLayout **layout)
     *layout = new PageLayout(frame);
     (*layout)->setContentsMargins(14, 12, 14, 12);
     (*layout)->setSpacing(8);
+    return frame;
+}
+QWidget *emptyPanel(const QString &symbol, const QString &title, const QString &message)
+{
+    auto *frame = new QFrame;
+    frame->setObjectName("panel");
+    auto *layout = new QVBoxLayout(frame);
+    layout->setContentsMargins(24, 16, 24, 16);
+    layout->addStretch();
+    auto *icon = new QLabel;
+    icon->setPixmap(Visuals::icon(symbol, QColor("#a8a8a8")).pixmap(80, 80));
+    icon->setAlignment(Qt::AlignCenter);
+    layout->addWidget(icon);
+    auto *heading = label(title, "emptyStateTitle");
+    heading->setAlignment(Qt::AlignCenter);
+    heading->setStyleSheet("font-size:20px;font-weight:700;");
+    layout->addWidget(heading);
+    auto *detail = label(message, "emptyStateMessage");
+    detail->setAlignment(Qt::AlignCenter);
+    detail->setStyleSheet("font-size:15px;color:#525252;");
+    layout->addWidget(detail);
+    layout->addStretch();
     return frame;
 }
 QJsonObject device(const QJsonObject &state, const QString &id)
@@ -85,7 +108,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     settings->setMinimumWidth(240);
     columns->addWidget(settings, 2);
     auto *head = new QHBoxLayout;
-    head->addWidget(label("对话记录", "panelTitle"));
+    head->addWidget(label("对话记录", "cardHeading"));
     head->addStretch();
     voiceState = label("服务尚未接入", "caption");
     head->addWidget(voiceState);
@@ -98,7 +121,12 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     transcript->setStyleSheet(
         "QPlainTextEdit{background:white;border:1px solid #d9e3ef;padding:10px;font-size:16px;}");
     transcript->setPlaceholderText("按住下方按钮说话，识别与回复会显示在这里。");
-    left->addWidget(transcript, 1);
+    auto *voiceContent = new QStackedWidget;
+    voiceContent->setObjectName("voiceContent");
+    voiceContent->addWidget(transcript);
+    voiceContent->addWidget(emptyPanel("microphone", "语音服务尚未就绪",
+        "请先在设备上完成语音服务接入与录放音配置。\n完成后可开始对话。"));
+    left->addWidget(voiceContent, 1);
     auto *buttons = new QHBoxLayout;
     talk = new QPushButton("按住说话");
     talk->setObjectName("voiceTalk");
@@ -118,7 +146,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
         client->request("voice.command", {{"command", "stop_listen"}});
     });
     connect(stop, &QPushButton::clicked, this, [this]() { stopVoiceInteraction(true); });
-    right->addWidget(label("对话设置", "panelTitle"));
+    right->addWidget(label("对话设置", "cardHeading"));
     activation = label("涂鸦服务尚未接入", "caption");
     right->addWidget(activation);
     right->addWidget(label("对话模式", "caption"));
@@ -170,7 +198,14 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     devices->setSelectionBehavior(QAbstractItemView::SelectRows);
     devices->setSelectionMode(QAbstractItemView::SingleSelection);
     devices->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    body->addWidget(devices, 3);
+    auto *deviceContent = new QStackedWidget;
+    deviceContent->setObjectName("homeDeviceContent");
+    deviceContent->addWidget(devices);
+    auto *emptyHome = emptyPanel("home", "未发现家庭设备", "连接接入服务后同步设备。");
+    emptyHome->setObjectName("homeEmptyPanel");
+    emptyHome->setStyleSheet("QFrame#homeEmptyPanel{background:white;border:1px solid #d0d0d0;border-radius:4px;}");
+    deviceContent->addWidget(emptyHome);
+    body->addWidget(deviceContent, 3);
     QVBoxLayout *controls;
     auto *detail = panel(&controls);
     detail->setObjectName("homeControlPanel");
@@ -388,6 +423,8 @@ void FamilyPanel::apply(const QJsonObject &state)
         }
         transcript->setPlainText(lines.join('\n'));
     }
+    findChild<QStackedWidget *>("voiceContent")->setCurrentIndex(
+        !ready && transcript->toPlainText().isEmpty() ? 1 : 0);
     sync->setEnabled(connected && home["configured"] == true && home["busy"] != true);
     homeState->setText(!connected
                            ? "接入服务未连接"
@@ -442,6 +479,16 @@ void FamilyPanel::apply(const QJsonObject &state)
             ? "请先在官网关联家庭账号，再同步设备。"
             : rooms->currentIndex()>0 ? "当前房间没有匹配设备，可选择全部房间。"
             : "尚未发现家庭设备，请检查接入后同步设备。");
+    findChild<QStackedWidget *>("homeDeviceContent")->setCurrentIndex(devices->rowCount() ? 0 : 1);
+    auto *emptyHome = findChild<QWidget *>("homeEmptyPanel");
+    emptyHome->findChild<QLabel *>("emptyStateTitle")->setText(!connected ? "家庭服务未连接"
+        : home["authorization"] != "authorized" ? "家庭账号待授权"
+        : rooms->currentIndex() > 0 ? "当前房间没有设备" : "未发现家庭设备");
+    emptyHome->findChild<QLabel *>("emptyStateMessage")->setText(!connected
+        ? "暂时无法获取家庭设备。恢复接入服务后，再同步设备。"
+        : home["authorization"] != "authorized" ? "请先在官网关联家庭账号，再同步设备。"
+        : rooms->currentIndex() > 0 ? "可切换至全部房间，查看已同步的设备。"
+        : "请在家庭网络中接入设备，然后点击“同步设备”。\n这里只显示服务实际发现的设备。");
     const auto signature = selectedDevice.toUtf8() +
                            QJsonDocument(home["functions"].toObject()[selectedDevice].toArray())
                                .toJson(QJsonDocument::Compact);

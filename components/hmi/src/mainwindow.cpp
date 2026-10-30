@@ -19,6 +19,7 @@
 #include <QComboBox>
 #include <QDateTime>
 #include <QDir>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QFrame>
@@ -99,6 +100,24 @@ QJsonObject cellularMapping(const QJsonObject &snapshot, const QString &profile)
             return {{"device", device}, {"interface", interface}};
     }
     return {};
+}
+
+void prepareConfirmation(QMessageBox &box)
+{
+    box.setTextFormat(Qt::PlainText);
+    box.setText(box.windowTitle() + "\n\n" + box.text());
+    box.setStyleSheet("QMessageBox{background:white;}"
+        "QLabel#qt_msgbox_label{font-size:16px;min-width:400px;padding:12px;}"
+        "QPushButton{min-height:48px;min-width:108px;}");
+    for (auto *button : box.buttons())
+        button->setMinimumSize(126,48);
+    if (auto *cancel=box.button(QMessageBox::No))
+        cancel->setStyleSheet("QPushButton{background:white;color:#165dff;border:1px solid #aab4c4;border-radius:3px;padding:0 16px;}");
+    // Standard Qt buttons retain their roles, default action and keyboard behavior.
+    if (auto *buttons=box.findChild<QDialogButtonBox *>()) {
+        buttons->setLayoutDirection(Qt::RightToLeft);
+        buttons->setCenterButtons(true);
+    }
 }
 
 QLabel *titleLabel(const QString &text)
@@ -315,7 +334,12 @@ void MainWindow::applyTheme()
         QLabel#demoBadge { color: #935a09; background: #fff1d7; padding: 4px 8px; border-radius: 4px; }
         QLabel#sectionTitle { font-size: 22px; font-weight: 700; }
         QLabel#caption, QLabel#nodeState, QLabel#gatewaySub, QLabel#statusName { color: #525252; font-size: 13px; }
-        QLabel#panelTitle, QLabel#nodeName { font-size: 17px; font-weight: 700; }
+        QLabel#panelTitle, QLabel#nodeName { font-size: 18px; font-weight: 700; }
+        QLabel#cardHeading { font-size: 18px; font-weight: 700; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; }
+        QFrame#mediaSelectedFilePanel { background: white; border: 1px solid #d0d0d0; border-radius: 4px; }
+        QLabel#settingsDraftBadge { color: #8a4b00; background: #fff1c7; padding: 2px 8px; border-radius: 2px; }
+        QFrame#settingsActionBar { background: white; border-top: 1px solid #d0d0d0; }
+        QLabel#settingsLastResult { background: white; border-top: 1px solid #d0d0d0; padding: 6px 10px; }
         QLabel#statusValue, QLabel#gatewayTitle { font-size: 18px; font-weight: 700; }
         QPushButton { min-height: 46px; border-radius: 2px; padding: 0 12px;
                       color: white; background: #0f62fe; border: 1px solid #0f62fe; }
@@ -328,11 +352,11 @@ void MainWindow::applyTheme()
         QPushButton#navButton { color: #385371; background: transparent; border: 1px solid transparent; padding: 0 4px; }
         QPushButton#navButton:checked { background: #0f62fe; color: white; font-weight: 700; }
         QPushButton#navButton:focus { border: 2px solid #719ce0; }
-        QFrame#card, QFrame#panel, QGroupBox { background: white; border: 1px solid #d0d0d0; border-radius: 5px; }
+        QFrame#card, QFrame#panel, QGroupBox { background: white; border: 1px solid #d0d0d0; border-radius: 4px; }
         QFrame#gateway { background: #eaf2ff; border: 1px solid #8db5ef; border-radius: 5px; }
         QFrame#ioNode { background: #f7faff; border: 1px solid #d0d0d0; border-left: 3px solid #0f62fe; border-radius: 4px; }
         QFrame#rule { background: #d0d0d0; border: none; }
-        QGroupBox { margin-top: 0; padding: 34px 12px 12px 12px; font-weight: 700; font-size: 16px; }
+        QGroupBox { margin-top: 0; padding: 42px 12px 12px 12px; font-weight: 700; font-size: 18px; }
         QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; top: 10px; left: 12px; padding: 0; }
         QTableWidget { background: white; alternate-background-color: #f5f8fd; border: 1px solid #d0d0d0;
                        gridline-color: #e6edf5; selection-background-color: #dbeaff; selection-color: #123c70; }
@@ -474,7 +498,7 @@ QWidget *MainWindow::buildFieldbus()
     canLayout->setContentsMargins(0, 0, 0, 0);
     canLayout->setSpacing(4);
     busTable = makeTable({"接口", "链路", "波特率", "数据来源"});
-    auto *interfacePanel = new QGroupBox("接口状态");
+    auto *interfacePanel = new SectionCard("接口状态");
     interfacePanel->setStyleSheet("QGroupBox { padding-top: 26px; padding-bottom: 0; } QGroupBox::title { top: 4px; }");
     auto *interfaceLayout = new QVBoxLayout(interfacePanel);
     interfaceLayout->setContentsMargins(0, 0, 0, 0);
@@ -483,7 +507,7 @@ QWidget *MainWindow::buildFieldbus()
     busTable->setMinimumHeight(124);
     busTable->setMaximumHeight(124);
     busTable->setMinimumWidth(250);
-    QGroupBox *canCfg = new QGroupBox("CAN 参数");
+    QGroupBox *canCfg = new SectionCard("CAN 参数");
     QFormLayout *canCfgLayout = new QFormLayout(canCfg);
     canCfgLayout->setContentsMargins(0, 0, 0, 0);
     canCfgLayout->setVerticalSpacing(4);
@@ -548,7 +572,10 @@ QWidget *MainWindow::buildFieldbus()
     node->setRange(0, 127);
     node->setValue(1);
     QComboBox *nmt = new QComboBox;
-    nmt->addItems({"OPERATIONAL", "PRE-OPERATIONAL", "STOPPED", "RESET"});
+    nmt->addItem("进入运行", "OPERATIONAL");
+    nmt->addItem("进入预运行", "PRE-OPERATIONAL");
+    nmt->addItem("停止节点", "STOPPED");
+    nmt->addItem("复位节点", "RESET");
     QPushButton *sendNmt = actionButton("发送 NMT", "danger");
     coGrid->addRow("接口", coIf);
     coGrid->addRow("节点（0=广播）", node);
@@ -589,7 +616,7 @@ QWidget *MainWindow::buildFieldbus()
     connect(sendNmt, &QPushButton::clicked, this, [=]() {
         postAction(
             "canopen_nmt",
-            {{"interface", coIf->currentText()}, {"node_id", node->value()}, {"state", nmt->currentText()}},
+            {{"interface", coIf->currentText()}, {"node_id", node->value()}, {"state", nmt->currentData().toString()}},
             QString("确认通过 %1 向%2发送 NMT %3？")
                 .arg(coIf->currentText(), node->value() == 0 ? "所有节点（广播）" : QString("节点 %1 ").arg(node->value()), nmt->currentText()));
     });
@@ -657,7 +684,7 @@ QWidget *MainWindow::buildFieldbus()
                           {"server", "从站状态", "未获取"},
                           {"clock", "采集状态", "等待数据"}});
     rsLayout->addWidget(rsStatus);
-    QGroupBox *rs = new QGroupBox("串口参数");
+    QGroupBox *rs = new SectionCard("串口参数");
     QFormLayout *rsForm = new QFormLayout(rs);
     QLineEdit *rsPort = edit("");
     serialPort = rsPort;
@@ -708,7 +735,7 @@ QWidget *MainWindow::buildFieldbus()
     rsEditorLayout->addWidget(saveRs);
     capabilityControls << qMakePair<QWidget *, QString>(saveRs, "serial");
     rsColumns->addWidget(rsEditor, 1);
-    auto *registers = new QGroupBox("配置步骤与结果确认");
+    auto *registers = new SectionCard("配置步骤与结果确认");
     registers->setObjectName("rsWorkflowPanel");
     auto *registerLayout = new QVBoxLayout(registers);
     registerLayout->addWidget(captionLabel(
@@ -729,7 +756,7 @@ QWidget *MainWindow::buildFieldbus()
     ecStatus->setMetrics(
         {{"topology", "主站", "未获取"}, {"server", "从站状态", "未获取"}, {"clock", "诊断周期", "未测量"}});
     ecLayout->addWidget(ecStatus);
-    QGroupBox *ec = new QGroupBox("CoE 对象访问");
+    QGroupBox *ec = new SectionCard("CoE 对象访问");
     QGridLayout *ecForm = new QGridLayout(ec);
     ecForm->setContentsMargins(0, 0, 0, 0);
     QSpinBox *slave = new QSpinBox;
@@ -779,7 +806,7 @@ QWidget *MainWindow::buildFieldbus()
     auto *ecColumns = new QHBoxLayout;
     responsiveRows << ecColumns;
     ecColumns->addWidget(ec, 3);
-    auto *diagnostics = new QGroupBox("对象写入与周期测试");
+    auto *diagnostics = new SectionCard("对象写入与周期测试");
     diagnostics->setObjectName("ecWorkflowPanel");
     auto *diagnosticLayout = new QVBoxLayout(diagnostics);
     diagnosticLayout->addWidget(captionLabel(
@@ -814,7 +841,7 @@ QWidget *MainWindow::buildNetwork()
         auto *columns = new PageRowLayout(interfaces);
         columns->setContentsMargins(0, 10, 0, 0);
         responsiveRows << columns;
-        auto *left = new QGroupBox(kind == 0 ? "有线网络接口" : "无线网络接口");
+        auto *left = new SectionCard(kind == 0 ? "有线网络接口" : "无线网络接口");
         auto *leftLayout = new QVBoxLayout(left);
         leftLayout->setContentsMargins(0, 0, 0, 0);
         auto *table = makeTable({"接口", "状态", "IPv4 地址", "来源"});
@@ -822,11 +849,12 @@ QWidget *MainWindow::buildNetwork()
         table->horizontalHeader()->setMinimumSectionSize(60);
         static_cast<DataTable *>(table)->setEmptyText(kind == 0 ? "尚未发现有线接口" : "尚未发现无线接口");
         leftLayout->addWidget(table, 1);
+        table->setMinimumHeight(120);
         auto *description = new QLabel("选中接口信息");
         description->setObjectName("panelTitle");
-        // Selected details are grouped with the current link state, beside the list.
+        leftLayout->addWidget(description);
         auto *form = new QFormLayout;
-        form->setVerticalSpacing(12);
+        form->setVerticalSpacing(6);
         form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
         QList<QLabel *> fields;
         for (const QString &name :
@@ -840,27 +868,28 @@ QWidget *MainWindow::buildNetwork()
         }
         auto *refresh = actionButton("刷新接口状态");
         refresh->setObjectName(QString("networkRefresh%1").arg(kind));
-        refresh->setIcon(Visuals::icon("globe", Visuals::blue));
+        refresh->setIcon(Visuals::icon("globe", Qt::white));
         connect(refresh, &QPushButton::clicked, this, &MainWindow::requestSnapshot);
         columns->addWidget(left, 3);
-        auto *details = new QGroupBox("选中接口详情");
+        auto *details = new SectionCard(kind == 0 ? "有线链路" : "无线链路");
+        details->setObjectName(QString("networkLinkPanel%1").arg(kind));
         auto *detailsLayout = new QVBoxLayout(details);
         detailsLayout->setContentsMargins(0, 0, 0, 0);
         detailsLayout->setSpacing(8);
         auto *symbol = new QLabel;
-        symbol->setPixmap(Visuals::icon(kind == 0 ? "chip" : "globe").pixmap(28, 28));
+        symbol->setPixmap(Visuals::icon(kind == 0 ? "ethernet" : "wifi", Visuals::blue).pixmap(76, 76));
         symbol->setAlignment(Qt::AlignCenter);
+        detailsLayout->addStretch();
         detailsLayout->addWidget(symbol);
-        detailsLayout->addLayout(form);
-        delete description;
+        leftLayout->addLayout(form);
         auto *detail = new QLabel("等待接口数据");
-        detail->setObjectName("panelTitle");
+        detail->setObjectName("statusValue");
         detail->setWordWrap(true);
         detail->setAlignment(Qt::AlignCenter);
         detailsLayout->addWidget(detail);
-        auto *note = captionLabel(kind == 0 ? "地址由系统网络服务管理。有 IPv4 地址不代表目标服务可达。"
-                                            : "无线连接由系统网络服务管理。空列表表示尚未发现接口，不等于服务离线。");
-        note->setObjectName("infoNote");
+        auto *note = captionLabel(kind == 0 ? "地址由系统网络服务管理。\n\n有地址不代表目标服务可达。\n请在目标应用核对服务连接。"
+                                            : "无线连接由系统网络服务管理。\n接入后可查看接口与地址。\n\n本页不提供无线连接配置。\n空列表不等于服务离线。");
+        note->setAlignment(Qt::AlignCenter);
         detailsLayout->addWidget(note);
         detailsLayout->addStretch();
         columns->addWidget(details, 2);
@@ -871,6 +900,7 @@ QWidget *MainWindow::buildNetwork()
         auto *section = new LayoutPage;
         auto *sectionLayout = new PageLayout(section);
         sectionLayout->setContentsMargins(0,0,0,0);
+        sectionLayout->addWidget(captionLabel("选择接口  →  刷新状态  →  核对目标服务"));
         sectionLayout->addWidget(scrollPage(interfaces),1);
         auto *actions = new QHBoxLayout;
         actions->addWidget(captionLabel("只读查询接口状态；网络配置由系统网络服务管理。"), 1);
@@ -887,7 +917,7 @@ QWidget *MainWindow::buildNetwork()
     auto *cards = new QHBoxLayout;
     responsiveRows << cards;
     for (const QString &profile : {QString("ec20a"), QString("ec20b")}) {
-        auto *box = new QGroupBox(profile == "ec20a" ? "蜂窝链路 A" : "蜂窝链路 B");
+        auto *box = new SectionCard(profile == "ec20a" ? "蜂窝链路 A" : "蜂窝链路 B");
         auto *body = new QVBoxLayout(box);
         auto *symbol = new QLabel;
         symbol->setPixmap(Visuals::icon("cloud").pixmap(48, 48));
@@ -1042,7 +1072,7 @@ QWidget *MainWindow::buildDevices()
     deviceTrend->setMinimumHeight(150);
     layout->addWidget(deviceTrend, 2);
     deviceTrend->hide();
-    auto *points = new QGroupBox("采集点读数");
+    auto *points = new SectionCard("采集点读数");
     auto *pointLayout = new QVBoxLayout(points);
     pointLayout->setContentsMargins(0, 0, 0, 0);
     deviceTable = makeTable({"名称", "当前值", "单位", "状态"});
@@ -1085,8 +1115,8 @@ QWidget *MainWindow::buildDevices()
     auto *monitorPage = new LayoutPage;
     auto *monitorLayout = new PageLayout(monitorPage);
     monitorLayout->setContentsMargins(0,0,0,0);
-    monitorLayout->addWidget(scrollPage(page),1);
     monitorLayout->addWidget(monitorFooter);
+    monitorLayout->addWidget(scrollPage(page),1);
     devicePageStack=new QStackedWidget;
     devicePageStack->setObjectName("devicePageStack");
     devicePageStack->addWidget(monitorPage);
@@ -1270,7 +1300,7 @@ QWidget *MainWindow::buildAlarms()
     details->setObjectName("alarmDetailsPanel");
     QVBoxLayout *description = new QVBoxLayout;
     QLabel *title = new QLabel("选中告警详情");
-    title->setObjectName("panelTitle");
+    title->setObjectName("cardHeading");
     description->addWidget(title);
     alarmDetail = captionLabel("选择一条告警查看详情");
     description->addWidget(alarmDetail);
@@ -1438,9 +1468,16 @@ QWidget *MainWindow::buildSettings()
     displayLayout->setSpacing(10);
     QHBoxLayout *columns = new QHBoxLayout;
     responsiveRows << columns;
-    auto *screen = new QGroupBox("当前编辑");
+    auto *screen = new SectionCard("当前编辑");
     screen->setObjectName("settingsEditorPanel");
-    auto *screenForm = new QFormLayout(screen);
+    auto *screenBody = new QVBoxLayout(screen);
+    screenBody->setContentsMargins(0, 0, 0, 0);
+    auto *draftBadge = new QLabel("未保存", screen);
+    draftBadge->setObjectName("settingsDraftBadge");
+    draftBadge->move(116, 8);
+    draftBadge->hide();
+    auto *screenForm = new QFormLayout;
+    screenBody->addLayout(screenForm);
     screenForm->setVerticalSpacing(4);
     screenResolution = new QLabel;
     screenResolution->setObjectName("valueText");
@@ -1480,7 +1517,16 @@ QWidget *MainWindow::buildSettings()
         brightnessValue->setText(QString::number(qRound(value * 100.0 / 255)) + "%");
     });
     brightnessRow->addWidget(brightnessValue);
-    screenForm->addRow(iconLabel("sun", "屏幕亮度"), brightnessRow);
+    auto *brightnessColumn = new QVBoxLayout;
+    brightnessColumn->setSpacing(0);
+    brightnessColumn->addLayout(brightnessRow);
+    auto *range = captionLabel("原始值 220，范围 10–255");
+    range->setObjectName("brightnessRange");
+    brightnessColumn->addWidget(range);
+    connect(brightnessSlider, &QSlider::valueChanged, range, [range](int value) {
+        range->setText(QString("原始值 %1，范围 10–255").arg(value));
+    });
+    screenForm->addRow(iconLabel("sun", "屏幕亮度"), brightnessColumn);
     // Read-only presentation information belongs outside the editable controls.
     auto *displayProbe = actionButton("屏幕色彩 / 比例校验", "secondary");
     displayProbe->setObjectName("openDisplayProbe");
@@ -1489,7 +1535,7 @@ QWidget *MainWindow::buildSettings()
         auto *probe = new DisplayProbe(this);
         probe->showFullScreen();
     });
-    auto *interaction = new QGroupBox("最近服务记录");
+    auto *interaction = new SectionCard("最近服务记录");
     interaction->setObjectName("settingsRecordPanel");
     auto *recordLayout = new QVBoxLayout(interaction);
     auto *form = screenForm;
@@ -1513,7 +1559,10 @@ QWidget *MainWindow::buildSettings()
     auto *record = captionLabel("等待服务返回当前设置");
     record->setObjectName("settingsRecordedValues");
     record->setTextFormat(Qt::PlainText);
-    auto *recordForm = new QFormLayout;
+    auto *recordFields = new QWidget;
+    recordFields->setObjectName("settingsRecordedFields");
+    auto *recordForm = new QFormLayout(recordFields);
+    recordForm->setContentsMargins(0,0,0,0);
     recordForm->setVerticalSpacing(18);
     const QStringList recordNames{"亮度", "数据刷新", "演示数据"};
     const QStringList recordIds{"settingsRecordedBrightness", "settingsRecordedRefresh", "settingsRecordedDemo"};
@@ -1522,10 +1571,15 @@ QWidget *MainWindow::buildSettings()
         value->setTextFormat(Qt::PlainText);
         recordForm->addRow(recordNames[i],value);
     }
-    recordLayout->addLayout(recordForm);
+    auto *recordState = new QLabel("设备已离线");
+    recordState->setObjectName("settingsRecordState");
+    recordState->setStyleSheet("font-size:22px;color:#b86c00;");
+    recordState->hide();
+    recordLayout->addWidget(recordState);
+    recordLayout->addWidget(recordFields);
     recordLayout->addWidget(record);
     recordLayout->addStretch();
-    recordLayout->addWidget(viewServices);
+    recordLayout->addWidget(viewServices, 0, Qt::AlignLeft);
     auto *feedback = captionLabel(settingsFeedback);
     feedback->setObjectName("settingsLastResult");
     feedback->setTextFormat(Qt::PlainText);
@@ -1535,15 +1589,14 @@ QWidget *MainWindow::buildSettings()
     displayLayout->addLayout(columns, 1);
     displayLayout->addWidget(captionLabel("简体中文 · 思源黑体 · 根据屏幕自动调整布局"));
     QFrame *footer = new QFrame;
-    footer->setObjectName("panel");
-    auto *footerBody = new QVBoxLayout(footer);
-    footerBody->addWidget(feedback);
-    auto *footerLayout = new QHBoxLayout;
-    footerBody->addLayout(footerLayout);
+    footer->setObjectName("settingsActionBar");
+    auto *footerLayout = new QHBoxLayout(footer);
+    footerLayout->setContentsMargins(10, 6, 10, 6);
     auto *editState = captionLabel("等待设备连接后加载设置");
     editState->setObjectName("settingsEditState");
     footerLayout->addWidget(editState, 1);
-    screenForm->addRow(displayProbe);
+    screenBody->addStretch();
+    screenBody->addWidget(displayProbe, 0, Qt::AlignLeft);
     auto *discard = actionButton("撤销修改", "secondary");
     discard->setObjectName("discardSettingsDraft");
     discard->setEnabled(false);
@@ -1593,6 +1646,7 @@ QWidget *MainWindow::buildSettings()
         confirmation.button(QMessageBox::Yes)->setText("保存并应用");
         confirmation.button(QMessageBox::No)->setText("取消");
         confirmation.setDefaultButton(QMessageBox::No);
+        prepareConfirmation(confirmation);
         if (confirmation.exec() != QMessageBox::Yes)
             return;
         if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision ||
@@ -1614,6 +1668,7 @@ QWidget *MainWindow::buildSettings()
     auto *displaySectionLayout = new PageLayout(displaySection);
     displaySectionLayout->setContentsMargins(0,0,0,0);
     displaySectionLayout->addWidget(scrollPage(display),1);
+    displaySectionLayout->addWidget(feedback);
     displaySectionLayout->addWidget(footer);
     settingsTabs->addTab(displaySection, "显示与交互");
     auto *services = new LayoutPage;
@@ -1641,6 +1696,7 @@ QWidget *MainWindow::buildSettings()
         symbol->setPixmap(Visuals::icon(i == 0 ? "server" : (i == 1 ? "globe" : "clock")).pixmap(30, 30));
         row->addWidget(symbol);
         auto *description = new QVBoxLayout;
+        description->setSpacing(2);
         auto *title = new QLabel(titles[i]);
         title->setObjectName("panelTitle");
         description->addWidget(title);
@@ -1703,7 +1759,7 @@ QWidget *MainWindow::buildSettings()
     auto *audit = new LayoutPage;
     auto *auditLayout = new PageLayout(audit);
     auditLayout->setContentsMargins(0, 10, 0, 0);
-    auto *auditPanel = new QGroupBox("操作记录");
+    auto *auditPanel = new SectionCard("操作记录");
     auto *auditBody = new QVBoxLayout(auditPanel);
     auto *auditHeader = new QHBoxLayout;
     auditHeader->addWidget(new QLabel("执行结果"));
@@ -1742,7 +1798,7 @@ QWidget *MainWindow::buildSettings()
     auto *auditColumns = new QHBoxLayout;
     responsiveRows << auditColumns;
     auditColumns->addWidget(auditTable,3);
-    auto *selectedPanel = new QGroupBox("选中记录详情");
+    auto *selectedPanel = new SectionCard("选中记录详情");
     auto *selectedLayout = new QVBoxLayout(selectedPanel);
     auto *selectedPreview = captionLabel("选择一条记录查看详情。");
     selectedPreview->setTextFormat(Qt::PlainText);
@@ -1759,7 +1815,7 @@ QWidget *MainWindow::buildSettings()
         QStringList lines;
         for(int col=0;col<4;++col)
             lines << auditTable->horizontalHeaderItem(col)->text()+"："+auditTable->item(row,col)->text();
-        selectedPreview->setText(lines.join("\n\n"));
+        selectedPreview->setText(lines.join("\n"));
     });
     auditBody->addLayout(auditColumns, 1);
     auditCount = captionLabel("显示最近 200 条操作记录");
@@ -2005,6 +2061,7 @@ void MainWindow::postAction(const QString &action, const QJsonObject &params, co
     confirmation.button(QMessageBox::Yes)->setText("确认执行");
     confirmation.button(QMessageBox::No)->setText("取消");
     confirmation.setDefaultButton(QMessageBox::No);
+    prepareConfirmation(confirmation);
     actionPending=true;
     if (confirmation.exec() != QMessageBox::Yes) {
         actionPending=false;
@@ -2232,6 +2289,11 @@ void MainWindow::handleReply(QNetworkReply *reply)
 void MainWindow::updateSettingsControls()
 {
     const bool online = !latestSnapshot.isEmpty();
+    if (auto *badge = findChild<QLabel *>("settingsDraftBadge")) {
+        badge->setText(settingsPending ? "保存中" : "未保存");
+        badge->adjustSize();
+        badge->setVisible(settingsDirty || settingsPending);
+    }
     const auto recorded = latestSnapshot.value("settings").toObject();
     const bool canRestore = recorded["brightness"].isDouble() &&
         recorded["brightness"].toDouble() == recorded["brightness"].toInt() &&
@@ -2241,8 +2303,10 @@ void MainWindow::updateSettingsControls()
         recorded["refresh_ms"].toInt() >= 500 && recorded["refresh_ms"].toInt() <= 10000;
     if (auto *discard = findChild<QPushButton *>("discardSettingsDraft"))
         discard->setEnabled(online && canRestore && settingsDirty && !settingsPending);
+    if (auto *fields = findChild<QWidget *>("settingsRecordedFields")) fields->setVisible(online);
+    if (auto *state = findChild<QLabel *>("settingsRecordState")) state->setVisible(!online);
     if (auto *record = findChild<QLabel *>("settingsRecordedValues"))
-        record->setText(!online ? "服务已离线：当前编辑仍保留，暂时不能撤销或保存。"
+        record->setText(!online ? "服务已离线，当前状态未确认。\n保留当前编辑，暂时不能撤销或保存。"
             : !canRestore ? "服务设置不完整：保留当前编辑，暂时不能撤销。"
             : "服务记录不代表背光已实际应用。");
     const QStringList recordIds{"settingsRecordedBrightness", "settingsRecordedRefresh", "settingsRecordedDemo"};
@@ -2291,6 +2355,7 @@ void MainWindow::discardSettingsDraft()
     confirmation.button(QMessageBox::Yes)->setText("撤销修改");
     confirmation.button(QMessageBox::No)->setText("继续编辑");
     confirmation.setDefaultButton(QMessageBox::No);
+    prepareConfirmation(confirmation);
     if (confirmation.exec() != QMessageBox::Yes) return;
     if (settingsPending || latestSnapshot.isEmpty() || revision != settingsRevision ||
         connectionRevision != settingsConnectionRevision ||

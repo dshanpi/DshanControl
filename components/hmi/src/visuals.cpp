@@ -7,9 +7,24 @@
 #include <QPainterPath>
 #include <QResizeEvent>
 #include <QStyleOptionSlider>
+#include <QStyleOptionGroupBox>
 #include <QTabBar>
 #include <QtMath>
 #include <cmath>
+
+void SectionCard::paintEvent(QPaintEvent *event)
+{
+    QGroupBox::paintEvent(event);
+    if (title().isEmpty()) return;
+    QStyleOptionGroupBox option;
+    initStyleOption(&option);
+    const QRect titleRect = style()->subControlRect(QStyle::CC_GroupBox, &option,
+                                                    QStyle::SC_GroupBoxLabel, this);
+    QPainter painter(this);
+    painter.setPen(QColor("#e0e0e0"));
+    const int y = titleRect.bottom() + 5;
+    painter.drawLine(1, y, width() - 2, y);
+}
 
 TouchSlider::TouchSlider(QWidget *parent) : QSlider(Qt::Horizontal, parent)
 {
@@ -166,6 +181,28 @@ void icon(QPainter &p, const QRectF &r, const QString &name, const QColor &color
         p.drawLine(5, 12, 19, 12);
         p.drawLine(5, 12, 5, 17);
         p.drawLine(19, 12, 19, 17);
+    } else if (name == "microphone") {
+        p.drawRoundedRect(QRectF(9, 2, 6, 13), 3, 3);
+        p.drawArc(QRectF(6, 7, 12, 12), 180 * 16, 180 * 16);
+        p.drawLine(12, 19, 12, 23); p.drawLine(8, 23, 16, 23);
+        p.drawLine(3, 3, 21, 21);
+    } else if (name == "home") {
+        path.moveTo(2, 11); path.lineTo(12, 2); path.lineTo(22, 11);
+        path.lineTo(19, 11); path.lineTo(19, 22); path.lineTo(14, 22);
+        path.lineTo(14, 15); path.lineTo(10, 15); path.lineTo(10, 22);
+        path.lineTo(5, 22); path.lineTo(5, 11); path.closeSubpath();
+        p.setBrush(color); p.drawPath(path);
+    } else if (name == "ethernet") {
+        path.moveTo(3, 3); path.lineTo(21, 3); path.lineTo(21, 17);
+        path.lineTo(16, 17); path.lineTo(16, 21); path.lineTo(8, 21);
+        path.lineTo(8, 17); path.lineTo(3, 17); path.closeSubpath();
+        p.drawPath(path);
+        for (int x = 7; x <= 17; x += 2) p.drawLine(x, 7, x, 12);
+    } else if (name == "wifi") {
+        p.drawArc(QRectF(1, 3, 22, 22), 40 * 16, 100 * 16);
+        p.drawArc(QRectF(5, 8, 14, 14), 40 * 16, 100 * 16);
+        p.drawArc(QRectF(9, 13, 6, 6), 40 * 16, 100 * 16);
+        p.setBrush(color); p.drawEllipse(QPointF(12, 21), 1.2, 1.2);
     } else if (name == "globe") {
         p.drawEllipse(QRectF(2, 2, 20, 20));
         p.drawEllipse(QRectF(8, 2, 8, 20));
@@ -314,11 +351,11 @@ void icon(QPainter &p, const QRectF &r, const QString &name, const QColor &color
 }
 QIcon icon(const QString &name, const QColor &color)
 {
-    QPixmap pixmap(48, 48);
+    QPixmap pixmap(96, 96);
     pixmap.fill(Qt::transparent);
     QPainter p(&pixmap);
     p.setRenderHint(QPainter::Antialiasing);
-    icon(p, QRectF(0, 0, 48, 48), name, color);
+    icon(p, QRectF(0, 0, 96, 96), name, color);
     return QIcon(pixmap);
 }
 } // namespace Visuals
@@ -623,7 +660,7 @@ void OverviewDashboard::drawTrend(QPainter &p, const QRectF &r)
     const QString pv = pressures.isEmpty() ? "--" : QString::number(pressures.last().y(), 'f', 2);
     const qreal legendX = qMax(r.x() + 110, r.right() - 284);
     text(p, QRectF(legendX, r.y() + 7, 138, 24), "● 温度 " + tv + "°C", 13, blue);
-    text(p, QRectF(legendX + 140, r.y() + 7, 140, 24), "● 压力 " + pv + " MPa", 13, cyan);
+    text(p, QRectF(legendX + 140, r.y() + 7, 140, 24), "● 压力 " + pv + " MPa", 13, QColor("#d97706"));
     const QRectF plot = r.adjusted(58, 43, -58, -35);
     if (plot.width() < 40)
         return;
@@ -678,7 +715,7 @@ void OverviewDashboard::drawTrend(QPainter &p, const QRectF &r)
             else
                 path.lineTo(point);
         }
-        p.setPen(QPen(i == 0 ? blue : cyan, 1.6));
+        p.setPen(QPen(i == 0 ? blue : QColor("#d97706"), 1.6));
         p.setBrush(Qt::NoBrush);
         p.drawPath(path);
     }

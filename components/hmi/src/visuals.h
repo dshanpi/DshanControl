@@ -1,6 +1,7 @@
 #ifndef DSHAN_VISUALS_H
 #define DSHAN_VISUALS_H
 #include <QCheckBox>
+#include <QGroupBox>
 #include <QJsonObject>
 #include <QPainter>
 #include <QPointF>
@@ -27,6 +28,16 @@ QIcon icon(const QString &name, const QColor &color = QColor("#092650"));
 void panel(QPainter &p, const QRectF &r, const QColor &fill = Qt::white);
 void logo(QPainter &p, const QRectF &r);
 } // namespace Visuals
+// A native group retains its accessibility/title semantics while separating
+// the heading from content, as in the reviewed page cards.
+class SectionCard : public QGroupBox
+{
+  public:
+    explicit SectionCard(const QString &title, QWidget *parent = nullptr)
+        : QGroupBox(title, parent) {}
+  protected:
+    void paintEvent(QPaintEvent *event) override;
+};
 class NavigationButton : public QPushButton
 {
   public:

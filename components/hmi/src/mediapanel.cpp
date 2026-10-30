@@ -109,7 +109,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
 {
     setStyleSheet(
         "QPushButton#mediaTool{padding:0 8px;} QLabel#mediaTitle{font-size:22px;font-weight:600;} "
-        "QPushButton#mediaSection:checked{background:#d0e2ff;color:#0043ce;border-bottom:3px solid #0f62fe;}"
+        "QPushButton#mediaSection:checked{background:white;color:#0f62fe;border-bottom:3px solid #0f62fe;font-weight:700;}"
         "QListWidget{border:none;background:white;} QListWidget::item{min-height:48px;padding:2px "
         "8px;} QListWidget::item:selected{background:#edf4ff;color:#0062ff;}");
     mediaDirectory = qEnvironmentVariable("DSHANCONTROL_MEDIA_DIRECTORY", "/mnt/UDISK/media");
@@ -127,7 +127,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     filename = label("从本地存储选择视频", "caption");
     labels->addWidget(title);
     labels->addWidget(filename);
-    head->addLayout(labels, 1);
+
     auto *sections = new QButtonGroup(this);
     sections->setExclusive(true);
     for (int i = 0; i < 3; ++i)
@@ -141,6 +141,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
         head->addWidget(b);
         connect(b, &QPushButton::clicked, this, [this, i]() { showSection(i); });
     }
+    head->addLayout(labels, 1);
     auto *chooseVideo = button("选择视频", false);
     chooseVideo->setObjectName("chooseVideo");
     head->addWidget(chooseVideo);
@@ -234,7 +235,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     side = panel(&right);
     side->setFixedWidth(228);
     columns->addWidget(side);
-    right->addWidget(label("当前视频与播放列表", "panelTitle"));
+    right->addWidget(label("当前视频与播放列表", "cardHeading"));
     playlist = new QListWidget;
     playlist->setMinimumHeight(90);
     right->addWidget(playlist, 1);
@@ -278,7 +279,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     QVBoxLayout *selectedLayout;
     auto *selectedPanel=panel(&selectedLayout);
     selectedPanel->setObjectName("mediaSelectedFilePanel");
-    selectedLayout->addWidget(label("选中视频详情","panelTitle"));
+    selectedLayout->addWidget(label("选中视频详情","cardHeading"));
     auto *selectedDetail=label("在列表中选择一个视频。","mediaSelectedFileDetail");
     selectedLayout->addWidget(selectedDetail); selectedLayout->addStretch();
     auto *select=button("选择此视频",false);
@@ -312,7 +313,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     QVBoxLayout *options, *information;
     settingsLayout->addWidget(panel(&options), 1);
     settingsLayout->addWidget(panel(&information), 1);
-    options->addWidget(label("播放选项", "panelTitle"));
+    options->addWidget(label("播放选项", "cardHeading"));
     options->addWidget(label("画面比例", "caption"));
     aspect = new QComboBox;
     aspect->addItems({"保持原始比例", "适应显示区域"});
@@ -327,7 +328,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     });
     options->addStretch();
     options->addWidget(label("离开播放页面会暂停并隐藏视频，返回后可继续播放。", "infoNote"));
-    information->addWidget(label("解码状态", "panelTitle"));
+    information->addWidget(label("解码状态", "cardHeading"));
     fps = label("当前解码器：--\n显示帧率：--\n硬件解码：待板端验证", "caption");
     information->addWidget(fps);
     information->addStretch();

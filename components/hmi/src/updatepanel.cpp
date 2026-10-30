@@ -56,20 +56,17 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
     layout->setSpacing(6);
     auto *header = new QHBoxLayout;
     auto *heading = new QVBoxLayout;
-    auto *title = new QLabel("DshanControl 应用更新");
-    title->setObjectName("panelTitle");
-    heading->addWidget(title);
     auto *subtitle = new QLabel("仅更新桌面与应用，保留系统和用户数据。");
     subtitle->setObjectName("caption");
     heading->addWidget(subtitle);
     header->addLayout(heading, 1);
     check = new QPushButton("检查更新");
     check->setProperty("kind", "secondary");
-    header->addWidget(check);
+    check->setObjectName("checkApplicationUpdate");
     layout->addLayout(header);
     connect(check, &QPushButton::clicked, this, &UpdatePanel::checkUpdates);
     columns = new QHBoxLayout;
-    auto *info = new QGroupBox("发布版本");
+    auto *info = new SectionCard("发布版本");
     auto *releaseLayout = new QVBoxLayout(info);
     availableVersion = new QLabel("尚未检查");
     availableVersion->setTextFormat(Qt::PlainText);
@@ -93,12 +90,14 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
     }
     form->addRow("当前版本", version);
     columns->addWidget(info, 1);
-    auto *preflight = new QGroupBox("更新流程与检查");
+    auto *preflight = new SectionCard("更新流程与检查");
     auto *checks = new QFormLayout(preflight);
-    checks->setVerticalSpacing(10);
+    checks->setVerticalSpacing(4);
     auto *flow = new QLabel("1  检查兼容版本与签名\n2  下载应用包并校验完整性\n3  进入维护流程后安装，核对最终结果");
     flow->setObjectName("updateWorkflowSteps"); flow->setWordWrap(true);
+    flow->setStyleSheet("font-size:15px;");
     checks->addRow(flow);
+    checks->addRow(check);
     int iconIndex = 0;
     const QStringList symbols = {"chip", "server", "check"};
     for (const QString &name : {QString("设备匹配"), QString("运行环境"), QString("发布清单签名")}) {
@@ -106,7 +105,7 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
         value->setText("待检查");
         auto *label = new QWidget;
         auto *row = new QHBoxLayout(label);
-        row->setContentsMargins(0, 5, 8, 5);
+        row->setContentsMargins(0, 0, 8, 0);
         auto *symbol = new QLabel;
         symbol->setPixmap(Visuals::icon(symbols[iconIndex++]).pixmap(24, 24));
         row->addWidget(symbol);

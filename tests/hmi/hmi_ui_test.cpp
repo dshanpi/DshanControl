@@ -135,6 +135,208 @@ class HmiUiTest : public QObject
     }
   private slots:
 
+
+    void refinedPagesPreserveStateAndExposeRecovery()
+    {
+        DesktopV1::DesktopShell shell; shell.resize(1024,600); shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        const auto capture=[&](const QString &name) {
+            QTest::qWait(40);
+            if (!output.isEmpty()) {
+                QVERIFY(QDir().mkpath(output));
+                QVERIFY(shell.grab().save(output+"/"+name+".png"));
+            }
+        };
+        QVERIFY(shell.openApplication("settings"));
+        auto *badge=w->findChild<QLabel *>("settingsDraftBadge");
+        auto *range=w->findChild<QLabel *>("brightnessRange");
+        QVERIFY(badge && range); QVERIFY(badge->isHidden());
+        w->brightnessSlider->setValue(200); QVERIFY(!badge->isHidden());
+        QVERIFY(range->text().contains("200")); QVERIFY(range->text().contains("10–255"));
+        const auto draft=w->brightnessSlider->value();
+        capture("P14-未保存");
+        for (const auto &id:{"saveSettings","discardSettingsDraft"}) {
+            bool canceled=false;
+            QTimer::singleShot(40,[&]() {
+                auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+                if (!box) return;
+                canceled=box->defaultButton()==box->button(QMessageBox::No);
+                if (!output.isEmpty()) QVERIFY(box->grab().save(output+"/"+id+"-确认.png"));
+                box->button(QMessageBox::No)->click();
+            });
+            w->findChild<QPushButton *>(id)->click();
+            QVERIFY(canceled); QCOMPARE(w->brightnessSlider->value(),draft);
+            QVERIFY(w->settingsDirty); QVERIFY(!w->settingsPending);
+        }
+        w->settingsFeedback="设置已保存，背光应用未确认。";
+        w->updateSettingsControls();
+        const auto result=w->findChild<QLabel *>("settingsLastResult")->text();
+        w->markOffline();
+        QVERIFY(!w->findChild<QPushButton *>("saveSettings")->isEnabled());
+        QVERIFY(!w->findChild<QPushButton *>("discardSettingsDraft")->isEnabled());
+        QCOMPARE(w->findChild<QLabel *>("settingsLastResult")->text(),result);
+        QCOMPARE(w->brightnessSlider->value(),draft); QVERIFY(!badge->isHidden());
+        capture("P14-离线保留结果");
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("network"));
+        auto *tabs=w->findChild<QTabWidget *>("networkTabs");
+        tabs->setCurrentIndex(0);
+        QVERIFY(w->networkTables[0]->parentWidget()->isAncestorOf(w->networkFieldGroups[0][0]));
+        capture("P11-选中接口");
+        auto empty=snapshot(); empty["networks"]=QJsonArray{};
+        w->updateSnapshot(empty); w->refreshTimer.stop(); tabs->setCurrentIndex(1);
+        QCOMPARE(w->networkTables[1]->rowCount(),0);
+        QVERIFY(w->findChild<QPushButton *>("networkRefresh1")->isEnabled());
+        QCOMPARE(w->networkFieldGroups[1][0]->text(),QString("--"));
+        QVERIFY(!w->latestSnapshot.isEmpty());
+        capture("P12-服务在线无接口");
+        w->markOffline(); capture("P12-服务离线");
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("overview")); seedTrend(*w); capture("P01-连续样例曲线");
+        QVERIFY(shell.openApplication("devices")); capture("P02-读数与固定工具栏");
+        QTemporaryDir trendDirectory; QVERIFY(trendDirectory.isValid());
+        shell.canvas()->configureLayoutStorage(trendDirectory.filePath("layout.json"));
+        const auto now=QDateTime::currentDateTimeUtc();
+        for (int i=0;i<8;++i) {
+            const auto point=[&](const QString &id,const QString &type,const QString &unit,double value) {
+                return QJsonObject{{"point_id",id},{"name",id=="sensor/temperature"?"温度样例":"湿度样例"},
+                    {"type",type},{"unit",unit},{"source","mqtt"},{"quality","good"},{"value",value},
+                    {"timestamp",now.addSecs(-7+i).toString(Qt::ISODateWithMs)}};
+            };
+            shell.canvas()->applyServices({{"service_connected",true},{"reporting",QJsonObject{{"points",QJsonArray{
+                point("sensor/temperature","temperature","°C",24.3+i*0.1),
+                point("sensor/humidity","humidity","%",52.6-i*0.2)}}}}});
+            if (i==0) {
+                shell.canvas()->change(3);
+                QVERIFY(shell.canvas()->bindTrend(0,"sensor/temperature","sensor/humidity"));
+                QVERIFY(shell.canvas()->commitLayout());
+            }
+        }
+        QVERIFY(shell.openApplication("devices",{{"point_id","sensor/temperature"},{"secondary_point_id","sensor/humidity"}}));
+        QCOMPARE(shell.canvas()->pointById("sensor/temperature")["quality"].toString(),QString("good"));
+        capture("P03-有效双点样例");
+        shell.canvas()->applyServices({{"service_connected",false}});
+        QVERIFY(shell.canvas()->pointById("sensor/temperature")["value"].isNull());
+        capture("P03-离线保留历史");
+        QVERIFY(shell.openApplication("alarms"));
+        auto active=QJsonObject{{"id",12},{"ts",1791817100},{"severity","warning"},
+            {"source","demo"},{"message","样例：通信响应超时"},{"state","active"}};
+        auto acknowledged=active; acknowledged["id"]=13; acknowledged["state"]="acknowledged";
+        w->handleReply(new FixtureReply({{"ok",true},{"alarms",QJsonArray{active,acknowledged}}},"alarms"));
+        QVERIFY(!shell.findChild<QLabel *>("applicationLocation")->text().contains("（0）"));
+        for (int i=0;i<3;++i) {
+            w->alarmTabs->setCurrentIndex(i);
+            for (int row=0;row<w->alarmTable->rowCount();++row)
+                if (!w->alarmTable->isRowHidden(row)) {w->alarmTable->setCurrentCell(row,0);break;}
+            capture(QString("P%1-选中记录").arg(4+i,2,10,QChar('0')));
+        }
+        QVERIFY(shell.openApplication("settings"));
+        w->findChild<QTabWidget *>("settingsTabs")->setCurrentIndex(2);
+        w->handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{
+            QJsonObject{{"ts",1791817200},{"action","canopen_nmt"},{"target","can0/node1"},
+                {"result","failed"},{"detail","主机样例：设备拒绝"}},
+            QJsonObject{{"ts",1791817201},{"action","service"},{"target","ntp"},
+                {"result","success"},{"detail","主机样例：服务已回复"}}
+        }}}, "audit"));
+        w->auditTable->setCurrentCell(0,0); capture("P16-选中失败记录");
+        w->auditResult->setCurrentIndex(1);
+        QVERIFY(!w->findChild<QPushButton *>("auditDetails")->isEnabled());
+        capture("P16-筛选清除选择");
+        QVERIFY(shell.openApplication("fieldbus"));
+        w->findChild<QTabWidget *>("protocolTabs")->setCurrentIndex(2);
+        auto unavailable=snapshot(); auto platform=unavailable["platform"].toObject();
+        platform["capabilities"]=QJsonArray{}; unavailable["platform"]=platform;
+        w->updateSnapshot(unavailable); w->refreshTimer.stop();
+        QVERIFY(!w->findChild<QPushButton *>("ecWrite")->isEnabled());
+        QVERIFY(!w->findChild<QPushButton *>("ecCycle")->isEnabled());
+        capture("P10-能力不可用");
+        QVERIFY(shell.openApplication("voice")); w->familyPanel->apply({});
+        QCOMPARE(w->familyPanel->findChild<QStackedWidget *>("voiceContent")->currentIndex(),1);
+        capture("P19-服务未就绪");
+        QJsonObject history;
+        history["service_connected"]=false;
+        history["voice"]=QJsonObject{{"history",QJsonArray{
+            QJsonObject{{"speaker","user"},{"text","保留的会话样例"}}}}};
+        w->familyPanel->apply(history);
+        QCOMPARE(w->familyPanel->findChild<QStackedWidget *>("voiceContent")->currentIndex(),0);
+        capture("P19-离线保留对话");
+        QVERIFY(shell.openApplication("home")); w->familyPanel->apply({});
+        capture("P20-服务离线");
+        w->familyPanel->apply(QJsonObject{{"service_connected",true},{"home",QJsonObject{
+            {"configured",true},{"authorization","authorized"},{"fresh",true},{"devices",QJsonArray{}}}}});
+        QCOMPARE(w->familyPanel->findChild<QStackedWidget *>("homeDeviceContent")->currentIndex(),1);
+        QVERIFY(w->familyPanel->findChild<QLabel *>("emptyStateTitle"));
+        capture("P20-授权后无设备");
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("update"));
+        QTest::qWait(40);
+        for (const auto &id:{"checkApplicationUpdate","downloadUpdate","installUpdate","updateCompatibilityDetails"}) {
+            auto *button=w->findChild<QPushButton *>(id); QVERIFY(button);
+            QVERIFY2(button->visibleRegion().contains(button->rect()),id);
+            QVERIFY(button->height()>=48);
+        }
+        capture("P24-更新入口完整可见");
+        bool detailsClosed=false;
+        QTimer::singleShot(40,[&]() {
+            if (auto *dialog=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
+                if (!output.isEmpty()) QVERIFY(dialog->grab().save(output+"/公共-更新兼容详情.png"));
+                detailsClosed=true; dialog->accept();
+            }
+        });
+        w->findChild<QPushButton *>("updateCompatibilityDetails")->click(); QVERIFY(detailsClosed);
+        QVERIFY(shell.openApplication("cloud_bind"));
+        auto *recheck=w->cloudPanel->findChild<QPushButton *>("cloudRecheckOwnership");
+        QVERIFY(recheck); QVERIFY(!recheck->isEnabled());
+        QJsonObject cloud{{"service_connected",true},{"cloud",QJsonObject{
+            {"configured",true},{"busy",false},{"pairing",QJsonObject{{"device_id","HOST-FIXTURE"},
+                {"code","123456"},{"expires_in",120}}}}}};
+        w->cloudPanel->apply(cloud); QVERIFY(recheck->isEnabled());
+        capture("P17-主机样例查询就绪");
+        w->cloudPanel->apply({}); QVERIFY(!recheck->isEnabled());
+        QVERIFY(shell.openApplication("fieldbus"));
+        auto *nmt=w->findChild<QComboBox *>("canNmtState");
+        QCOMPARE(nmt->currentText(),QString("进入运行"));
+        QCOMPARE(nmt->currentData().toString(),QString("OPERATIONAL"));
+        nmt->setCurrentIndex(nmt->findData("STOPPED"));
+        QCOMPARE(nmt->currentText(),QString("停止节点"));
+        bool controlCanceled=false;
+        QTimer::singleShot(40,[&]() {
+            if(auto *dialog=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
+                controlCanceled=dialog->defaultButton()==dialog->button(QMessageBox::No);
+                if(!output.isEmpty()) QVERIFY(dialog->grab().save(output+"/公共-NMT停止确认.png"));
+                dialog->button(QMessageBox::No)->click();
+            }
+        });
+        w->findChild<QPushButton *>("canNmtSend")->click(); QVERIFY(controlCanceled);
+        QVERIFY(!w->actionPending);
+        shell.findChild<QPushButton *>("backToDesktop")->click();
+        capture("公共-工作台");
+        QTemporaryDir layoutDirectory; QVERIFY(layoutDirectory.isValid());
+        shell.canvas()->configureLayoutStorage(layoutDirectory.filePath("layout.json"));
+        const auto originalLayout=shell.canvas()->layoutSnapshot();
+        shell.canvas()->change(3); QVERIFY(shell.canvas()->layoutEditing());
+        capture("公共-工作台编辑");
+        shell.canvas()->discardLayout();
+        QCOMPARE(shell.canvas()->layoutSnapshot(),originalLayout);
+
+        QTemporaryDir mediaDirectory; QVERIFY(mediaDirectory.isValid());
+        const QString mediaPath=mediaDirectory.filePath("触屏选择样例.mp4");
+        QFile mediaFile(mediaPath); QVERIFY(mediaFile.open(QIODevice::WriteOnly));
+        mediaFile.write("host selection fixture, not playable"); mediaFile.close();
+        QVERIFY(shell.openApplication("video"));
+        auto *panel=w->mediaPanel;
+        // Keep this fixture in the visible library without starting a decoder.
+        panel->mediaDirectory=mediaDirectory.path(); panel->scan(); panel->showSection(1);
+        QCOMPARE(panel->files->rowCount(),1);
+        panel->files->setCurrentCell(0,0); panel->files->selectRow(0);
+        capture("P22-选中文件未播放");
+        panel->findChild<QPushButton *>("selectLibraryVideo")->click();
+        QCOMPARE(panel->selectedFile,mediaPath); QVERIFY(panel->session.queue.isEmpty());
+        capture("P21-已选文件等待播放");
+    }
+
     void auditDetailsAreTouchAccessibleAndBoundToSelection()
     {
         DesktopV1::DesktopShell shell;shell.show();
