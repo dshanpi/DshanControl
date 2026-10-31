@@ -37,7 +37,7 @@
         "scope": "historical committed build; does not identify the later blue-white UI implementation",
         "previous_full_rootfs_blocker": "host-disk-reserve; cleared by 2026-10-13 iteration 16"
       },
-      "current_iteration_acceptance": "docs/S4-PUBLICATION-SYSTEM-20261016.md",
+      "current_iteration_acceptance": "docs/CURRENT-STATUS.md",
       "development_evidence": {
         "date_utc": "2026-10-16",
         "system_image_sha256": "ca98f9da61b1f1fa298fc160152d9f547ed5808ddfc84bfa7f2158f5b86c144a",
@@ -122,6 +122,16 @@
         "power_controller_feedback": "write-only-last-known-no-voltage-measurement",
         "production_qualified": false,
         "application_update_stage_relay_matrix": "not-run-on-current-full-image"
+      },
+      "historical_iteration_acceptance_20261016": "docs/S4-PUBLICATION-SYSTEM-20261016.md",
+      "latest_development_snapshot": {
+        "date": "2026-10-31",
+        "record": "docs/CURRENT-STATUS.md",
+        "installed_functional_commit": "965087a4cfd878e078e29cb1ce65cd4a7e2a4a44",
+        "source_functional_commit": "f91a5eb00b3e0cf3bc332768676b54c9e2d73552",
+        "dnsmasq_candidate_installed": false,
+        "production_qualified": false,
+        "historical_development_evidence_scope": "The development_evidence object records 2026-10-16; it is not the current image or network state."
       }
     }
   }
