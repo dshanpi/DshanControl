@@ -602,6 +602,58 @@
           "候选未安装；真实热点/DHCP/外部DNS/NTP及现场网络验收未完成。",
           "本轮没有修改UI或提升物理显示、手指导航及原73项状态。"
         ]
+      },
+      {
+        "id": "DS-system-dnsmasq-init-results-01",
+        "date": "2026-10-31",
+        "kind": "supporting_system_dependency_no_ui_change",
+        "summary": "修复S4网络服务启停失败被脚本返回成功掩盖的问题；P12外观、只读操作与接口状态契约不变。",
+        "business_flow": [
+          "网络接口状态继续取自真实服务观察；不能用启动脚本返回0替代网络就绪。",
+          "启停失败向调用方返回失败；停止失败时不继续启动。",
+          "候选未安装，主机和仿真测试不提升现场网络或物理交互验收。"
+        ],
+        "operation_steps": [
+          "查看无线接口是否被服务枚举",
+          "选择已有接口或刷新",
+          "无接口时检查设备支持；空列表不等于服务离线"
+        ],
+        "function_changes": {
+          "retained": [
+            "P12四字段、选择、只读刷新和离线/空列表区分",
+            "既有dnsmasq可执行文件选择、reload停止再启动行为、缺配置时不操作"
+          ],
+          "added": [],
+          "changed": [
+            "S4 SysV脚本传递真实命令退出码，停止失败时阻止restart/reload的后续启动。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": [
+            "系统就绪判断、终止等待与完整服务监督不由本次脚本修复实现。"
+          ]
+        },
+        "source_hashes": {
+          "boards/t113s4-sdnand/buildroot/external.mk": "35bbdd7382c8755903f5a9a5e34683a4e018b4a53fe2867f86da6165740d9e96",
+          "boards/t113s4-sdnand/buildroot/package/dnsmasq/S80dnsmasq": "cff79ebea3fc0f38b6e8dff3ffcca30c29517f6785493e95a95ffc9027c15d67",
+          "tests/test_s4_dnsmasq_init.py": "cb5c5f980323960448aac53fedc69611d52809aec08af4b39d980568b12b405b",
+          "tests/test_s4_dnsmasq_init_real.py": "8881845de7cd3e02654a1c78c3d840c459460b188132ab5b939380e40903d519"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS/contract-fixed-host.log: 9 passed",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS/contract-fixed-target-shell.log: 8 passed; emulated target shell with command fixture",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS/real-host-lifecycle.log: 5 passed; real host commands/daemon, loopback only",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS/s4-integration-venv.log: 12 passed",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS/pinned-recipe-verified.json: isolated actual recipe installation"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/010-网络通信.png SHA256 76bd3d1752edb21a8ea776adc8a6ddcd5e2df97988b2c863b512510c138074d2; unchanged DP UI evidence, no new DS render",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P12-服务在线无接口.png SHA256 5373b912bed960de3de8a0c29f528d5bf8387e35b2dc3e73bada8c7ef765a3c0; unchanged DP UI evidence, no new DS render",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P12-服务离线.png SHA256 cdaec39395379ef50d576fda488cdeecadc78a62489b7f08d3e5e8f9a99a11bf; unchanged DP UI evidence, no new DS render"
+        ],
+        "remaining_risks": [
+          "候选未安装；实板只读结果待串口空闲后取回，不重发原命令。",
+          "脚本退出0不代表DNS就绪或进程已退出；真实网络、AP/DHCP、物理显示/手指导航与原73项验收保持未完成。"
+        ]
       }
     ]
   },

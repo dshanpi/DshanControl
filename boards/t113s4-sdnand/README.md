@@ -236,3 +236,29 @@ pass UDP/TCP answers, resolver-file replacement, hosts SIGHUP reload and explici
 dynamic-directory rejection. ARM execution uses user-mode emulation and the
 DP target libraries; it is not physical-board acceptance. The candidate is not
 installed on the board. See ../../docs/validation/2026-10-31-dnsmasq-compatibility.json.
+
+## dnsmasq service command results
+
+The S4 SysV override propagates failed start/stop command status. Restart and
+reload retain the inherited stop/start behavior, but do not start after a failed
+stop. Executable selection remains /usr/sbin/dnsmasq; this change does not add
+pidfiles, change process ownership or configure an AP/DHCP service.
+
+Exit zero is not a readiness signal. Missing configuration retains the inherited
+no-op. BusyBox stop reports signal submission rather than waiting for process
+exit, and rcS still continues other services. Network availability must be
+observed separately. The override is source-only and has not been installed.
+
+The command contract and installation fixture run without a daemon. The optional
+real lifecycle cases use a private executable copy, real host BusyBox commands,
+unprivileged loopback ports and owned-process cleanup:
+
+    .test-venv/bin/python tests/test_s4_dnsmasq_init.py -v
+    DSHAN_DNSMASQ_TEST_BINARY=/path/to/pinned/host/dnsmasq \
+      .test-venv/bin/python tests/test_s4_dnsmasq_init_real.py -v
+
+The DS evidence covers startup failure, duplicate start, successful restart,
+stop failure preventing restart, real DNS answers and port release. Eight
+command-contract cases also ran with the exact target BusyBox shell under ARM
+emulation; command fixtures in that run are not board daemon qualification.
+See ../../docs/validation/2026-10-31-dnsmasq-init-results.json.

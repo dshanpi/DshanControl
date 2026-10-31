@@ -128,10 +128,12 @@
         "date": "2026-10-31",
         "record": "docs/CURRENT-STATUS.md",
         "installed_functional_commit": "965087a4cfd878e078e29cb1ce65cd4a7e2a4a44",
-        "source_functional_commit": "f91a5eb00b3e0cf3bc332768676b54c9e2d73552",
         "dnsmasq_candidate_installed": false,
         "production_qualified": false,
-        "historical_development_evidence_scope": "The development_evidence object records 2026-10-16; it is not the current image or network state."
+        "historical_development_evidence_scope": "The development_evidence object records 2026-10-16; it is not the current image or network state.",
+        "dnsmasq_compatibility_commit": "f91a5eb00b3e0cf3bc332768676b54c9e2d73552",
+        "dnsmasq_init_record": "docs/validation/2026-10-31-dnsmasq-init-results.json",
+        "dnsmasq_init_installed": false
       }
     }
   }

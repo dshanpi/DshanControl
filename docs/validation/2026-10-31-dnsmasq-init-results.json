@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-31",
+  "scope": "S4 dnsmasq SysV command results and isolated host lifecycle; no Qt change",
+  "baseline_commit": "621b5cc6bb03d5c38d5be0574d016ea6e6fe9126",
+  "source_hashes": {
+    "boards/t113s4-sdnand/buildroot/external.mk": "35bbdd7382c8755903f5a9a5e34683a4e018b4a53fe2867f86da6165740d9e96",
+    "boards/t113s4-sdnand/buildroot/package/dnsmasq/S80dnsmasq": "cff79ebea3fc0f38b6e8dff3ffcca30c29517f6785493e95a95ffc9027c15d67",
+    "tests/test_s4_dnsmasq_init.py": "cb5c5f980323960448aac53fedc69611d52809aec08af4b39d980568b12b405b",
+    "tests/test_s4_dnsmasq_init_real.py": "8881845de7cd3e02654a1c78c3d840c459460b188132ab5b939380e40903d519"
+  },
+  "problem": "Inherited init returns success after start/stop failure, and starts after failed stop during restart/reload.",
+  "fix": "Propagate the actual command status and short-circuit restart/reload after failed stop; install the S4 script through the existing SysV recipe.",
+  "preserved": {
+    "process_selection": "start-stop-daemon -x /usr/sbin/dnsmasq",
+    "reload": "inherited stop/start behavior",
+    "missing_configuration": "inherited no-op, exit 0; not a readiness signal"
+  },
+  "validation": {
+    "original_contract_fixture": "8 tests; 6 failure assertions across 4 failing test methods reproduced the defect",
+    "fixed_contract_and_install_recipe": "9 passed",
+    "target_busybox_shell": "8 passed under ARM user-mode emulation with command fixtures; not target daemon execution",
+    "real_host_daemon": "5 passed using real host BusyBox and a private copy of the pinned dnsmasq binary on loopback",
+    "s4_integration": "12 passed with the existing project test venv",
+    "pinned_buildroot_recipe": "actual upstream recipe plus S4 external tree installed exact script, mode 0755, in a private empty target",
+    "hmi_and_unmodified_backend_matrices": "not repeated",
+    "real_host_original_init": "Same five real daemon cases with original init: 2 passed, 3 failed (invalid config, duplicate start, restart without daemon); private fixture daemons cleaned up."
+  },
+  "readiness_boundary": "BusyBox stop success means signal submission, not proven exit. rcS continues other services. Host tests separately verify answers, process exit and UDP/TCP port release. No new system readiness or process supervisor is implemented.",
+  "physical_validation": "One bounded read-only identity/network/init observation submitted; response collection is deferred while shared LYNX hardware operations are busy. No candidate transfer/install/start, application stop, reboot, power, or flash.",
+  "installed": false,
+  "failures_preserved": [
+    "Original script negative tests",
+    "Initial integration test used system Python without Flask; rerun with existing project venv passed",
+    "Post-write UART read was blocked by fresh busy state; initial diagnostic misclassified it as pre-write, corrected from actual 2744-byte write receipt; source was not resubmitted"
+  ],
+  "evidence_directory": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务启停验证_DS",
+  "original_acceptance": {
+    "pass": 25,
+    "partial": 48,
+    "running": 0,
+    "independent_24h": false
+  }
+}

@@ -1,0 +1,30 @@
+#!/bin/sh
+# S4 SysV service result propagation. A successful command is not DNS readiness.
+
+[ -f /etc/dnsmasq.conf ] || exit 0
+
+start() {
+	printf "Starting dnsmasq: "
+	start-stop-daemon -S -x /usr/sbin/dnsmasq
+	rc=$?
+	if [ "$rc" -eq 0 ]; then echo "OK"; else echo "FAIL"; fi
+	return "$rc"
+}
+
+stop() {
+	printf "Stopping dnsmasq: "
+	start-stop-daemon -K -q -x /usr/sbin/dnsmasq
+	rc=$?
+	if [ "$rc" -eq 0 ]; then echo "OK"; else echo "FAIL"; fi
+	return "$rc"
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	restart|reload) stop && start ;;
+	*)
+		echo "Usage: $0 {start|stop|restart|reload}"
+		exit 1
+		;;
+esac

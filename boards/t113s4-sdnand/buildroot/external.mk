@@ -44,3 +44,10 @@ TARGET_FINALIZE_HOOKS += DSHANCONTROL_INSTALL_BUSYBOX_INIT
 # Dynamic hosts/DHCP directories remain explicitly unsupported by dnsmasq;
 # ordinary hosts files, resolver reloads and the other selected features remain.
 DNSMASQ_COPTS += -DNO_INOTIFY
+
+# The inherited SysV script prints FAIL but exits successfully. Preserve
+# command status and prevent a new start when the stop command failed.
+define DNSMASQ_INSTALL_INIT_SYSV
+	$(INSTALL) -D -m 0755 $(BR2_EXTERNAL_DSHANCONTROL_PATH)/package/dnsmasq/S80dnsmasq \
+		$(TARGET_DIR)/etc/init.d/S80dnsmasq
+endef
