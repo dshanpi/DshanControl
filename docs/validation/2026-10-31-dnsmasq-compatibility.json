@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-31",
+  "scope": "S4 dnsmasq build compatibility; P12 supporting system dependency, no Qt change",
+  "baseline_commit": "965087a4cfd878e078e29cb1ce65cd4a7e2a4a44",
+  "problem": "Actual kernel has CONFIG_INOTIFY_USER disabled; deployed dnsmasq imports inotify_init1 and startup reports ENOSYS.",
+  "fix": "Append upstream -DNO_INOTIFY in the S4 external tree, preserving other configured options.",
+  "host_regression": {
+    "before": "4 failures; startup ENOSYS reproduced",
+    "after": "4 passed"
+  },
+  "arm_regression": {
+    "before": "Exact DP staged ARM binary: 4 failures under ENOSYS shim",
+    "after": "Corrected ARM binary: 4 passed with DP target shared libraries",
+    "scope": "QEMU user-mode; no physical-board qualification"
+  },
+  "repository_tests": {
+    "core": 5,
+    "repository": 394,
+    "environment_privilege_skips": 11,
+    "source_unchanged_during_test": true
+  },
+  "hmi_tests": "Not repeated: all Qt source files unchanged from validated DP commit.",
+  "candidate": {
+    "bytes": 265816,
+    "sha256": "7211ead9c5e2b19548f7921fc9b91afb8f5b85fb70c3f9b0e44ff05eba169298",
+    "installed": false
+  },
+  "capability_boundary": "Dynamic directory options fail closed. The inherited configuration is an AP service; DNS binary compatibility is not AP/DHCP, external DNS, Internet, or NTP acceptance.",
+  "physical_validation": "Current board read-only identity matches DP; wlan0 has no IPv4 address and route table has no entries. No candidate transfer/install/start, power, reboot, or flash.",
+  "remaining": [
+    "Restore an authorized usable network path before candidate transfer.",
+    "Perform a bounded isolated real-board DNS test, then review site/AP configuration before service installation.",
+    "Physical LCD/navigation and original 73-case qualification remain separate."
+  ],
+  "evidence_directory": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务兼容验证_DQ",
+  "logs": [
+    "regression-before.log",
+    "regression-after.log",
+    "arm-before-regression.log",
+    "arm-after-regression.log",
+    "repository-test.log",
+    "recipe-options.json",
+    "arm-dependencies.json",
+    "current-board-identity.json"
+  ],
+  "old_failures_preserved": true
+}

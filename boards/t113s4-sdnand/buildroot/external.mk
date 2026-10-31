@@ -38,3 +38,9 @@ define DSHANCONTROL_INSTALL_BUSYBOX_INIT
 	fi
 endef
 TARGET_FINALIZE_HOOKS += DSHANCONTROL_INSTALL_BUSYBOX_INIT
+
+# The pinned S4 kernel has CONFIG_INOTIFY_USER disabled. Use dnsmasq's
+# upstream resolver-file polling path instead of failing at inotify_init1.
+# Dynamic hosts/DHCP directories remain explicitly unsupported by dnsmasq;
+# ordinary hosts files, resolver reloads and the other selected features remain.
+DNSMASQ_COPTS += -DNO_INOTIFY

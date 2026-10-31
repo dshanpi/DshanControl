@@ -553,6 +553,55 @@
           "主机验证不代表板端物理显示、触摸或真实业务验收。",
           "DP整机打包、源码同步及最终烧写结果另行记录。"
         ]
+      },
+      {
+        "id": "DQ-system-dnsmasq-compatibility-01",
+        "date": "2026-10-31",
+        "kind": "supporting_system_dependency_no_ui_change",
+        "summary": "修正S4网络服务构建与无inotify内核的兼容性；无线接口页外观、只读刷新和真实状态契约保持。",
+        "business_flow": [
+          "先核对接口真实地址与路由；dnsmasq热点服务和无线客户端连接分别确认。",
+          "系统构建使用上游文件轮询模式；解析器文件变化与hosts重载保留。",
+          "候选仍未上板，不能把主机或ARM仿真成功显示为现场网络已就绪。"
+        ],
+        "operation_steps": [
+          "查看无线接口是否被服务枚举",
+          "选择已有接口或刷新",
+          "无接口时检查设备支持；空列表不等于服务离线"
+        ],
+        "function_changes": {
+          "retained": [
+            "P12四字段、接口选择、只读刷新和离线/空列表区分",
+            "DHCP/DHCPv6、TFTP、D-Bus、IDN、conntrack和DNSSEC既有编译选择"
+          ],
+          "added": [],
+          "changed": [
+            "S4 dnsmasq使用NO_INOTIFY兼容当前内核，普通配置文件采用轮询/重载；此项为系统依赖而非Qt界面变化。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": [
+            "需要inotify的动态目录选项明确拒绝；不伪造支持。"
+          ]
+        },
+        "source_hashes": {
+          "boards/t113s4-sdnand/buildroot/external.mk": "ffb07c98844409fca7848d6d14caf73022d878858ea3fbcd38bebbf25f008a90",
+          "tests/test_s4_dnsmasq.py": "4486e6286c4b09ae24dcd3d223434b97a74bc5715b638b1574e2b9fb1fd69e5e"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务兼容验证_DQ/regression-after.log: host 4 passed",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务兼容验证_DQ/arm-regression.json: exact old ARM fails, candidate ARM 4 passed under emulation; not board",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务兼容验证_DQ/repository-test.json: make test exit0, source unchanged",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/网络服务兼容验证_DQ/current-board-identity.json: read-only current DP identity; no WLAN IPv4/default route"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/010-网络通信.png SHA256 76bd3d1752edb21a8ea776adc8a6ddcd5e2df97988b2c863b512510c138074d2; unchanged DP UI evidence, no new DQ render",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P12-服务在线无接口.png SHA256 5373b912bed960de3de8a0c29f528d5bf8387e35b2dc3e73bada8c7ef765a3c0; unchanged DP UI evidence, no new DQ render",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P12-服务离线.png SHA256 cdaec39395379ef50d576fda488cdeecadc78a62489b7f08d3e5e8f9a99a11bf; unchanged DP UI evidence, no new DQ render"
+        ],
+        "remaining_risks": [
+          "候选未安装；真实热点/DHCP/外部DNS/NTP及现场网络验收未完成。",
+          "本轮没有修改UI或提升物理显示、手指导航及原73项状态。"
+        ]
       }
     ]
   },

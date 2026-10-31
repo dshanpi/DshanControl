@@ -198,3 +198,41 @@ The successful normal cold boot uses real display RPC readiness before launching
 update recovery, rather than a fixed one-second sleep. The restore tool's
 `--check` passed; `--restore` was not executed. Current source/asset hashes and
 remaining qualification gates stay in the linked physical evidence record.
+
+## dnsmasq on the pinned S4 kernel
+
+The observed S4 kernel does not enable CONFIG_INOTIFY_USER. Upstream dnsmasq
+2.79 enables inotify automatically on Linux and exits at startup when that
+interface returns ENOSYS. The S4 external tree now appends -DNO_INOTIFY to
+DNSMASQ_COPTS, selecting upstream's resolver-file polling implementation.
+It preserves the configured DHCP/DHCPv6, TFTP, D-Bus, IDN, conntrack and DNSSEC
+build options. It does not change the kernel or the Qt network pages.
+
+Resolver-file changes are detected by polling; ordinary additional hosts files
+can still be reloaded with SIGHUP. The upstream build explicitly rejects
+hostsdir, dhcp-hostsdir and dhcp-optsdir: these require inotify and must not be
+silently accepted. If a future qualified kernel enables inotify, review this
+board-specific build choice together with the required directory-watch features.
+
+The inherited dnsmasq configuration is for a Wi-Fi access point. A compatible
+binary alone does not configure an access point, restore station credentials,
+supply a default route, prove DHCP operation or establish Internet/NTP access.
+Do not start a new DHCP service on a connected network merely to validate this fix.
+
+The real-binary regression runs on loopback only, using a test-only ENOSYS shim:
+
+    DSHAN_DNSMASQ_TEST_BINARY=/path/to/pinned/host/dnsmasq \
+      .test-venv/bin/python tests/test_s4_dnsmasq.py -v
+
+Build the pinned vendor source with a separate BUILDDIR and COPTS=-DNO_INOTIFY.
+On newer host headers, CFLAGS may additionally need -include linux/sockios.h;
+that compatibility include is for the host fixture, not the ARM build.
+Supplying the same environment variable to make test includes these four cases.
+Without a supplied real binary, the suite reports an explicit skipped class.
+
+The October 31 DQ evidence reproduces the failure with both the host baseline
+and the exact previously staged ARM binary. The corrected host and ARM candidate
+pass UDP/TCP answers, resolver-file replacement, hosts SIGHUP reload and explicit
+dynamic-directory rejection. ARM execution uses user-mode emulation and the
+DP target libraries; it is not physical-board acceptance. The candidate is not
+installed on the board. See ../../docs/validation/2026-10-31-dnsmasq-compatibility.json.
