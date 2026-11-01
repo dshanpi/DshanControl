@@ -356,6 +356,11 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
 }
 void MediaPanel::scan()
 {
+    const auto *selected = files->item(files->currentRow(), 0);
+    const QString libraryPath = selected && !files->selectedItems().isEmpty()
+        ? selected->data(Qt::UserRole).toString() : QString();
+    const QString playlistPath = playlist->currentItem()
+        ? playlist->currentItem()->data(Qt::UserRole).toString() : QString();
     mediaFiles.clear();
     playlist->clear();
     files->setRowCount(0);
@@ -383,6 +388,10 @@ void MediaPanel::scan()
             new QTableWidgetItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1) + " MB"));
 
     }
+    const int libraryRow = mediaFiles.indexOf(libraryPath);
+    if (libraryRow >= 0) files->setCurrentCell(libraryRow, 0);
+    const int playlistRow = mediaFiles.indexOf(playlistPath);
+    if (playlistRow >= 0) playlist->setCurrentRow(playlistRow);
 }
 void MediaPanel::choose()
 {

@@ -16,6 +16,9 @@ class CloudPanel : public QWidget
 
   private:
     DesktopClient *client;
+    QJsonObject current;
+    void updateRequestState();
+    void updateNote();
     QLabel *identity, *connection, *ownership, *code, *expiry, *note, *reportState, *lastAck;
     QPushButton *refresh, *send;
     QTableWidget *points;

@@ -1,4 +1,6 @@
 #include "updatepanel.h"
+#include <QScopedValueRollback>
+#include <QStyle>
 #include "visuals.h"
 #include <QFile>
 #include <QFileInfo>
@@ -198,6 +200,21 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
             });
     connect(&process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError) {
         taskPoll.stop();
+        if (nativeMode) {
+            nativeIdentityReady = false; // Retry first reads identity and the existing task.
+            check->setEnabled(true);
+            download->setEnabled(false);
+            install->setEnabled(false);
+            resetPreflight("查看失败原因");
+            availableVersion->setText(installOutcome.isEmpty() ? "更新结果待核对" : "安装任务已完成");
+            releaseSummary->setText(installOutcome.isEmpty()
+                ? "更新服务请求未完成，现有任务状态尚未确认。请查询已有任务后核对。"
+                : "系统已报告安装与健康检查完成；当前版本记录尚未确认。");
+            status->setText(installOutcome.isEmpty()
+                ? "结果未确认；点击“检查更新”读取已有任务，不要重复安装。"
+                : installOutcome + "\n当前版本记录读取失败，请检查更新服务。");
+            return;
+        }
         download->setEnabled(false);
         install->setEnabled(false);
         for (auto *label : preflightValues) {
@@ -227,6 +244,7 @@ UpdatePanel::~UpdatePanel()
 
 void UpdatePanel::reloadIdentity(bool restoreTask)
 {
+    ++identityRevision;
     // Native launchers announce the public service. Its clients never need to
     // open the system owner's updater configuration, trust root or data paths.
     const QJsonObject config = nativeMode ? QJsonObject() : readObject(configPath);
@@ -278,6 +296,7 @@ void UpdatePanel::checkUpdates()
         }
         return;
     }
+    installOutcome.clear();
     for (auto *label : preflightValues) {
         label->setText("检查中");
         label->setStyleSheet("color:#526d93;");
@@ -312,6 +331,7 @@ void UpdatePanel::requestNative(const QString &method, const QJsonObject &params
 {
     if (process.state() != QProcess::NotRunning)
         return;
+    ++identityRevision;
     nativeMethod = method;
     process.start(updaterExecutable, {"rpc", method,
         QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))});
@@ -330,20 +350,23 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
     const QByteArray output = process.readAllStandardOutput().trimmed();
     const QByteArray errorOutput = process.readAllStandardError().trimmed();
     if (exitStatus != QProcess::NormalExit || code != 0) {
-        if (nativeMethod == "update.identity")
-            nativeIdentityReady = false;
+        nativeIdentityReady = false;
         taskPoll.stop();
         check->setEnabled(true);
         download->setEnabled(false);
         install->setEnabled(false);
         resetPreflight("查看失败原因");
         const QJsonObject error = QJsonDocument::fromJson(errorOutput).object();
-        status->setText(error.isEmpty() ? "系统更新服务未完成请求，请检查服务状态。" :
+        QString failure = error.isEmpty() ? "系统更新服务未完成请求，请检查服务状态。" :
             QString("阶段：%1 · 错误码：%2\n%3").arg(error["stage"].toString(),
-            error["code"].toString(), error["message"].toString()));
+            error["code"].toString(), error["message"].toString());
+        if (nativeMethod == "update.identity" && !installOutcome.isEmpty())
+            failure = installOutcome + "\n当前版本记录读取失败。\n" + failure;
+        status->setText(failure);
         return;
     }
     if (nativeMethod == "update.identity") {
+        ++identityRevision;
         const auto identity = QJsonDocument::fromJson(output).object();
         const auto installed = identity["installed"].toObject();
         const auto system = identity["system"].toObject();
@@ -360,10 +383,11 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         install->setEnabled(false);
         if (!nativeIdentityReady) {
             resetPreflight("未检查");
-            status->setText("应用更新尚未就绪：系统版本记录或签名公钥未配置。");
+            status->setText(installOutcome.isEmpty() ? "应用更新尚未就绪：系统版本记录或签名公钥未配置。" :
+                installOutcome + "\n当前版本记录未确认，请检查更新服务。");
             return;
         }
-        status->setText("可以检查兼容应用更新，尚未开始检查。");
+        status->setText(installOutcome.isEmpty() ? "可以检查兼容应用更新，尚未开始检查。" : installOutcome);
         if (restoreTaskAfterIdentity)
             requestNative("update.status", {});
         return;
@@ -431,8 +455,12 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         return;
     }
     if (operation == "install") {
+        availableVersion->setText("安装任务已完成");
+        releaseSummary->setText("系统已报告安装与健康检查完成；下方显示当前应用版本记录。");
+        resetPreflight("查看任务结果");
+        installOutcome = "系统更新任务成功，应用已通过健康检查。";
         reloadIdentity(false);
-        status->setText("系统更新任务成功，应用已通过健康检查。");
+        status->setText(installOutcome + "\n正在核对当前版本记录…");
         return;
     }
     const bool candidateValid = QRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$")
@@ -480,21 +508,37 @@ void UpdatePanel::downloadUpdate()
 
 void UpdatePanel::installUpdate()
 {
-    if (!nativeMode || downloadTaskId.isEmpty() || process.state() != QProcess::NotRunning)
-        return;
+    if (confirmingInstall || !nativeMode || !nativeIdentityReady || !install->isEnabled() ||
+        downloadTaskId.isEmpty() || process.state() != QProcess::NotRunning) return;
+    QScopedValueRollback<bool> confirmationGuard(confirmingInstall, true);
+    const auto reviewedTask = downloadTaskId;
+    const auto reviewedRelease = selectedRelease;
+    const auto reviewedIdentity = identityRevision;
     QMessageBox dialog(QMessageBox::Warning, "安装应用更新",
         "安装版本 " + selectedRelease["version"].toString() +
         " 将重启桌面及相关应用服务。系统会检查维护状态，失败时恢复旧版。", QMessageBox::Yes | QMessageBox::No, this);
     dialog.setTextFormat(Qt::PlainText);
     dialog.setDefaultButton(QMessageBox::No);
+    dialog.button(QMessageBox::Yes)->setText("安装并重启应用");
+    dialog.button(QMessageBox::No)->setText("暂不安装");
+    dialog.button(QMessageBox::No)->setProperty("kind", "secondary");
+    dialog.button(QMessageBox::No)->style()->unpolish(dialog.button(QMessageBox::No));
+    dialog.button(QMessageBox::No)->style()->polish(dialog.button(QMessageBox::No));
+    for (auto *button : dialog.buttons()) button->setMinimumHeight(48);
     if (dialog.exec() != QMessageBox::Yes)
         return;
+    if (identityRevision != reviewedIdentity || downloadTaskId != reviewedTask ||
+        selectedRelease != reviewedRelease || !nativeIdentityReady || !install->isEnabled() ||
+        process.state() != QProcess::NotRunning) {
+        status->setText("更新身份或下载任务已变化，本次未提交安装。请核对版本后重新确认。");
+        return;
+    }
     install->setEnabled(false);
     download->setEnabled(false);
     taskId.clear();
-    requestNative("update.start", {{"operation", "install"}, {"source_task_id", downloadTaskId},
-        {"confirmed", true}, {"version", selectedRelease["version"]},
-        {"package_sha256", selectedRelease["package_sha256"]}});
+    requestNative("update.start", {{"operation", "install"}, {"source_task_id", reviewedTask},
+        {"confirmed", true}, {"version", reviewedRelease["version"]},
+        {"package_sha256", reviewedRelease["package_sha256"]}});
 }
 
 void UpdatePanel::resizeEvent(QResizeEvent *event)

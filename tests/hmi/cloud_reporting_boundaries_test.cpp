@@ -15,7 +15,8 @@ class HmiUiTest : public QObject
     QList<QJsonObject> requests;
     std::unique_ptr<DesktopClient> client;
     std::unique_ptr<CloudPanel> panel;
-    bool dropSend = false;
+    bool dropSend = false, holdSnapshot = false;
+    QPointer<QLocalSocket> heldSnapshot;
 
     QJsonObject point() const {
         return {{"point_id","sensor/temperature"},{"name","温度"},{"type","temperature"},
@@ -39,7 +40,7 @@ class HmiUiTest : public QObject
     void apply() { panel->apply(state);QCoreApplication::processEvents(); }
   private slots:
     void init() {
-        QVERIFY(temporary.isValid());requests.clear();dropSend=false;state=snapshot();
+        QVERIFY(temporary.isValid());requests.clear();dropSend=false;holdSnapshot=false;heldSnapshot.clear();state=snapshot();
         QVERIFY(server.listen(temporary.filePath("reporting.sock")));
         connect(&server,&QLocalServer::newConnection,this,[this]() {
             auto *s=server.nextPendingConnection();
@@ -47,6 +48,7 @@ class HmiUiTest : public QObject
                 auto bytes=s->property("bytes").toByteArray()+s->readAll();
                 s->setProperty("bytes",bytes);if(!bytes.contains('\n'))return;
                 const auto request=QJsonDocument::fromJson(bytes.trimmed()).object();requests<<request;
+                if(holdSnapshot && request["method"]=="desktop.snapshot"){heldSnapshot=s;return;}
                 if(dropSend && request["method"]=="reporting.send") {s->abort();return;}
                 s->write(QJsonDocument(QJsonObject{{"protocol",1},{"ok",true},{"result",state}})
                              .toJson(QJsonDocument::Compact)+'\n');s->disconnectFromServer();
@@ -108,6 +110,21 @@ class HmiUiTest : public QObject
         QTRY_VERIFY(!client->active);QTest::qWait(50);QCOMPARE(count("reporting.configure"),1);
         r["persistent"]=false;state["reporting"]=r;apply();QVERIFY(!enabled->isEnabled());QVERIFY(!period->isEnabled());
         QTest::mouseClick(enabled,Qt::LeftButton);QTest::qWait(50);QCOMPARE(count("reporting.configure"),1);
+    }
+
+    void acceptedSendWaitsForSnapshotBeforeUnlocking() {
+        holdSnapshot=true;
+        sendButton()->click();QVERIFY(!sendButton()->isEnabled());
+        sendButton()->click();
+        QTRY_VERIFY(heldSnapshot);
+        QVERIFY(client->isPending("reporting.send"));
+        QVERIFY(!sendButton()->isEnabled());QCOMPARE(count("reporting.send"),1);
+        holdSnapshot=false;
+        heldSnapshot->write(QJsonDocument(QJsonObject{{"protocol",1},{"ok",true},{"result",state}})
+            .toJson(QJsonDocument::Compact)+'\n');
+        heldSnapshot->disconnectFromServer();
+        QTRY_VERIFY(!client->isPending("reporting.send"));
+        QVERIFY(sendButton()->isEnabled());QCOMPARE(count("reporting.send"),1);
     }
     void lostSendResponseIsNotReplayed() {
         dropSend=true;QSignalSpy feedback(client.get(),&DesktopClient::feedback);

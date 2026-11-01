@@ -153,7 +153,7 @@
   "impact_reviews": [
     {
       "path": "components/hmi/src/cloudpanel.cpp",
-      "sha256": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+      "sha256": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
       "pages": [
         "P01",
         "P02",
@@ -180,7 +180,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
     },
     {
       "path": "components/hmi/src/desktop/desktopshell.cpp",
@@ -246,7 +246,7 @@
     },
     {
       "path": "components/hmi/src/familypanel.cpp",
-      "sha256": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+      "sha256": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
       "pages": [
         "P01",
         "P02",
@@ -273,7 +273,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
     },
     {
       "path": "components/hmi/src/mainwindow.cpp",
@@ -308,7 +308,7 @@
     },
     {
       "path": "components/hmi/src/mediapanel.cpp",
-      "sha256": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
+      "sha256": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
       "pages": [
         "P01",
         "P02",
@@ -335,11 +335,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
     },
     {
       "path": "components/hmi/src/updatepanel.cpp",
-      "sha256": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+      "sha256": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
       "pages": [
         "P01",
         "P02",
@@ -366,7 +366,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
     },
     {
       "path": "components/hmi/src/visuals.cpp",
@@ -429,6 +429,161 @@
         "P24"
       ],
       "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+    },
+    {
+      "path": "components/hmi/src/cloudpanel.h",
+      "sha256": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+    },
+    {
+      "path": "components/hmi/src/desktopclient.cpp",
+      "sha256": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+    },
+    {
+      "path": "components/hmi/src/desktopclient.h",
+      "sha256": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+    },
+    {
+      "path": "components/hmi/src/familypanel.h",
+      "sha256": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+    },
+    {
+      "path": "components/hmi/src/updatepanel.h",
+      "sha256": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
     }
   ],
   "source_scope": "all regular files under components/hmi, including images, fonts, resource files and build definitions"

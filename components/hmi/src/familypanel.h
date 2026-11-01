@@ -37,7 +37,10 @@ class FamilyPanel : public QWidget
     QList<QLabel *> reported;
     QByteArray functionsIdentity, historyIdentity;
     QString selectedDevice;
-    bool loading = false;
+    bool loading = false, confirmingControl = false;
+    quint64 controlRevision = 0;
+    void updateHomeActions();
+    void updateNote();
     bool voiceHoldActive = false, voiceFreeChatActive = false;
     void stopVoiceInteraction(bool explicitStop = false);
     void selectDevice();

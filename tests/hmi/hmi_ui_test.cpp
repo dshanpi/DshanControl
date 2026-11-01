@@ -37,6 +37,7 @@
 #include <QNetworkReply>
 #include <QNetworkProxy>
 #include <QPushButton>
+#include <QPlainTextEdit>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSlider>
@@ -132,6 +133,17 @@ class HmiUiTest : public QObject
         w.networkManager.disconnect(&w);
         for (auto *r : w.networkManager.findChildren<QNetworkReply *>())
             r->abort();
+    }
+
+    static QJsonObject homeReviewState()
+    {
+        QJsonArray list;
+        for(const auto &id:{"lamp","fan"})
+            list.append(QJsonObject{{"id",id},{"name",id},{"room",QString(id)=="lamp"?"书房":"客厅"},{"online",true},
+                {"status",QJsonArray{QJsonObject{{"code","switch"},{"value",false}}}}});
+        const QJsonArray specs{QJsonObject{{"code","switch"},{"type","Boolean"},{"writable",true},{"values",QJsonObject()}}};
+        return {{"service_connected",true},{"home",QJsonObject{{"configured",true},{"authorization","authorized"},
+            {"fresh",true},{"revision",1},{"devices",list},{"functions",QJsonObject{{"lamp",specs},{"fan",specs}}}}}};
     }
   private slots:
 
@@ -907,18 +919,141 @@ class HmiUiTest : public QObject
         QCOMPARE(shell.activeApplication(),QString("devices"));
     }
 
+
     void serviceFeedbackSurvivesSnapshotRefresh()
     {
-        DesktopClient client; client.poll.stop();
+        DesktopClient client; client.poll.stop(); client.active=true;
         CloudPanel cloud(&client); FamilyPanel family(&client);
-        const QString feedback="请求失败：服务未响应。请检查连接后重试。";
-        emit client.feedback(feedback);
-        cloud.apply({}); family.apply({});
-        for (auto *panel : {static_cast<QWidget *>(&cloud),static_cast<QWidget *>(&family)}) {
-            auto *label=panel->findChild<QLabel *>("operationFeedback");
-            QVERIFY(label); QVERIFY(label->text().contains(feedback)); QVERIFY(!label->isHidden());
-            QCOMPARE(label->textFormat(),Qt::PlainText);
-        }
+        auto *cloudResult=cloud.findChild<QLabel *>("operationFeedback");
+        auto *homeResult=family.findChild<QLabel *>("operationFeedback");
+        emit client.operationFeedback("cloud.refresh","绑定查询失败");
+        cloud.apply({});family.apply({});
+        QVERIFY(cloudResult->text().contains("绑定查询失败"));QVERIFY(homeResult->isHidden());
+        cloud.selectSection(1);QVERIFY(cloudResult->isHidden());
+        emit client.operationFeedback("reporting.send","上报结果待确认");
+        emit client.operationFeedback("home.command","家庭状态已变化");
+        QVERIFY(cloudResult->text().contains("上报结果待确认"));QVERIFY(homeResult->isHidden());
+        family.selectSection(1);QVERIFY(homeResult->text().contains("家庭状态已变化"));
+        emit client.operationFeedback("voice.command","语音尚未就绪");
+        QVERIFY(homeResult->text().contains("家庭状态已变化"));
+        family.selectSection(0);QVERIFY(homeResult->text().contains("语音尚未就绪"));
+        cloud.selectSection(0);QVERIFY(cloudResult->text().contains("绑定查询失败"));
+        cloud.apply({});family.apply({});
+        QVERIFY(cloudResult->text().contains("绑定查询失败"));
+        QVERIFY(homeResult->text().contains("语音尚未就绪"));
+        QCOMPARE(cloudResult->textFormat(),Qt::PlainText);QCOMPARE(homeResult->textFormat(),Qt::PlainText);
+    }
+    void cloudPendingRequestsLockControlsAndPreserveDraft()
+    {
+        DesktopClient client;client.poll.stop();client.active=true;
+        CloudPanel panel(&client);panel.selectSection(1);
+        QJsonObject state{{"service_connected",true},{"cloud",QJsonObject{{"configured",true},{"mqtt","connected"}}},
+            {"reporting",QJsonObject{{"enabled",false},{"persistent",true},{"period_seconds",30}}}};
+        panel.apply(state);
+        auto *toggle=panel.findChild<QCheckBox *>("reportingEnabled");
+        auto *period=panel.findChild<QComboBox *>("reportingPeriod");
+        toggle->click();QVERIFY(client.isPending("reporting.configure"));
+        QVERIFY(toggle->isChecked());QVERIFY(!toggle->isEnabled());QVERIFY(!period->isEnabled());
+        panel.apply(state);QVERIFY(toggle->isChecked()); // Earlier in-flight snapshot cannot reset the submitted draft.
+        toggle->click();QCOMPARE(client.queue.size(),1);
+        client.queue.clear();emit client.requestStateChanged();
+        QVERIFY(!toggle->isChecked());QVERIFY(toggle->isEnabled());
+        panel.selectSection(0);
+        auto *refresh=panel.findChild<QPushButton *>("cloudRefreshBinding");
+        auto *alias=panel.findChild<QPushButton *>("cloudRecheckOwnership");
+        refresh->click();QVERIFY(!refresh->isEnabled());QVERIFY(!alias->isEnabled());
+        alias->click();QCOMPARE(client.queue.size(),1);
+    }
+
+
+    void workflowDeepeningReviewCaptures()
+    {
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(output.isEmpty())QSKIP("Set review directory for host render evidence.");
+        QVERIFY(QDir().mkpath(output));
+        DesktopV1::DesktopShell shell;auto *w=shell.findChild<MainWindow *>();
+        QVERIFY(w);
+        w->networkManager.disconnect(w);
+        for (auto *reply : w->networkManager.findChildren<QNetworkReply *>()) reply->abort();
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();
+        w->desktopClient->poll.stop();w->desktopClient->active=true;
+        shell.resize(1024,600);shell.show();
+        auto capture=[&](const QString &name) {
+            QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+            QTest::qWait(40);QCOMPARE(shell.size(),QSize(1024,600));
+            QVERIFY(shell.grab().save(output+"/"+name+".png"));
+        };
+        QVERIFY(shell.openApplication("home"));
+        auto home=homeReviewState();w->familyPanel->apply(home);
+        auto *table=w->familyPanel->findChild<QTableWidget *>("homeDevices");
+        table->setCurrentCell(0,0);w->familyPanel->apply(home);
+        capture("DT-P20-可见选中设备");
+        auto *rooms=w->familyPanel->findChild<QComboBox *>("homeRooms");
+        rooms->setCurrentIndex(rooms->findText("客厅"));w->familyPanel->apply(home);
+        QCOMPARE(table->currentRow(),-1);
+        capture("DT-P20-切换房间清空控制");
+        emit w->desktopClient->operationFeedback("home.command","设备、授权或状态已变化，本次未发送控制。请核对设备后重新操作。");
+        auto *homeResult=w->familyPanel->findChild<QLabel *>("operationFeedback");
+        QVERIFY(homeResult->isVisible());QVERIFY(homeResult->text().contains("本次未发送控制"));
+        capture("DT-P20-确认变化拒绝结果");
+        QVERIFY(homeResult->mapTo(&shell,homeResult->rect().bottomRight()).y()<600);
+        QVERIFY(shell.openApplication("voice"));
+        w->familyPanel->apply({{"service_connected",true},{"voice",QJsonObject{{"history",QJsonArray{
+            QJsonObject{{"speaker","user"},{"text","离线时保留这条主机样例对话"}}}}}}});
+        w->familyPanel->apply({{"service_connected",false}});
+        capture("DT-P19-真实离线快照保留对话");
+        QVERIFY(shell.openApplication("cloud_bind"));
+        emit w->desktopClient->operationFeedback("cloud.refresh","查询未完成，请检查网络与设备登记。");
+        auto *cloudResult=w->cloudPanel->findChild<QLabel *>("operationFeedback");
+        QVERIFY(cloudResult->isVisible());QVERIFY(cloudResult->text().contains("查询未完成"));
+        capture("DT-P17-独立查询反馈");
+        QVERIFY(cloudResult->mapTo(&shell,cloudResult->rect().bottomRight()).y()<600);
+        QVERIFY(shell.openApplication("reporting"));
+        emit w->desktopClient->operationFeedback("reporting.send","上报结果待确认，请核对云端记录。");
+        QVERIFY(cloudResult->isVisible());QVERIFY(cloudResult->text().contains("上报结果待确认"));
+        capture("DT-P18-独立上报反馈");
+
+        QVERIFY(cloudResult->mapTo(&shell,cloudResult->rect().bottomRight()).y()<600);
+        QVERIFY(shell.openApplication("update"));
+        auto *update=dynamic_cast<UpdatePanel *>(w->findChild<QWidget *>("applicationUpdatePanel"));QVERIFY(update);
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        const QJsonObject identity{{"installed",QJsonObject{{"version","1.2.3"}}},
+            {"system",QJsonObject{{"board_id","host-fixture"},{"contract_id","host-fixture"}}},{"check_configured",true}};
+        const QJsonObject candidate{{"version","1.2.3"},{"package_sha256",QString(64,'d')}};
+        const QJsonObject task{{"task_id",QString(32,'a')},{"operation","install"},{"status","success"},{"candidate",candidate}};
+        auto write=[&](const QString &name,const QByteArray &data){
+            QFile file(temp.filePath(name));return file.open(QIODevice::WriteOnly)&&file.write(data)==data.size();};
+        QVERIFY(write("identity",QJsonDocument(identity).toJson(QJsonDocument::Compact)));
+        QVERIFY(write("task",QJsonDocument(task).toJson(QJsonDocument::Compact)));
+        QVERIFY(write("updater",R"fixture(#!/bin/sh
+cd "$(dirname "$0")"
+if [ "$2" = update.identity ]; then cat identity; else cat task; fi
+)fixture"));
+        QVERIFY(QFile::setPermissions(temp.filePath("updater"),QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        update->updaterExecutable=temp.filePath("updater");update->nativeMode=true;
+        update->nativeIdentityReady=true;update->downloadTaskId=QString(32,'b');
+        update->selectedRelease=candidate;update->install->setEnabled(true);
+        QTimer::singleShot(0,update,[&]{
+            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            QVERIFY(box);QCOMPARE(box->defaultButton(),box->button(QMessageBox::No));
+            QVERIFY(box->button(QMessageBox::Yes)->height()>=48);
+            QVERIFY(box->grab().save(output+"/DT-P24-应用内安装确认.png"));
+            box->button(QMessageBox::No)->click();
+        });
+        update->install->click();
+        update->requestNative("update.status",{});
+        QTRY_VERIFY(update->nativeIdentityReady && update->process.state()==QProcess::NotRunning &&
+                    update->status->text().contains("系统更新任务成功"));
+        QCOMPARE(update->availableVersion->text(),QString("安装任务已完成"));
+        capture("DT-P24-应用内安装结果保留");
+        QVERIFY(update->status->mapTo(&shell,update->status->rect().bottomRight()).y()<600);
+        update->updaterExecutable=temp.filePath("missing-updater");
+        update->reloadIdentity(false);
+        QTRY_VERIFY(update->status->text().contains("读取失败"));
+        QVERIFY(update->status->text().contains("系统更新任务成功"));
+        QVERIFY(!update->nativeIdentityReady);
+        capture("DT-P24-完成任务与身份读取失败分别显示");
+        QVERIFY(update->status->mapTo(&shell,update->status->rect().bottomRight()).y()<600);
     }
 
     void allApplicationSubpagesHaveReviewCaptures()
@@ -1470,6 +1605,102 @@ class HmiUiTest : public QObject
         QVERIFY(!w.familyPanel->findChild<QPushButton *>("voiceTalk")->isEnabled());
         QVERIFY(w.cloudPanel->findChild<QLabel *>("pairingCode")->text().contains("—"));
     }
+
+    void householdFilterClearsHiddenControl()
+    {
+        DesktopClient client; client.poll.stop(); client.active=true;
+        FamilyPanel panel(&client); panel.resize(1024,600); panel.show(); panel.selectSection(1);
+        auto state=homeReviewState();
+        panel.apply(state);
+        auto *table=panel.findChild<QTableWidget *>("homeDevices");
+        table->setCurrentCell(0,0); panel.apply(state);
+        QVERIFY(panel.findChild<QCheckBox *>()->isEnabled());
+        auto *rooms=panel.findChild<QComboBox *>(); // Voice mode is another combo; identify room text.
+        for(auto *combo:panel.findChildren<QComboBox *>())
+            if(combo->findText("客厅")>=0) rooms=combo;
+        rooms->setCurrentIndex(rooms->findText("客厅")); panel.apply(state);
+        QCOMPARE(table->rowCount(),1);
+        QCOMPARE(table->currentRow(),-1);
+        for(auto *toggle:panel.findChildren<QCheckBox *>())
+            QVERIFY(!toggle->isVisible() || !toggle->isEnabled());
+        rooms->setCurrentIndex(0); panel.apply(state);
+        QCOMPARE(table->currentRow(),-1); // Never silently reselect a hidden device.
+    }
+    void householdConfirmationBindsReviewedState_data()
+    {
+        QTest::addColumn<int>("change");
+        QTest::newRow("unchanged")<<0;
+        QTest::newRow("revision")<<1;
+        QTest::newRow("disconnect-reconnect")<<2;
+        QTest::newRow("capability-away-and-back")<<3;
+        QTest::newRow("selection-away-and-back")<<4;
+    }
+    void householdConfirmationBindsReviewedState()
+    {
+        QFETCH(int,change);
+        DesktopClient client; client.poll.stop(); client.active=true;
+        FamilyPanel panel(&client); panel.resize(1024,600); panel.show(); panel.selectSection(1);
+        const auto state=homeReviewState(); panel.apply(state);
+        auto *table=panel.findChild<QTableWidget *>("homeDevices");
+        table->setCurrentCell(0,0); panel.apply(state); client.queue.clear();
+        QCheckBox *toggle=nullptr;
+        for(auto *candidate:panel.findChildren<QCheckBox *>())
+            if(candidate->isVisible() && candidate->property("code")=="switch") toggle=candidate;
+        QVERIFY(toggle); QVERIFY(toggle->isEnabled());
+        bool confirmed=false;
+        QTimer::singleShot(0,&panel,[&] {
+            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            if(!box)return;
+            QCOMPARE(box->defaultButton(),box->button(QMessageBox::No));
+            if(change==1){auto changed=state;auto home=state["home"].toObject();home["revision"]=2;changed["home"]=home;panel.apply(changed);}
+            if(change==2){panel.apply({{"service_connected",false}});panel.apply(state);table->setCurrentCell(0,0);panel.apply(state);}
+            if(change==3){auto changed=state;auto home=state["home"].toObject();home["functions"]=QJsonObject();changed["home"]=home;panel.apply(changed);panel.apply(state);}
+            if(change==4){table->setCurrentCell(1,0);table->setCurrentCell(0,0);}
+            confirmed=true;box->button(QMessageBox::Yes)->click();
+        });
+        toggle->click(); QVERIFY(confirmed);
+        int commands=0;
+        for(const auto &request:client.queue)
+            if(request.method=="home.command"){
+                ++commands;QCOMPARE(request.params["revision"],QJsonValue(1));
+                QCOMPARE(request.params["device_id"].toString(),QString("lamp"));
+                QCOMPARE(request.params["value"],QJsonValue(true));
+            }
+        QCOMPARE(commands,change==0?1:0);
+    }
+    void voiceDisconnectRetainsTranscriptUntilExplicitServiceHistory()
+    {
+        DesktopClient client;client.poll.stop();client.active=true;
+        FamilyPanel panel(&client);
+        panel.apply({{"service_connected",true},{"voice",QJsonObject{{"history",QJsonArray{
+            QJsonObject{{"speaker","user"},{"text","保留这条对话"}}}}}}});
+        auto *history=panel.findChild<QPlainTextEdit *>();
+        QVERIFY(history->toPlainText().contains("保留这条对话"));
+        panel.apply({{"service_connected",false}});
+        QVERIFY(history->toPlainText().contains("保留这条对话"));
+        panel.apply({{"service_connected",true},{"voice",QJsonObject{{"history",QJsonArray()}}}});
+        QVERIFY(history->toPlainText().isEmpty());
+    }
+    void mediaRefreshPreservesPathSelectionWithoutPlayback()
+    {
+        QTemporaryDir directory;QVERIFY(directory.isValid());
+        for(const auto &name:{"b.mp4","c.mp4"}){QFile f(directory.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));f.write("fixture");}
+        MediaPanel panel;panel.resize(1024,600);panel.show();panel.mediaDirectory=directory.path();panel.scan();panel.showSection(1);
+        panel.files->setCurrentCell(1,0);
+        const auto path=directory.filePath("c.mp4");
+        QFile added(directory.filePath("a.mp4"));QVERIFY(added.open(QIODevice::WriteOnly));added.write("fixture");added.close();
+        panel.scan();
+        QVERIFY(panel.files->currentRow()>=0);
+        QCOMPARE(panel.files->item(panel.files->currentRow(),0)->data(Qt::UserRole).toString(),path);
+        QVERIFY(panel.findChild<QPushButton *>("selectLibraryVideo")->isEnabled());
+        QVERIFY(panel.selectedFile.isEmpty());QVERIFY(panel.session.queue.isEmpty());
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty()){QTest::qWait(40);QVERIFY(panel.grab().save(output+"/DT-P22-刷新保持同一路径.png"));}
+        QVERIFY(QFile::remove(path));panel.scan();
+        QCOMPARE(panel.files->currentRow(),-1);
+        QVERIFY(!panel.findChild<QPushButton *>("selectLibraryVideo")->isEnabled());
+        QVERIFY(panel.selectedFile.isEmpty());QVERIFY(panel.session.queue.isEmpty());
+    }
     void householdUiPreservesReportedValueWhileCommandIsPending()
     {
         MainWindow w;isolate(w);w.resize(1024,600);w.show();w.showPage(7);w.updateSnapshot(snapshot());w.refreshTimer.stop();
@@ -1630,6 +1861,33 @@ class HmiUiTest : public QObject
         QVERIFY(w.grab().save("screenshots/brightness-touch.png"));
     }
 
+
+    void nativeRequestStartupFailureKeepsOutcomeUnknown()
+    {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        UpdatePanel panel;panel.nativeMode=true;panel.nativeIdentityReady=true;
+        panel.updaterExecutable=temp.filePath("missing-updater");
+        QSignalSpy errors(&panel.process,&QProcess::errorOccurred);
+        panel.requestNative("update.start",{{"operation","install"}});
+        QTRY_COMPARE(errors.count(),1);
+        QVERIFY(panel.status->text().contains("结果未确认"));
+        QVERIFY(!panel.releaseSummary->text().contains("未下载或安装"));
+        QVERIFY(!panel.install->isEnabled());QVERIFY(!panel.download->isEnabled());
+        QVERIFY(!panel.nativeIdentityReady);
+        panel.checkUpdates();
+        QTRY_COMPARE(errors.count(),2);
+        QCOMPARE(panel.nativeMethod,QString("update.identity")); // Reconcile before any new update.start.
+        QCOMPARE(panel.process.arguments().value(1),QString("update.identity"));
+        panel.installOutcome="系统更新任务成功，应用已通过健康检查。";
+        panel.reloadIdentity(false);
+        QTRY_COMPARE(errors.count(),3);
+        QVERIFY(!panel.nativeIdentityReady);
+        QVERIFY(panel.status->text().contains("系统更新任务成功"));
+        QVERIFY(panel.status->text().contains("读取失败"));
+        QCOMPARE(panel.availableVersion->text(),QString("安装任务已完成"));
+        QVERIFY(panel.releaseSummary->text().contains("当前版本记录尚未确认"));
+    }
+
     void nativeUpdateTasksRequireDownloadedIdentityAndPreserveErrors()
     {
         auto json = [](const QJsonObject &object) {
@@ -1685,12 +1943,35 @@ class HmiUiTest : public QObject
         QCOMPARE(body["source_task_id"].toString(), checked);
         QCOMPARE(body["operation"].toString(), QString("download"));
         request.close();
+
+        // The native service must receive exactly the downloaded identity the user reviewed.
+        for (int change=0;change<2;++change) {
+            QVERIFY(request.open(QIODevice::ReadOnly));const auto before=request.readAll();request.close();
+            QTimer::singleShot(0,&panel,[&]() {
+                auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+                if(!box)return;
+                if(change==0)panel.selectedRelease["version"]="9.9.9";
+                else panel.downloadTaskId=QString(32,'f');
+                box->button(QMessageBox::Yes)->click();
+            });
+            panel.install->click();
+            QCOMPARE(panel.process.state(),QProcess::NotRunning);
+            QVERIFY(panel.status->text().contains("本次未提交安装"));
+            QVERIFY(request.open(QIODevice::ReadOnly));QCOMPARE(request.readAll(),before);request.close();
+            panel.selectedRelease=candidate;panel.downloadTaskId=downloaded;panel.install->setEnabled(true);
+        }
         auto error = response(failed, "install", "failed");
         error["error"] = QJsonObject{{"stage", "maintenance"}, {"code", "17"}, {"message", "<b>fixture refused</b>"}};
         QVERIFY(write("result", json(error)));
         QTimer::singleShot(0, &panel, []() {
             auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
-            if (box) QTest::mouseClick(box->button(QMessageBox::Yes), Qt::LeftButton);
+            if (box) {
+                QCOMPARE(box->button(QMessageBox::Yes)->text(),QString("安装并重启应用"));
+                QVERIFY(box->button(QMessageBox::Yes)->height()>=48);
+                const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+                if(!output.isEmpty())QVERIFY(box->grab().save(output+"/DT-P24-固定候选确认.png"));
+                QTest::mouseClick(box->button(QMessageBox::Yes), Qt::LeftButton);
+            }
         });
         panel.install->click();
         QTRY_VERIFY(panel.status->text().contains("17"));
@@ -3721,6 +4002,12 @@ class HmiUiTest : public QObject
                 QVERIFY(write("result", QJsonDocument(task).toJson(QJsonDocument::Compact)));
                 QTRY_VERIFY(!panel->taskPoll.isActive());
                 QTRY_COMPARE(panel->process.state(), QProcess::NotRunning);
+                QVERIFY(panel->status->text().contains("系统更新任务成功"));
+                const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+                if(!output.isEmpty()){
+                    panel->resize(1024,600);panel->show();QTest::qWait(40);
+                    QVERIFY(panel->grab().save(output+"/DT-P24-安装结果经身份刷新保留.png"));
+                }
             }
         }
         QFile requests(temp.filePath("requests")); QVERIFY(requests.open(QIODevice::ReadOnly));

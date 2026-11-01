@@ -9,11 +9,14 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QSharedPointer>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QScopedValueRollback>
+#include <QStyle>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QTableWidget>
@@ -173,6 +176,7 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     homeLayout->setSpacing(6);
     auto *toolbar = new QHBoxLayout;
     rooms = new QComboBox;
+    rooms->setObjectName("homeRooms");
     rooms->addItem("全部房间");
     rooms->setMinimumWidth(130);
     toolbar->addWidget(rooms);
@@ -181,7 +185,10 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     sync = new QPushButton("同步设备");
     toolbar->addWidget(sync);
     homeLayout->addLayout(toolbar);
-    connect(sync, &QPushButton::clicked, this, [this]() { client->request("home.refresh"); });
+    connect(sync, &QPushButton::clicked, this, [this]() {
+        if (!client->isPending("home.refresh")) client->request("home.refresh");
+    });
+    connect(client, &DesktopClient::requestStateChanged, this, &FamilyPanel::updateHomeActions);
     connect(rooms, QOverload<int>::of(&QComboBox::activated), this,
             [this](int) { apply(current); });
     auto *body = new QHBoxLayout;
@@ -230,11 +237,22 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     operationFeedback->hide();
     root->addWidget(operationFeedback);
     connect(client, &DesktopClient::snapshotChanged, this, &FamilyPanel::apply);
-    connect(client, &DesktopClient::feedback, this,
-            [operationFeedback](const QString &message) {
-                operationFeedback->setText("最近服务反馈：" + message);
-                operationFeedback->setVisible(!message.isEmpty());
+    const auto results = QSharedPointer<QMap<int, QString>>::create();
+    const auto showResult = [operationFeedback, tabs, results]() {
+        const auto message = results->value(tabs->currentIndex());
+        operationFeedback->setText("最近服务反馈：" + message);
+        operationFeedback->setVisible(!message.isEmpty());
+    };
+    connect(client, &DesktopClient::operationFeedback, this,
+            [results, showResult](const QString &method, const QString &message) {
+                const int section = method.startsWith("voice.") ? 0
+                                  : method.startsWith("home.") ? 1 : -1;
+                if (section < 0) return;
+                (*results)[section] = message;
+                showResult();
             });
+    connect(tabs, &QTabWidget::currentChanged, this, [showResult](int) { showResult(); });
+    connect(tabs, &QTabWidget::currentChanged, this, [this](int) { updateNote(); });
     apply({});
     qApp->installEventFilter(this);
 }
@@ -242,6 +260,7 @@ bool FamilyPanel::selectDeviceById(const QString &id)
 {
     if(id.isEmpty())return false;
     selectSection(1);
+    if (selectedDevice != id) ++controlRevision;
     selectedDevice=id;
     rooms->setCurrentIndex(0);
     apply(current);
@@ -259,7 +278,9 @@ void FamilyPanel::selectDevice()
     const int row = devices->currentRow();
     if (row < 0 || !devices->item(row, 0))
         return;
-    selectedDevice = devices->item(row, 0)->data(Qt::UserRole).toString();
+    const auto id = devices->item(row, 0)->data(Qt::UserRole).toString();
+    if (selectedDevice != id) ++controlRevision;
+    selectedDevice = id;
     functionsIdentity.clear();
     buildControls();
     if (current["service_connected"] == true && current["home"].toObject()["fresh"] == true)
@@ -268,7 +289,11 @@ void FamilyPanel::selectDevice()
 bool FamilyPanel::canControl(const QString &id, const QString &code) const
 {
     const auto home = current["home"].toObject();
-    if (current["service_connected"] != true || home["authorization"] != "authorized" ||
+    const int row = devices->currentRow();
+    if (id.isEmpty() || id != selectedDevice || row < 0 || devices->selectedItems().isEmpty() ||
+        !devices->item(row, 0) || devices->item(row, 0)->data(Qt::UserRole).toString() != id ||
+        client->isPending("home.command") ||
+        current["service_connected"] != true || home["authorization"] != "authorized" ||
         home["fresh"] != true || home["busy"] == true || device(current, id)["online"] != true ||
         home["pending"].toObject().contains(id + '/' + code))
         return false;
@@ -279,8 +304,11 @@ bool FamilyPanel::canControl(const QString &id, const QString &code) const
 }
 void FamilyPanel::control(const QString &id, const QString &code, const QJsonValue &value)
 {
-    if (!canControl(id, code))
+    if (confirmingControl || !canControl(id, code))
         return;
+    QScopedValueRollback<bool> confirmationGuard(confirmingControl, true);
+    const auto reviewedRevision = controlRevision;
+    const QJsonValue serviceRevision = current["home"].toObject()["revision"];
     const auto name = device(current, id)["name"].toString();
     QMessageBox dialog(QMessageBox::Question, "控制设备", QString(),
                        QMessageBox::Yes | QMessageBox::No, this);
@@ -288,14 +316,21 @@ void FamilyPanel::control(const QString &id, const QString &code, const QJsonVal
     dialog.setText(name + "\n" + code + "：" + valueText(value) + "\n\n发送后等待设备状态确认。");
     dialog.button(QMessageBox::Yes)->setText("发送控制");
     dialog.button(QMessageBox::No)->setText("取消");
+    dialog.button(QMessageBox::No)->setProperty("kind", "secondary");
+    dialog.button(QMessageBox::No)->style()->unpolish(dialog.button(QMessageBox::No));
+    dialog.button(QMessageBox::No)->style()->polish(dialog.button(QMessageBox::No));
     dialog.setDefaultButton(QMessageBox::No);
-    if (dialog.exec() != QMessageBox::Yes || !canControl(id, code))
+    for (auto *button : dialog.buttons()) button->setMinimumHeight(48);
+    if (dialog.exec() != QMessageBox::Yes) return;
+    if (reviewedRevision != controlRevision || !canControl(id, code)) {
+        emit client->operationFeedback("home.command", "设备、授权或状态已变化，本次未发送控制。请核对设备后重新操作。");
         return;
+    }
     client->request("home.command", {{"device_id", id},
                                      {"code", code},
                                      {"value", value},
                                      {"command_id", QUuid::createUuid().toString(QUuid::Id128)},
-                                     {"revision", current["home"].toObject()["revision"]},
+                                     {"revision", serviceRevision},
                                      {"confirmed", true}});
 }
 void FamilyPanel::buildControls()
@@ -315,7 +350,7 @@ void FamilyPanel::buildControls()
     const auto list = current["home"].toObject()["functions"].toObject()[selectedDevice].toArray();
     if (selectedDevice.isEmpty() || list.isEmpty())
         layout->addWidget(label(selectedDevice.isEmpty()
-                                    ? "同步设备后，选择一台查看可用控制。"
+                                    ? "请在左侧选择一台设备，查看可用控制。"
                                     : "正在读取控制能力，或当前设备暂无可用控制。",
                                 "caption"));
     for (const auto &entry : list)
@@ -388,6 +423,8 @@ void FamilyPanel::buildControls()
 }
 void FamilyPanel::apply(const QJsonObject &state)
 {
+    if (current["service_connected"] != state["service_connected"] ||
+        current["home"] != state["home"]) ++controlRevision;
     current = state;
     const bool connected = state["service_connected"] == true;
     const auto voice = state["voice"].toObject(), home = state["home"].toObject();
@@ -411,7 +448,7 @@ void FamilyPanel::apply(const QJsonObject &state)
     stop->setEnabled(ready);
     mode->setEnabled(ready);
     const auto encoded = QJsonDocument(voice["history"].toArray()).toJson(QJsonDocument::Compact);
-    if (encoded != historyIdentity)
+    if (voice["history"].isArray() && encoded != historyIdentity)
     {
         historyIdentity = encoded;
         QStringList lines;
@@ -425,7 +462,8 @@ void FamilyPanel::apply(const QJsonObject &state)
     }
     findChild<QStackedWidget *>("voiceContent")->setCurrentIndex(
         !ready && transcript->toPlainText().isEmpty() ? 1 : 0);
-    sync->setEnabled(connected && home["configured"] == true && home["busy"] != true);
+    if (!connected && !transcript->toPlainText().isEmpty())
+        activation->setText("服务已离线，保留上次对话记录。");
     homeState->setText(!connected
                            ? "接入服务未连接"
                            : home["busy"] == true
@@ -471,6 +509,10 @@ void FamilyPanel::apply(const QJsonObject &state)
             }
     }
     loading = false;
+    if (devices->currentRow() < 0 && !selectedDevice.isEmpty()) {
+        selectedDevice.clear();
+        ++controlRevision;
+    }
     if (auto *panel=findChild<QFrame *>("homeControlPanel"))
         panel->setVisible(devices->rowCount()>0);
     static_cast<DataTable *>(devices)->setEmptyText(!connected
@@ -497,11 +539,7 @@ void FamilyPanel::apply(const QJsonObject &state)
         functionsIdentity = signature;
         buildControls();
     }
-    for (auto *action : actions)
-    {
-        const auto code = action->property("code").toString();
-        action->setEnabled(canControl(selectedDevice, code));
-    }
+    updateHomeActions();
     for (auto *toggle : boolInputs)
     {
         const auto value =
@@ -517,11 +555,30 @@ void FamilyPanel::apply(const QJsonObject &state)
         value->setText("设备：" + valueText(reportedValue(state, selectedDevice, code)) +
                        (pending.isEmpty() ? QString() : "\n结果待确认，请同步状态"));
     }
-    note->setText(!connected
-                      ? "接入服务未连接，家庭与语音操作暂不可用。"
-                      : !home["error"].toString().isEmpty()
-                            ? "家庭请求未完成，请检查账号授权并重新同步。"
-                            : "家庭控制按设备能力提供；指令受理后保留上次状态，等待设备确认。");
+    updateNote();
+}
+
+void FamilyPanel::updateNote()
+{
+    const bool voicePage = findChild<QTabWidget *>("familyTabs")->currentIndex() == 0;
+    note->setText(current["service_connected"] != true
+        ? "接入服务未连接，家庭与语音操作暂不可用。"
+        : voicePage ? "按住说话，松开后等待回复；切页或离开应用会结束本次对话操作。"
+        : !current["home"].toObject()["error"].toString().isEmpty()
+            ? "家庭请求未完成，请检查账号授权并重新同步。"
+            : "家庭控制按设备能力提供；指令受理后保留上次状态，等待设备确认。");
+}
+void FamilyPanel::updateHomeActions()
+{
+    const auto home = current["home"].toObject();
+    sync->setEnabled(current["service_connected"] == true && home["configured"] == true &&
+                     home["busy"] != true && !client->isPending("home.refresh"));
+    for (auto *action : actions) {
+        const auto code = action->property("code").toString();
+        const bool valid = !qobject_cast<QCheckBox *>(action) ||
+                           reportedValue(current, selectedDevice, code).isBool();
+        action->setEnabled(valid && canControl(selectedDevice, code));
+    }
 }
 void FamilyPanel::stopVoiceInteraction(bool explicitStop)
 {

@@ -19,6 +19,12 @@ DesktopClient::DesktopClient(QObject *parent) : QObject(parent)
     poll.start();
     QTimer::singleShot(0, this, [this]() { request("desktop.snapshot"); });
 }
+bool DesktopClient::isPending(const QString &method) const
+{
+    if (activeMethod == method || awaitingSnapshot.contains(method)) return true;
+    for (const auto &entry : queue) if (entry.method == method) return true;
+    return false;
+}
 void DesktopClient::request(const QString &method, const QJsonObject &params)
 {
     if (method == "desktop.snapshot")
@@ -32,9 +38,11 @@ void DesktopClient::request(const QString &method, const QJsonObject &params)
     if (queue.size() >= 16)
     {
         emit feedback("操作队列已满，请等待当前请求结束。");
+        emit operationFeedback(method, "操作队列已满，请等待当前请求结束。");
         return;
     }
     queue.enqueue(Request{method, params});
+    emit requestStateChanged();
     next();
 }
 void DesktopClient::next()
@@ -43,6 +51,7 @@ void DesktopClient::next()
         return;
     active = true;
     const auto request = queue.dequeue();
+    activeMethod = request.method;
     auto *socket = new QLocalSocket(this);
     socket->setReadBufferSize(524289);
     auto bytes = std::make_shared<QByteArray>();
@@ -52,6 +61,7 @@ void DesktopClient::next()
         if (*completed)
             return;
         *completed = true;
+        if (request.method != "desktop.snapshot") awaitingSnapshot.insert(request.method);
         if (!error.isEmpty())
         {
             if (request.method == "desktop.snapshot")
@@ -59,8 +69,10 @@ void DesktopClient::next()
                 state = {{"version", 1}, {"service_connected", false}};
                 emit snapshotChanged(state);
             }
-            else
+            else {
                 emit feedback(error);
+                emit operationFeedback(request.method, error);
+            }
         }
         else if (request.method == "desktop.snapshot")
         {
@@ -68,11 +80,16 @@ void DesktopClient::next()
             state["service_connected"] = true;
             emit snapshotChanged(state);
         }
-        else
+        else {
             emit feedback("请求已受理，正在等待服务结果。");
+            emit operationFeedback(request.method, "请求已受理，正在等待服务结果。");
+        }
         socket->abort();
         socket->deleteLater();
         active = false;
+        activeMethod.clear();
+        if (request.method == "desktop.snapshot") awaitingSnapshot.clear();
+        emit requestStateChanged();
         if (!queue.isEmpty())
             QTimer::singleShot(0, this, &DesktopClient::next);
         else if (request.method != "desktop.snapshot")

@@ -39,7 +39,9 @@ class UpdatePanel : public QWidget
     QPushButton *check;
     QPushButton *download;
     QPushButton *install;
-    bool nativeMode = false;
+    bool nativeMode = false, confirmingInstall = false;
+    quint64 identityRevision = 0;
+    QString installOutcome;
     bool nativeIdentityReady = false;
     bool restoreTaskAfterIdentity = true;
     QString nativeMethod, taskId, checkTaskId, downloadTaskId;

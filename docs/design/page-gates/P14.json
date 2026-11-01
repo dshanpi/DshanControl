@@ -35,7 +35,8 @@
     ],
     "added": [],
     "changed": [
-      "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。"
+      "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。",
+      "DT：编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件"
     ],
     "removed": [],
     "proposed_not_implemented": []
@@ -80,35 +81,33 @@
     ]
   },
   "implementation": {
-    "summary": "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。",
+    "summary": "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
     "source_hashes": {
-      "components/hmi/src/cloudpanel.cpp": "70fa94408aac47b5ddec87444c602b23571f43e53c65bfd9c2a5d57d9f069acd",
+      "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
       "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
       "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
-      "components/hmi/src/familypanel.cpp": "a91279187f8de8b01c0725e98bf5f49d0dcc443ac618801425334b69ede145aa",
+      "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
       "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
-      "components/hmi/src/mediapanel.cpp": "0f77cbbd70d8d1f8917379d2692561572612a6e1612da5c9ab49095f232d1db4",
-      "components/hmi/src/updatepanel.cpp": "26a9eee310731b4f11f6b6cc1c053cb14be6736856b678595f68944172924c24",
+      "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+      "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
       "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
-      "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+      "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+      "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+      "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+      "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+      "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+      "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
     },
     "verification": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02.log: make test-hmi PASS; registry7/main121/isolation6/reporting15, 0 failures/skips; native update bridge/flow prerequisite commands also exit0.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/hmi-full-02-source-consistency.json: all tracked files unchanged throughout final full HMI run.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01.log: make test PASS; core5/repository390, 11 environment/privilege skips; backend sources unchanged.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/repository-test-01-source-consistency.json: during backend tests only UI whitespace/hidden title and ledger changed; later service spacing covered by final HMI.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/production-host-03.json and production-arm-03.json: final formal builds, no hardware qualification."
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-03-result.json: final make test-hmi PASS 7/132/6/16; all tracked source hashes unchanged.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/repository-relevant-source-consistency.json: core5 and repository386/399 PASS with13 explicit environment skips; backend-relevant sources unchanged; not a whole-tree unchanged claim.",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/final-visual-comparison.json: final actual host captures bound by full SHA; not board qualification."
     ],
     "actual_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-离线保留结果.png SHA256 b2c4539e724fed820cc91e321d1bb89dea783c664a4f289dab3c8da95efcb59e",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/saveSettings-确认.png SHA256 ea68cf7988640cf1f430ce474ab6b4e0b46a8995933d00678605dee46279a22e",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/discardSettingsDraft-确认.png SHA256 b487f39ffcf2e8f0975212200b21ede0da105d486cca2ed8fdf6a9a5f08782dd"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
     ],
     "remaining_risks": [
-      "主机截图与注入样例不证明现场总线、联网、云家庭、音视频及物理LCD发光。",
-      "DP源码尚未最终构建/部署；既有DO已烧写，不将旧板端证据计作DP验收。",
-      "原73项与86400秒运行验收仍按独立实证记录，不因界面完成而升级。"
+      "本轮主机验证和程序构建不代表实板业务资格；DT 尚未安装，真实业务与原73项剩余验收继续。"
     ],
     "history": [
       {
@@ -585,13 +584,306 @@
           "主机验证不代表板端物理显示、触摸或真实业务验收。",
           "DP整机打包、源码同步及最终烧写结果另行记录。"
         ]
+      },
+      {
+        "id": "DT-workflow-implementation-01",
+        "date": "2026-11-01",
+        "summary": "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有业务能力、参数范围、维护/签名门、语音结束队列及媒体生命周期"
+          ],
+          "added": [],
+          "changed": [
+            "本页业务与布局保持；复核共享客户端变更、导航和状态，见逐页复查表。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/familypanel.cpp": "55f3bf384779eb35e30e121c29a9b7b67d24d2c7a7c03694fca2b5601b5bdae6",
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+          "components/hmi/src/updatepanel.cpp": "a01192e25b1e8c7700b45e20137b4a39e4d6aeaa6ee0bb63b1eca909335d0d7e"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/targeted-02.log: 26 passed; state/selection/feedback/update/voice focused host checks before later presentation refinements.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10.log: 6 passed; current host shell/update/library captures; final complete HMI pending.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/DT-design-resolution.json: visual reviews and all failures retained."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P17-独立查询反馈.png SHA256 dd18c2c510d3bf4699366a5357f81630e02fe20f79da63aefaa6107d06fcddf5",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P18-独立上报反馈.png SHA256 ac899726571e8d265fd5aec23a824cb5de4c7d7b0621e72551c033b57f6b05ee",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P19-真实离线快照保留对话.png SHA256 d1bcad4608e5679fa63ca984c35461b57428ce27ba728522ffe5d7fe8b0cef51",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P20-切换房间清空控制.png SHA256 34fb84c39a956b4e1b8f269959c352538e58352652cd95669d2962922b64f61b",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P20-可见选中设备.png SHA256 40b129a78f8cb14edda0a2304a61e3bf45d18a07280974972a111e7a778bd087",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P20-确认变化拒绝结果.png SHA256 28e6d41c075f6cb093591aa8c95a53568be3ad3be96748c90142fd9ca7f7d900",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P22-刷新保持同一路径.png SHA256 a97274acebb5b4aa00b66459396338f6862b5106829ad6f40ef98b5f809787de",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P24-固定候选确认.png SHA256 a8be20e76d2b585d04a3d6749cb3d3460a26a3d3f51a7a02e61ddfcb389be7ae",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P24-安装结果经身份刷新保留.png SHA256 82b1a04f708b26617e4a494b478096bf668c5ca4d9c295fb34a33e001a45d479",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P24-应用内安装确认.png SHA256 8771cdc50e9f0ec09a0bd99b5cc64a78e6317657505a95e75cea2fd7ea42db82",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-10/DT-P24-应用内安装结果保留.png SHA256 6a00493bec77005ee6db1721d98885760a95e12c039e5220007422c7d9206dd2"
+        ],
+        "remaining_risks": [
+          "主机隔离样例不代表实板业务资格；最终完整HMI和构建待检查，本轮未上板。"
+        ]
+      },
+      {
+        "id": "DT-confirmation-presentation-02",
+        "date": "2026-11-01",
+        "summary": "确认框取消按钮明确为次操作并重新应用Qt样式；安装完成摘要/结果、共享页反馈及选择流程经实际Qt复查。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有业务能力、参数范围、维护/签名门、语音结束队列及媒体生命周期"
+          ],
+          "added": [],
+          "changed": [
+            "本页业务与布局保持；复核共享客户端变更、导航和状态，见逐页复查表。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+          "components/hmi/src/updatepanel.cpp": "9f78fcff58f5e6e96c071c6349bf7325c23b08865683f0c4aba1313fc1a8e50d",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12.log: 6 PASS; current shell/update/library checks and screenshots; tracked source unchanged.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/targeted-02.log: 26 PASS for state/selection/voice boundaries; later presentation changes require final complete HMI."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P17-独立查询反馈.png SHA256 dd18c2c510d3bf4699366a5357f81630e02fe20f79da63aefaa6107d06fcddf5",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P18-独立上报反馈.png SHA256 ac899726571e8d265fd5aec23a824cb5de4c7d7b0621e72551c033b57f6b05ee",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P19-真实离线快照保留对话.png SHA256 d1bcad4608e5679fa63ca984c35461b57428ce27ba728522ffe5d7fe8b0cef51",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P20-切换房间清空控制.png SHA256 34fb84c39a956b4e1b8f269959c352538e58352652cd95669d2962922b64f61b",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P20-可见选中设备.png SHA256 40b129a78f8cb14edda0a2304a61e3bf45d18a07280974972a111e7a778bd087",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P20-确认变化拒绝结果.png SHA256 28e6d41c075f6cb093591aa8c95a53568be3ad3be96748c90142fd9ca7f7d900",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P22-刷新保持同一路径.png SHA256 a97274acebb5b4aa00b66459396338f6862b5106829ad6f40ef98b5f809787de",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P24-固定候选确认.png SHA256 a8be20e76d2b585d04a3d6749cb3d3460a26a3d3f51a7a02e61ddfcb389be7ae",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P24-安装结果经身份刷新保留.png SHA256 82b1a04f708b26617e4a494b478096bf668c5ca4d9c295fb34a33e001a45d479",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P24-应用内安装确认.png SHA256 f6d95aa3bf7d3f9806e3a6a691a29cf1c8199dfa48c9ff7fcde38b622a5f0837",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-12/DT-P24-应用内安装结果保留.png SHA256 6a00493bec77005ee6db1721d98885760a95e12c039e5220007422c7d9206dd2"
+        ],
+        "remaining_risks": [
+          "主机隔离样例不代表实板业务资格；最终完整HMI和构建待检查，本轮未上板。"
+        ]
+      },
+      {
+        "id": "DT-update-unknown-result-03",
+        "date": "2026-11-01",
+        "summary": "补充更新器请求失败的未知结果语义：不宣称未安装；保留已知任务完成结果并分别显示版本记录读取失败。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有业务能力、参数范围、维护/签名门、语音结束队列及媒体生命周期"
+          ],
+          "added": [],
+          "changed": [
+            "P24：更新请求失败保留未知状态；已完成任务与版本记录读取失败分别显示。其余页面维持DT前序实施与审查。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+          "components/hmi/src/updatepanel.cpp": "6f3c6a2bfbbbeef2282605a6d2492dab325e4c774da55fea80c5254bea47630c",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-01-result.json: complete make test-hmi PASS 7/131/6/16, tracked source unchanged before this final P24 error-branch addition.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13.log: 7 PASS with native startup failure regression and actual 1024x600 completion/identity-failure rendering; current source unchanged.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/repository-relevant-source-consistency.json: core5 and repository386/399 PASS;13 explicit environment skips; backend relevant sources unchanged."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-01/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-固定候选确认.png SHA256 a8be20e76d2b585d04a3d6749cb3d3460a26a3d3f51a7a02e61ddfcb389be7ae",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-安装结果经身份刷新保留.png SHA256 82b1a04f708b26617e4a494b478096bf668c5ca4d9c295fb34a33e001a45d479",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-完成任务与身份读取失败分别显示.png SHA256 6125fe817be446db650ce49abbac20ef765eaaa2d5964bd5403e6f796d154188",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-应用内安装确认.png SHA256 f6d95aa3bf7d3f9806e3a6a691a29cf1c8199dfa48c9ff7fcde38b622a5f0837",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-应用内安装结果保留.png SHA256 6a00493bec77005ee6db1721d98885760a95e12c039e5220007422c7d9206dd2"
+        ],
+        "remaining_risks": [
+          "主机隔离样例不代表实板业务资格；最终完整HMI和构建待检查，本轮未上板。"
+        ]
+      },
+      {
+        "id": "DT-update-reconciliation-04",
+        "date": "2026-11-01",
+        "summary": "更新请求结果未知后，检查入口先重新读取公共身份和已有任务；不会直接再提交新的更新任务。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有业务能力、参数范围、维护/签名门、语音结束队列及媒体生命周期"
+          ],
+          "added": [],
+          "changed": [
+            "P24：未知结果后检查入口先查询身份和已有任务；取消、维护和签名门保持。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+          "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-02-result.json: 7/132/6/16 PASS, tracked source unchanged before final recovery-entry guard.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13.log: update unknown-result presentation and 1024x600 placement verified; final recovery method assertion added, final full HMI pending."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-01/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-固定候选确认.png SHA256 a8be20e76d2b585d04a3d6749cb3d3460a26a3d3f51a7a02e61ddfcb389be7ae",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-安装结果经身份刷新保留.png SHA256 82b1a04f708b26617e4a494b478096bf668c5ca4d9c295fb34a33e001a45d479",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-完成任务与身份读取失败分别显示.png SHA256 6125fe817be446db650ce49abbac20ef765eaaa2d5964bd5403e6f796d154188",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-应用内安装确认.png SHA256 f6d95aa3bf7d3f9806e3a6a691a29cf1c8199dfa48c9ff7fcde38b622a5f0837",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/draft-captures-13/DT-P24-应用内安装结果保留.png SHA256 6a00493bec77005ee6db1721d98885760a95e12c039e5220007422c7d9206dd2"
+        ],
+        "remaining_risks": [
+          "主机隔离样例不代表实板业务资格；最终完整HMI和构建待检查，本轮未上板。"
+        ]
+      },
+      {
+        "id": "DT-final-host-verification-05",
+        "date": "2026-11-01",
+        "summary": "最终完整HMI回归通过；源码/实际截图绑定和逐页流程复核完成，本轮未上板。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有业务能力、参数范围、维护/签名门、语音结束队列及媒体生命周期"
+          ],
+          "added": [],
+          "changed": [
+            "完成DT各项已实施行为最终回归，未追加业务能力。"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+          "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+          "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-03-result.json: final make test-hmi PASS 7/132/6/16; all tracked source hashes unchanged.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/repository-relevant-source-consistency.json: core5 and repository386/399 PASS with13 explicit environment skips; backend-relevant sources unchanged; not a whole-tree unchanged claim.",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/final-visual-comparison.json: final actual host captures bound by full SHA; not board qualification."
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+        ],
+        "remaining_risks": [
+          "本轮主机验证和程序构建不代表实板业务资格；DT 尚未安装，真实业务与原73项剩余验收继续。"
+        ]
       }
     ]
   },
   "hardware_validation": {
-    "status": "pending_for_DP",
+    "status": "pending_for_DT",
     "evidence": [],
-    "historical": "DO image already flashed and identity verified; physical LCD illumination still unconfirmed by human."
+    "historical": "DP whole-system flash and identity verification are historical; DT HMI and DQ/DS network changes are not installed. No current board or physical business qualification in DT."
   },
   "direction_review": {
     "decision": "approved_direction_only",
@@ -605,8 +897,8 @@
     "scope": "按已展示图稿统一实施全部页面，代理修正已记录的能力/字段/布局偏差；无需逐页重复确认，最终验收仍须关闭偏差与绑定记录。"
   },
   "work_in_progress": {
-    "id": "DP-full-host-verified-package-pending",
-    "summary": "全部24页UI审计、专项状态、完整HMI/仓库检查和正式主机/ARM构建完成；继续源码同步、整机打包及获授权烧写。"
+    "id": "DT-host-complete-build-delivery-pending",
+    "summary": "24页及公共界面流程审查、设计和必要修复完成；最终HMI通过；正式程序构建与源码交付证据归档SDK，DT未上板。"
   },
   "design_discrepancies_under_review": [
     "无主题/语言设置；撤销只改表单，连接/记录/编辑变化使确认失效"
@@ -655,18 +947,54 @@
   ],
   "implementation_design_review": {
     "decision": "reviewed_against_authorized_direction",
-    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/DP-visual-review-02.json",
+    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/DT-design-resolution.json",
     "resolved_discrepancies": [
-      "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。",
-      "保留第四个应用更新标签：已有兼容路由和真实功能，DN图省略不构成删除授权；未添加主题/语言功能。",
-      "无主题/语言设置；撤销只改表单，连接/记录/编辑变化使确认失效"
+      "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+      "共享操作确认/反馈/等待遵循DT设计稿；保留既有布局和能力边界。"
     ],
     "actual_review_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-离线保留结果.png SHA256 b2c4539e724fed820cc91e321d1bb89dea783c664a4f289dab3c8da95efcb59e",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/saveSettings-确认.png SHA256 ea68cf7988640cf1f430ce474ab6b4e0b46a8995933d00678605dee46279a22e",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/discardSettingsDraft-确认.png SHA256 b487f39ffcf2e8f0975212200b21ede0da105d486cca2ed8fdf6a9a5f08782dd"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
     ],
-    "scope": "实际Qt逐图代理核对；用户统一授权单列，保留原pending细节评审，不冒充用户批准。"
-  }
+    "scope": "Existing unified authorization; original per-page human detail approval unchanged. Current shared-state images and DP per-page baseline reviewed."
+  },
+  "workflow_review_history": [
+    {
+      "id": "DT-review-20261101",
+      "features_reviewed": "亮度10–255、刷新周期、演示开关、撤销、保存/背光、色彩校验",
+      "decision": "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+      "reference": "workflow-review-dt.md",
+      "hardware": "unchanged; host review only"
+    }
+  ],
+  "implementation_design_review_history": [
+    {
+      "decision": "reviewed_against_authorized_direction",
+      "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/DP-visual-review-02.json",
+      "resolved_discrepancies": [
+        "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。",
+        "保留第四个应用更新标签：已有兼容路由和真实功能，DN图省略不构成删除授权；未添加主题/语言功能。",
+        "无主题/语言设置；撤销只改表单，连接/记录/编辑变化使确认失效"
+      ],
+      "actual_review_screenshots": [
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272",
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/P14-离线保留结果.png SHA256 b2c4539e724fed820cc91e321d1bb89dea783c664a4f289dab3c8da95efcb59e",
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/saveSettings-确认.png SHA256 ea68cf7988640cf1f430ce474ab6b4e0b46a8995933d00678605dee46279a22e",
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/discardSettingsDraft-确认.png SHA256 b487f39ffcf2e8f0975212200b21ede0da105d486cca2ed8fdf6a9a5f08782dd"
+      ],
+      "scope": "实际Qt逐图代理核对；用户统一授权单列，保留原pending细节评审，不冒充用户批准。"
+    }
+  ],
+  "hardware_validation_history": [
+    {
+      "status": "pending_for_DP",
+      "evidence": [],
+      "historical": "DO image already flashed and identity verified; physical LCD illumination still unconfirmed by human."
+    }
+  ],
+  "work_in_progress_history": [
+    {
+      "id": "DP-full-host-verified-package-pending",
+      "summary": "全部24页UI审计、专项状态、完整HMI/仓库检查和正式主机/ARM构建完成；继续源码同步、整机打包及获授权烧写。"
+    }
+  ]
 }

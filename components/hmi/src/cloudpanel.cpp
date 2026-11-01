@@ -8,6 +8,7 @@
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QLabel>
+#include <QSharedPointer>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSignalBlocker>
@@ -65,6 +66,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     QVBoxLayout *left, *right;
     columns->addWidget(panel(&left), 3);
     auto *pair = panel(&right);
+    right->setSpacing(2); // Reserve the fixed result area at 1024x600; retain 48px actions.
     columns->addWidget(pair, 2);
     left->addWidget(label("设备身份与连接", "cardHeading"));
     left->addWidget(label("在官网设备管理中输入本机绑定码，将设备加入你的账号。", "caption"));
@@ -94,6 +96,7 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     expiry->setAlignment(Qt::AlignCenter);
     right->addWidget(expiry);
     refresh = new QPushButton("查询 / 获取绑定码");
+    refresh->setObjectName("cloudRefreshBinding");
     right->addWidget(refresh);
     right->addWidget(label("2  在官网设备管理输入有效绑定码", "panelTitle"));
     right->addWidget(label("在 www.100ask.net 登录账号后完成绑定。", "caption"));
@@ -104,7 +107,9 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     recheck->setProperty("kind", "secondary");
     right->addWidget(recheck);
     connect(recheck, &QPushButton::clicked, refresh, &QPushButton::click);
-    connect(refresh, &QPushButton::clicked, this, [this]() { client->request("cloud.refresh"); });
+    connect(refresh, &QPushButton::clicked, this, [this]() {
+        if (!client->isPending("cloud.refresh")) client->request("cloud.refresh");
+    });
     tabs->addTab(binding, "官网绑定");
     auto *reporting = new LayoutPage;
     auto *row = new PageRowLayout(reporting);
@@ -147,13 +152,17 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     options->addWidget(lastAck);
     options->addStretch();
     send = new QPushButton("立即上报一次");
+    send->setObjectName("reportingSend");
     options->addWidget(send);
-    connect(send, &QPushButton::clicked, this, [this]() { client->request("reporting.send"); });
+    connect(send, &QPushButton::clicked, this, [this]() {
+        if (!client->isPending("reporting.send")) client->request("reporting.send");
+    });
     auto configure = [this]() {
-        if (!loading && available)
+        if (!loading && available && !client->isPending("reporting.configure"))
             client->request("reporting.configure",
                             {{"enabled", enabled->isChecked()},
                              {"period_seconds", period->currentData().toInt()}});
+        if (!loading) updateRequestState();
     };
     connect(enabled, &QCheckBox::toggled, this, configure);
     connect(period, QOverload<int>::of(&QComboBox::activated), this,
@@ -166,11 +175,23 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     operationFeedback->hide();
     root->addWidget(operationFeedback);
     connect(client, &DesktopClient::snapshotChanged, this, &CloudPanel::apply);
-    connect(client, &DesktopClient::feedback, this,
-            [operationFeedback](const QString &message) {
-                operationFeedback->setText("最近服务反馈：" + message);
-                operationFeedback->setVisible(!message.isEmpty());
+    const auto results = QSharedPointer<QMap<int, QString>>::create();
+    const auto showResult = [operationFeedback, tabs, results]() {
+        const auto message = results->value(tabs->currentIndex());
+        operationFeedback->setText("最近服务反馈：" + message);
+        operationFeedback->setVisible(!message.isEmpty());
+    };
+    connect(client, &DesktopClient::operationFeedback, this,
+            [results, showResult](const QString &method, const QString &message) {
+                const int section = method.startsWith("cloud.") ? 0
+                                  : method.startsWith("reporting.") ? 1 : -1;
+                if (section < 0) return;
+                (*results)[section] = message;
+                showResult();
             });
+    connect(tabs, &QTabWidget::currentChanged, this, [showResult](int) { showResult(); });
+    connect(client, &DesktopClient::requestStateChanged, this, &CloudPanel::updateRequestState);
+    connect(tabs, &QTabWidget::currentChanged, this, [this](int) { updateNote(); });
     countdown.setInterval(1000);
     connect(&countdown, &QTimer::timeout, this, &CloudPanel::showRemaining);
     countdown.start();
@@ -193,6 +214,7 @@ void CloudPanel::showRemaining()
 }
 void CloudPanel::apply(const QJsonObject &state)
 {
+    current = state;
     available = state["service_connected"] == true;
     const auto c = state["cloud"].toObject(), p = c["pairing"].toObject(),
                r = state["reporting"].toObject();
@@ -228,13 +250,6 @@ void CloudPanel::apply(const QJsonObject &state)
                                             : owner == "bound" ? "设备身份保持不变"
                                                                : "点击查询，确认归属与绑定码");
     showRemaining();
-    loading = true;
-    enabled->setChecked(available && r["enabled"] == true);
-    const int index = period->findData(r["period_seconds"].toInt(30));
-    period->setCurrentIndex(qMax(0, index));
-    loading = false;
-    enabled->setEnabled(available && r["persistent"] == true);
-    period->setEnabled(enabled->isEnabled());
     points->setRowCount(0);
     bool valid = false;
     QSet<QString> seen, duplicate;
@@ -259,7 +274,8 @@ void CloudPanel::apply(const QJsonObject &state)
             for (int col = 0; col < values.size(); ++col)
                 points->setItem(row, col, new QTableWidgetItem(values[col]));
         }
-    send->setEnabled(available && mqtt == "connected" && r["inflight"] != true && valid);
+    send->setProperty("sampleReady", valid);
+    updateRequestState();
     reportState->setText(!available
                              ? "接入服务未连接"
                              : r["inflight"] == true
@@ -267,11 +283,36 @@ void CloudPanel::apply(const QJsonObject &state)
                                    : mqtt == "connected" ? "云端代理已连接" : "云端代理未连接");
     const auto ack=QDateTime::fromString(r["last_broker_ack"].toString(),Qt::ISODateWithMs);
     lastAck->setText(available && ack.isValid()?ack.toLocalTime().toString("HH:mm:ss"):"--");
-    note->setText(
-        !available ? "接入服务未连接，云端操作暂不可用。"
-                   : (!c["error"].toString().isEmpty() || !c["pairing_error"].toString().isEmpty())
-                         ? "云端查询或连接未完成，请检查网络与设备登记。"
-                         : !r["error"].toString().isEmpty()
-                               ? "最近一次上报未确认，请查看连接与点位质量。"
-                               : "MQTT 代理确认表示消息已接收；官网入库结果需在设备管理中核对。");
+    updateNote();
+}
+
+void CloudPanel::updateRequestState()
+{
+    const auto c = current["cloud"].toObject(), r = current["reporting"].toObject();
+    refresh->setEnabled(available && c["configured"] == true && c["busy"] != true &&
+                        !client->isPending("cloud.refresh"));
+    findChild<QPushButton *>("cloudRecheckOwnership")->setEnabled(refresh->isEnabled());
+    const bool configuring = client->isPending("reporting.configure");
+    if (!configuring) {
+        loading = true;
+        enabled->setChecked(available && r["enabled"] == true);
+        period->setCurrentIndex(qMax(0, period->findData(r["period_seconds"].toInt(30))));
+        loading = false;
+    }
+    enabled->setEnabled(available && r["persistent"] == true && !configuring);
+    period->setEnabled(enabled->isEnabled());
+    send->setEnabled(available && c["mqtt"] == "connected" && r["inflight"] != true &&
+                     send->property("sampleReady").toBool() && !client->isPending("reporting.send"));
+}
+
+void CloudPanel::updateNote()
+{
+    const auto c = current["cloud"].toObject(), r = current["reporting"].toObject();
+    const bool binding = findChild<QTabWidget *>("cloudTabs")->currentIndex() == 0;
+    note->setText(!available ? "接入服务未连接，云端操作暂不可用。"
+        : binding ? (!c["error"].toString().isEmpty() || !c["pairing_error"].toString().isEmpty()
+            ? "绑定查询未完成，请检查网络与设备登记，再查询归属。"
+            : "在官网输入有效绑定码后，请再次查询；以服务返回的最新归属为准。")
+        : !r["error"].toString().isEmpty() ? "最近一次上报未确认，请查看连接与点位质量。"
+        : "MQTT 代理确认表示消息已接收；官网入库结果需在设备管理中核对。");
 }
