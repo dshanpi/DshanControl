@@ -30,9 +30,8 @@ class HmiUiTest : public QObject
                  {"period_seconds",30},{"inflight",false},{"points",QJsonArray{point()}}}}};
     }
     QPushButton *sendButton() const {
-        for (auto *b : panel->findChildren<QPushButton *>())
-            if (b->text()==QString::fromUtf8("立即上报一次")) return b;
-        return nullptr;
+        // Availability text changes; the action identity remains stable.
+        return panel->findChild<QPushButton *>("reportingSend");
     }
     int count(const QString &method) const {
         int n=0;for(const auto &r:requests)if(r["method"]==method)++n;return n;
@@ -88,7 +87,10 @@ class HmiUiTest : public QObject
             if(reason==10)for(int i=0;i<128;++i)points.append(p);
             r["points"]=points;
         }
-        state["reporting"]=r;apply();QVERIFY(!sendButton()->isEnabled());
+        state["reporting"]=r;apply();QVERIFY(sendButton());QVERIFY(!sendButton()->isEnabled());
+        if(reason==0)QCOMPARE(sendButton()->text(),QString::fromUtf8("服务未连接"));
+        if(reason==1)QCOMPARE(sendButton()->text(),QString::fromUtf8("代理未连接"));
+        if(reason==2)QCOMPARE(sendButton()->text(),QString::fromUtf8("等待代理确认"));
         QTest::mouseClick(sendButton(),Qt::LeftButton);QTest::qWait(40);
         QCOMPARE(count("reporting.send"),0);QCOMPARE(count("reporting.configure"),0);
         auto *table=panel->findChild<QTableWidget *>("cloudPoints");QVERIFY(table);

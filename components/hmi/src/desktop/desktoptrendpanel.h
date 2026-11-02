@@ -49,8 +49,8 @@ protected:
         const int chartTop=narrow?176:112;
         QRectF chart(left,chartTop,narrow?full:full*.66,qMax(100,height()-chartTop-28));
         p.setBrush(Qt::white);p.setPen(QPen(QColor("#DCE6F2"),1));p.drawRoundedRect(chart,3,3);
-        const QRectF plot=chart.adjusted(14,32,-14,-20);
-        text(QRect(chart.x()+14,chart.y()+5,chart.width()-28,24),"点位趋势 · 最近 30 分钟",16,QColor("#142C4B"),true);
+        const QRectF plot=chart.adjusted(54,76,-54,-48);
+        text(QRect(chart.x()+14,chart.y()+5,chart.width()-28,24),"点位趋势 · 最近 30 分钟 · 各自量程",16,QColor("#142C4B"),true);
         if(source)source->paintPointHistory(p,plot,binding);
         else text(plot.toRect(),"桌面数据源不可用",16,QColor("#71859D"));
         if(!narrow) {

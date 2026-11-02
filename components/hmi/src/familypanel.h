@@ -40,6 +40,7 @@ class FamilyPanel : public QWidget
     bool loading = false, confirmingControl = false;
     quint64 controlRevision = 0;
     void updateHomeActions();
+    void updateVoiceActions();
     void updateNote();
     bool voiceHoldActive = false, voiceFreeChatActive = false;
     void stopVoiceInteraction(bool explicitStop = false);

@@ -73,9 +73,10 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     identity = label("待设备登记");
     field(left, "设备编号", identity);
     connection = label("尚未配置");
-    field(left, "云端连接", connection);
+    field(left, "上报代理连接", connection);
     ownership = label("待确认");
     field(left, "账号归属", ownership);
+    left->addWidget(label("绑定查询与上报代理分别确认；代理未连接不代表绑定查询失败。", "caption"));
     left->addStretch();
     auto *steps = new QPushButton("绑定步骤");
     steps->setProperty("kind", "secondary");
@@ -146,8 +147,8 @@ CloudPanel::CloudPanel(DesktopClient *service, QWidget *parent) : QWidget(parent
     period->addItem("每 60 秒", 60);
     period->addItem("每 5 分钟", 300);
     options->addWidget(period);
-    options->addWidget(label("开关与周期修改立即提交；仅在服务可用时生效。", "caption"));
-    options->addWidget(label("最近代理确认", "caption"));
+    options->addWidget(label("开关与周期修改立即提交；仅在服务可用时生效。", "reportingAvailability"));
+    options->addWidget(label("最近代理接收时间（非官网入库）", "caption"));
     lastAck = label("--");
     options->addWidget(lastAck);
     options->addStretch();
@@ -226,7 +227,8 @@ void CloudPanel::apply(const QJsonObject &state)
                                          ? "已连接"
                                          : mqtt == "connecting"
                                                ? "正在连接"
-                                               : mqtt == "offline" ? "未连接" : "尚未配置");
+                                               : mqtt == "offline" ? "未连接"
+                                                    : c["configured"] == true ? "状态未获取" : "尚未配置");
     const auto owner = p["ownership"].toString();
     ownership->setText(!available
                            ? "待确认"
@@ -301,8 +303,18 @@ void CloudPanel::updateRequestState()
     }
     enabled->setEnabled(available && r["persistent"] == true && !configuring);
     period->setEnabled(enabled->isEnabled());
+    if (auto *hint=findChild<QLabel *>("reportingAvailability")) {
+        hint->setText(!available ? "接入服务未连接"
+            : configuring ? "正在保存上报配置，等待服务记录"
+            : r["persistent"] != true ? "未提供持久配置，自动上报设置不可修改"
+            : "配置修改立即提交，服务回复后生效");
+    }
     send->setEnabled(available && c["mqtt"] == "connected" && r["inflight"] != true &&
                      send->property("sampleReady").toBool() && !client->isPending("reporting.send"));
+    send->setText(client->isPending("reporting.send") || r["inflight"] == true ? "等待代理确认"
+        : !available ? "服务未连接"
+        : c["mqtt"] != "connected" ? "代理未连接"
+        : !send->property("sampleReady").toBool() ? "暂无有效点位" : "立即上报一次");
 }
 
 void CloudPanel::updateNote()

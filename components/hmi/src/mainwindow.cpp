@@ -532,9 +532,9 @@ QWidget *MainWindow::buildFieldbus()
     fd->setText("CAN-FD");
     fd->setMinimumWidth(108);
     canInterfaceRow->addWidget(fd);
-    canCfgLayout->addRow("接口", canInterfaceRow);
-    canCfgLayout->addRow("仲裁波特率", bitrate);
-    canCfgLayout->addRow("数据波特率", dbitrate);
+    canCfgLayout->addRow("配置接口", canInterfaceRow);
+    canCfgLayout->addRow("仲裁速率 (bit/s)", bitrate);
+    canCfgLayout->addRow("数据速率 (bit/s)", dbitrate);
     dbitrate->setEnabled(false);
     connect(fd, &QCheckBox::toggled, dbitrate, &QWidget::setEnabled);
     connect(applyCan, &QPushButton::clicked, this, [=]() {
@@ -578,7 +578,7 @@ QWidget *MainWindow::buildFieldbus()
     nmt->addItem("停止节点", "STOPPED");
     nmt->addItem("复位节点", "RESET");
     QPushButton *sendNmt = actionButton("发送 NMT", "danger");
-    coGrid->addRow("接口", coIf);
+    coGrid->addRow("控制接口", coIf);
     coGrid->addRow("节点（0=广播）", node);
     coGrid->addRow("目标状态", nmt);
     QLineEdit *coIndex = edit("0x2000");
@@ -604,7 +604,7 @@ QWidget *MainWindow::buildFieldbus()
     sdoNode->setRange(1, 127);
     sdoNode->setValue(1);
     sdoNode->setObjectName("canSdoNode");
-    sdoForm->addWidget(new QLabel("接口"), 0, 0);
+    sdoForm->addWidget(new QLabel("写入接口"), 0, 0);
     sdoForm->addWidget(sdoIf, 0, 1);
     sdoForm->addWidget(new QLabel("节点"), 0, 2);
     sdoForm->addWidget(sdoNode, 0, 3);
@@ -660,8 +660,20 @@ QWidget *MainWindow::buildFieldbus()
     auto *canHelp=captionLabel("节点 0 为广播；发送前核对现场设备。");
     canHelp->setObjectName("canWorkflowBoundary");
     coGrid->addRow(canHelp);
-    auto *sdoHelp=captionLabel("写入 4 字节；本页无读回，应用结果需现场确认。");
-    sdoForm->addWidget(sdoHelp,3,0,1,4);
+    auto *preview=captionLabel("");
+    preview->setObjectName("sdoValuePreview");
+    sdoForm->addWidget(preview,3,0,1,4);
+    const auto updateValuePreview=[coValue,preview]() {
+        bool ok=false; const qlonglong value=coValue->text().toLongLong(&ok,0);
+        if (!ok || value < -2147483648LL || value > 4294967295LL) {
+            preview->setText("写入值无效：需32位整数，支持0x十六进制"); return;
+        }
+        quint32 raw=quint32(value); QStringList bytes;
+        for(int i=0;i<4;++i) bytes << QString("%1").arg((raw>>(8*i))&255,2,16,QChar('0')).toUpper();
+        preview->setText("小端4字节：" + bytes.join(" ") + "（无读回）");
+    };
+    connect(coValue,&QLineEdit::textChanged,this,[updateValuePreview](const QString &){updateValuePreview();});
+    updateValuePreview();
     canRoot->addWidget(scrollPage(canContent),1);
     auto *canActionRow = new QHBoxLayout;
     canActionRow->addWidget(applyCan,1);
@@ -677,9 +689,9 @@ QWidget *MainWindow::buildFieldbus()
     tabs->addTab(canPage, "CAN / CANopen");
     capabilityControls << qMakePair<QWidget *, QString>(canControls, "canopen");
 
-    QWidget *rsPage = new QWidget;
+    QWidget *rsPage = new LayoutPage;
     QVBoxLayout *rsLayout = new PageLayout(rsPage);
-    rsLayout->setContentsMargins(0, 10, 0, 0);
+    rsLayout->setContentsMargins(0, 4, 0, 0);
     rsStatus = new StatusStrip;
     rsStatus->setMetrics({{"topology", "链路", "未获取"},
                           {"server", "从站状态", "未获取"},
@@ -704,7 +716,7 @@ QWidget *MainWindow::buildFieldbus()
     rsForm->setContentsMargins(0, 0, 0, 0);
     rsForm->setVerticalSpacing(6);
     rsForm->addRow("端口", rsPort);
-    rsForm->addRow("波特率", rsBaud);
+    rsForm->addRow("波特率 (bit/s)", rsBaud);
     rsForm->addRow("站号", rsUnit);
     rsForm->addRow("轮询周期(ms)", rsPoll);
     auto *serialNote = captionLabel("帧格式由系统管理。仅保存首个从站配置；运行生效状态未验证。");
@@ -727,10 +739,10 @@ QWidget *MainWindow::buildFieldbus()
                    "确认保存首个从站的 Modbus RTU 参数？运行生效状态未验证。");
     });
     capabilityControls << qMakePair<QWidget *, QString>(rs, "serial");
-    auto *rsColumns = new QHBoxLayout;
+    auto *rsColumns = new PageRowLayout(nullptr);
     responsiveRows << rsColumns;
-    auto *rsEditor = new QWidget;
-    auto *rsEditorLayout = new QVBoxLayout(rsEditor);
+    auto *rsEditor = new LayoutPage;
+    auto *rsEditorLayout = new PageLayout(rsEditor);
     rsEditorLayout->setContentsMargins(0,0,0,0);
     rsEditorLayout->addWidget(scrollPage(rs),1);
     rsEditorLayout->addWidget(saveRs);
@@ -738,12 +750,11 @@ QWidget *MainWindow::buildFieldbus()
     rsColumns->addWidget(rsEditor, 1);
     auto *registers = new SectionCard("配置步骤与结果确认");
     registers->setObjectName("rsWorkflowPanel");
-    auto *registerLayout = new QVBoxLayout(registers);
+    auto *registerLayout = new PageLayout(registers);
     registerLayout->addWidget(captionLabel(
-        "1. 核对板级串口映射与接线，填写波特率、站号和轮询周期。\n\n"
-        "2. 点击“保存配置”，在确认框复核本次参数；取消不会提交。\n\n"
-        "3. 核对下方操作结果。保存仅修改首个从站配置，不证明通信与采集已生效。\n\n"
-        "4. 结果未确认时先检查实际配置和链路，不重复发送旧确认。"));
+        "① 设置首个从站\n端口与波特率 → 站号 → 轮询周期\n\n"
+        "② 复核后保存\n确认框显示本次参数；取消不会提交。\n\n"
+        "③ 查看底部结果\n保存不等于通信或采集已生效。结果未确认时先核对配置与链路。"));
     registerLayout->addStretch();
     registerLayout->addWidget(captionLabel("帧格式由系统管理；本页尚未提供寄存器读回。"));
     rsColumns->addWidget(registers, 1);
@@ -784,6 +795,7 @@ QWidget *MainWindow::buildFieldbus()
     ecForm->addWidget(new QLabel("数据（十六进制）"), 3, 0);
     ecForm->addWidget(ecValue, 3, 1);
     ecForm->addWidget(ecWrite, 4, 0, 1, 2);
+    ecForm->addWidget(captionLabel("写入1–32字节，空格分隔；本页无对象读回。"),5,0,1,2);
     connect(ecWrite, &QPushButton::clicked, this, [=]() {
         bool ok = false;
         int index = ecIndex->text().toInt(&ok, 0);
@@ -807,14 +819,13 @@ QWidget *MainWindow::buildFieldbus()
     auto *ecColumns = new QHBoxLayout;
     responsiveRows << ecColumns;
     ecColumns->addWidget(ec, 3);
-    auto *diagnostics = new SectionCard("对象写入与周期测试");
+    auto *diagnostics = new SectionCard("周期测试 · 独立于对象写入");
     diagnostics->setObjectName("ecWorkflowPanel");
     auto *diagnosticLayout = new QVBoxLayout(diagnostics);
     diagnosticLayout->addWidget(captionLabel(
-        "1. 核对 EtherCAT 能力、从站地址和对象字典。\n\n"
-        "2. 写入数据为 1–32 字节十六进制，字节之间用空格分开；本页不提供对象读回。\n\n"
-        "3. 周期测试固定执行 1000 次，设定周期 1 毫秒。实际耗时与抖动需根据设备回复核对。\n\n"
-        "4. 操作会访问现场总线，确认现场状态后再执行；查看下方结果。"));
+        "固定次数：1000 次\n设定周期：1 毫秒\n\n"
+        "此测试独立执行，不提交左侧对象写入参数。\n\n"
+        "操作会访问现场总线。先核对维护条件，再确认执行；实际耗时和抖动以服务回复为准。"));
     diagnosticLayout->addStretch();
     diagnosticLayout->addWidget(ecCycle);
     auto *warning = captionLabel("未提供能力或服务离线时禁止操作；界面显示不证明现场通信正常。");
@@ -878,7 +889,7 @@ QWidget *MainWindow::buildNetwork()
         detailsLayout->setContentsMargins(0, 0, 0, 0);
         detailsLayout->setSpacing(8);
         auto *symbol = new QLabel;
-        symbol->setPixmap(Visuals::icon(kind == 0 ? "ethernet" : "wifi", Visuals::blue).pixmap(76, 76));
+        symbol->setPixmap(Visuals::icon(kind == 0 ? "ethernet" : "wifi", Visuals::blue).pixmap(48, 48));
         symbol->setAlignment(Qt::AlignCenter);
         detailsLayout->addStretch();
         detailsLayout->addWidget(symbol);
@@ -901,7 +912,9 @@ QWidget *MainWindow::buildNetwork()
         auto *section = new LayoutPage;
         auto *sectionLayout = new PageLayout(section);
         sectionLayout->setContentsMargins(0,0,0,0);
-        sectionLayout->addWidget(captionLabel("选择接口  →  刷新状态  →  核对目标服务"));
+        auto *queryState=captionLabel("尚未收到接口快照");
+        queryState->setObjectName(QString("networkQueryState%1").arg(kind));
+        sectionLayout->addWidget(queryState);
         sectionLayout->addWidget(scrollPage(interfaces),1);
         auto *actions = new QHBoxLayout;
         actions->addWidget(captionLabel("只读查询接口状态；网络配置由系统网络服务管理。"), 1);
@@ -988,7 +1001,9 @@ void MainWindow::updateNetworkDetails()
                 row >= 0 && table->item(row, indices[i]) ? table->item(row, indices[i])->text() : "--");
         auto *state = row >= 0 ? table->item(row, 1) : nullptr;
         networkDetails[kind]->setText(state ? state->text() + "\n" + table->item(row, 0)->text()
-                                            : "尚未获取链路信息");
+                                            : latestSnapshot.isEmpty() ? "数据服务离线"
+                                            : table->rowCount()==0 ? "未发现此类接口"
+                                            : "选择接口查看链路信息");
         networkDetails[kind]->setStyleSheet(state && state->data(Qt::UserRole).toBool() ? "color:#168345;"
                                                                                         : "color:#61758b;");
     }
@@ -1060,7 +1075,8 @@ QWidget *MainWindow::buildDevices()
     layout->setContentsMargins(12, 10, 12, 10);
     layout->setSpacing(8);
     auto *heading = new QHBoxLayout;
-    heading->addWidget(captionLabel("查看读数与趋势；暂停仅冻结本页显示"), 1);
+    auto *monitorState=captionLabel("等待读数；服务未提供逐点采样时间");
+    monitorState->setObjectName("monitorDisplayState");heading->addWidget(monitorState, 1);
     auto *period = new QLabel("最近 60 秒");
     period->setObjectName("valueText");
     heading->addWidget(period);
@@ -1076,7 +1092,7 @@ QWidget *MainWindow::buildDevices()
     auto *points = new SectionCard("采集点读数");
     auto *pointLayout = new QVBoxLayout(points);
     pointLayout->setContentsMargins(0, 0, 0, 0);
-    deviceTable = makeTable({"名称", "当前值", "单位", "状态"});
+    deviceTable = makeTable({"名称", "当前值", "单位", "状态", "来源"});
     deviceTable->setMinimumHeight(124);
     deviceTable->verticalHeader()->setDefaultSectionSize(44);
     static_cast<DataTable *>(deviceTable)->setEmptyText("尚未获取采集读数");
@@ -1089,6 +1105,8 @@ QWidget *MainWindow::buildDevices()
     pauseMonitor->setToolTip("仅冻结此页的读数和趋势；现场采集、告警与其他页面继续刷新");
     connect(pauseMonitor, &QPushButton::toggled, this, [this](bool checked) {
         monitorPaused = checked;
+        if(auto *state=findChild<QLabel *>("monitorDisplayState"))
+            if(checked) state->setText("显示已冻结 · 现场采集继续，页面读数不再更新");
         pauseMonitor->setText(checked ? "继续显示 · 当前已暂停" : "暂停监控显示");
         if (!checked && !latestSnapshot.isEmpty()) {
             // Paused display may have missed missing readings or clock resets.
@@ -1164,7 +1182,9 @@ void MainWindow::updatePageMetrics(const QJsonObject &root)
     for (int i = 0; i < cellularStates.size(); ++i) {
         auto *state = cellularStates[i];
         const auto mapping = cellularMapping(root, state->property("profile").toString());
-        QString text = root.isEmpty() ? "数据服务离线" : "板级能力或拨号映射未就绪";
+        QString text = root.isEmpty() ? "数据服务离线"
+            : !capabilities.contains("dual-cellular") ? "未提供双蜂窝控制能力"
+            : "当前模块的拨号映射未就绪";
         QString address = "--";
         if (!mapping.isEmpty()) {
             text = "拨号控制可用\n链路状态未获取";
@@ -1304,14 +1324,20 @@ QWidget *MainWindow::buildAlarms()
     title->setObjectName("cardHeading");
     description->addWidget(title);
     alarmDetail = captionLabel("选择一条告警查看详情");
-    description->addWidget(alarmDetail);
+    auto *detailScroll=new QScrollArea;
+    detailScroll->setObjectName("alarmDetailScroll");detailScroll->setWidgetResizable(true);
+    detailScroll->setMinimumSize(160,100);detailScroll->setWidget(alarmDetail);
+    detailScroll->setStyleSheet("QScrollArea{background:white;border:0;} QLabel{background:white;padding:8px;}");
+    alarmDetail->setAlignment(Qt::AlignTop|Qt::AlignLeft);
+    alarmDetail->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    QScroller::grabGesture(detailScroll->viewport(),QScroller::TouchGesture);
+    description->addWidget(detailScroll,1);
     row->addLayout(description, 1);
     alarmDetail->setTextFormat(Qt::PlainText);
     alarmAck = actionButton("确认选中告警");
     alarmAck->setObjectName("alarmAck");
     alarmAck->setEnabled(false);
     alarmAck->setIcon(Visuals::icon("check", Qt::white));
-    description->addWidget(captionLabel("确认只表示已知悉，不会消除现场故障。"));
     description->addStretch();
     body->addWidget(details, 2);
     auto *actions = new QHBoxLayout;
@@ -1319,6 +1345,8 @@ QWidget *MainWindow::buildAlarms()
     actions->addStretch();
     actions->addWidget(exportButton);
     layout->addLayout(actions);
+    auto *ackResult=captionLabel("确认表示知悉，不消除现场故障。");
+    ackResult->setObjectName("alarmOperationResult");layout->addWidget(ackResult);
     connect(alarmTable, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateAlarmSelection);
     connect(alarmTable, &QTableWidget::currentCellChanged, this, &MainWindow::updateAlarmSelection);
     connect(alarmAck, &QPushButton::clicked, this, [this]() {
@@ -1327,6 +1355,7 @@ QWidget *MainWindow::buildAlarms()
             return;
         const QString id = alarmTable->item(alarmTable->currentRow(), 0)->text();
         alarmAckPending = true;
+        findChild<QLabel *>("alarmOperationResult")->setText("正在确认告警 ID "+id+"，等待服务回复。");
         updateAlarmSelection();
         sendJson("POST", QString("/alarms/%1/ack").arg(id), {}, "ack");
     });
@@ -1384,6 +1413,8 @@ QByteArray MainWindow::visibleAlarmCsv() const
 
 void MainWindow::updateAlarmSelection()
 {
+    alarmAck->setVisible(alarmTabs->currentIndex()!=2);
+    alarmAck->setText(alarmAckPending ? "正在确认告警…" : "确认选中告警");
     const int row = alarmTable->currentRow();
     const bool selected = row >= 0 && !alarmTable->isRowHidden(row) &&
                           !alarmTable->selectedItems().isEmpty() && alarmTable->item(row, 5);
@@ -1482,7 +1513,7 @@ QWidget *MainWindow::buildSettings()
     screenForm->setVerticalSpacing(4);
     screenResolution = new QLabel;
     screenResolution->setObjectName("valueText");
-    screenForm->addRow(iconLabel("monitor", "屏幕分辨率"), screenResolution);
+    screenForm->addRow(iconLabel("monitor", "检测屏幕尺寸"), screenResolution);
     brightnessSlider = new TouchSlider;
     brightnessSlider->setObjectName("brightnessSlider");
     brightnessSlider->setAccessibleName("屏幕亮度");
@@ -1674,7 +1705,7 @@ QWidget *MainWindow::buildSettings()
     settingsTabs->addTab(displaySection, "显示与交互");
     auto *services = new LayoutPage;
     auto *serviceLayout = new PageLayout(services);
-    serviceLayout->setContentsMargins(0, 10, 0, 0);
+    serviceLayout->setContentsMargins(0, 4, 0, 0);
     serviceLayout->setSpacing(10);
     auto *serviceColumns = new QHBoxLayout;
     responsiveRows << serviceColumns;
@@ -1683,8 +1714,6 @@ QWidget *MainWindow::buildSettings()
     serviceLayout->addLayout(serviceColumns, 1);
     const QStringList serviceNames = {"thingsboard", "bluetooth", "ntp"};
     const QStringList titles = {"工业数据采集", "蓝牙连接服务", "网络时间同步"};
-    const QStringList descriptions = {"ThingsBoard · 采集与上行", "Bluetooth · 近场设备连接",
-                                      "NTP · 设备时钟同步"};
     for (int i = 0; i < serviceNames.size(); ++i) {
         const QString name = serviceNames[i];
         auto *card = new QFrame;
@@ -1701,7 +1730,9 @@ QWidget *MainWindow::buildSettings()
         auto *title = new QLabel(titles[i]);
         title->setObjectName("panelTitle");
         description->addWidget(title);
-        description->addWidget(captionLabel(descriptions[i]));
+        auto *availability=captionLabel("服务可用性尚未获取");
+        availability->setObjectName("serviceAvailability-"+name);
+        description->addWidget(availability);
         row->addLayout(description, 1);
         auto *state = new QLabel("● 状态未获取");
         state->setMinimumWidth(100);
@@ -1734,7 +1765,7 @@ QWidget *MainWindow::buildSettings()
     serviceList->addStretch();
     auto *system = new QFrame;
     system->setObjectName("systemMaintenancePanel");
-    system->setStyleSheet("QFrame#systemMaintenancePanel{background:#fff4f4;border:1px solid #e9b9c0;border-radius:2px;}");
+    system->setStyleSheet("QFrame#systemMaintenancePanel{background:white;border:1px solid #d0d0d0;border-radius:2px;}");
     auto *systemRow = new QVBoxLayout(system);
     auto *systemText = new QVBoxLayout;
     auto *systemTitle = new QLabel("整机维护");
@@ -1840,6 +1871,8 @@ QWidget *MainWindow::buildSettings()
     auditBody->addLayout(auditColumns, 1);
     auditCount = captionLabel("显示最近 200 条操作记录");
     auditBody->addWidget(auditCount);
+    auto *auditState=captionLabel("尚未刷新记录");
+    auditState->setObjectName("auditRefreshState");auditBody->addWidget(auditState);
     auditLayout->addWidget(auditPanel, 1);
     auto *auditNote = captionLabel("记录来自当前设备，便于核对参数修改与服务操作结果。");
     auditNote->setObjectName("infoNote");
@@ -1965,6 +1998,12 @@ void MainWindow::requestSnapshot()
 void MainWindow::sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,
                           const QString &kind)
 {
+    if(kind=="audit") {
+        if(auditRequestActive) return;
+        auditRequestActive=true;
+        findChild<QPushButton *>("reloadAudit")->setEnabled(false);
+        findChild<QLabel *>("auditRefreshState")->setText("正在刷新，保留当前记录与筛选…");
+    }
     // Reads begun before a settings transaction must not overwrite its outcome.
     if (kind == "settings")
         ++snapshotGeneration;
@@ -1983,6 +2022,7 @@ void MainWindow::sendJson(const QByteArray &method, const QString &path, const Q
         upload->setParent(reply);
     }
     reply->setProperty("kind", kind);
+    if (kind=="ack") reply->setProperty("alarmRecordId",path.section('/',2,2));
     QTimer::singleShot(30000, reply, [reply]() {
         if (reply->isRunning())
             reply->abort();
@@ -2121,6 +2161,26 @@ void MainWindow::handleReply(QNetworkReply *reply)
     }
     const QByteArray raw = reply->readAll();
     const QJsonDocument doc = QJsonDocument::fromJson(raw);
+    if(kind=="ack") {
+        const QString id=reply->property("alarmRecordId").toString();
+        const QString target=id.isEmpty() ? "告警" : "告警 ID "+id;
+        findChild<QLabel *>("alarmOperationResult")->setText(target +
+            (reply->error()==QNetworkReply::NoError && doc.isObject() && doc.object()["ok"]==true
+            ? "确认已回复；请在已确认页核对。现场故障仍需处理。"
+            : "确认结果未确认；保留记录，先刷新核对。"));
+    }
+    if(kind=="audit") {
+        auditRequestActive=false;
+        findChild<QPushButton *>("reloadAudit")->setEnabled(true);
+        auto *feedback=findChild<QLabel *>("auditRefreshState");
+        const bool valid=reply->error()==QNetworkReply::NoError && doc.isObject() &&
+            doc.object()["ok"]==true && doc.object()["audit"].isArray();
+        if(!valid) {
+            feedback->setText("刷新失败，保留已加载记录；最新状态未确认。");
+            reply->deleteLater(); return;
+        }
+        feedback->setText("记录接收于 "+QDateTime::currentDateTime().toString("HH:mm:ss")+" · 最近200条");
+    }
     if (kind == "settings" || kind == "brightness") {
         const bool ok = reply->error() == QNetworkReply::NoError && doc.isObject() &&
                         doc.object()["ok"] == QJsonValue(true);
@@ -2358,10 +2418,19 @@ void MainWindow::updateSettingsControls()
             value->setText(online && canRestore ? recordValues[i] : "—");
     if (auto *feedback = findChild<QLabel *>("settingsLastResult"))
         feedback->setText("最近操作：" + settingsFeedback);
+    QStringList changed;
+    if (canRestore) {
+        if (brightnessSlider->value()!=recorded["brightness"].toInt()) changed << "亮度";
+        if (refreshCombo->currentData().toInt()!=recorded["refresh_ms"].toInt()) changed << "刷新间隔";
+        if (demoCheck->isChecked()!=recorded["demo_mode"].toBool()) changed << "样例模式";
+    }
+    const QString draftSummary=!canRestore ? "编辑待保存 · 服务记录不完整"
+        : changed.isEmpty() ? "编辑与服务记录相同 · 尚未提交"
+        : "未保存：" + changed.join("、");
     if (auto *state = findChild<QLabel *>("settingsEditState"))
         state->setText(settingsPending ? "正在保存并应用，请等待设备确认…"
             : !online ? "设备未连接，暂时不能保存设置"
-            : settingsDirty ? "有未保存的修改 · 点击“保存设置”后生效"
+            : settingsDirty ? draftSummary
                             : "设置已加载 · 修改后点击“保存设置”");
     if (!settingsDraftNotice.isEmpty()) {
         if (auto *state = findChild<QLabel *>("settingsEditState"))
@@ -2374,6 +2443,8 @@ void MainWindow::updateSettingsControls()
             [button->property("serviceName").toString()].toObject()["available"] == QJsonValue(true);
         button->setEnabled(available);
         button->setToolTip(available ? "操作将影响相应数据链路，需确认" : "离线或设备未提供此服务");
+        if(auto *reason=findChild<QLabel *>("serviceAvailability-"+button->property("serviceName").toString()))
+            reason->setText(!online ? "服务离线，不能操作" : !available ? "当前设备未提供启停能力" : "可操作；执行前需复核确认");
     }
 }
 
@@ -2439,6 +2510,9 @@ void MainWindow::markOffline()
     for (QTableWidget *table : {busTable, networkTable, deviceTable})
         table->setRowCount(0);
     latestSnapshot = {};
+    if(auto *label=findChild<QLabel *>("monitorDisplayState")) label->setText("数据服务离线 · 当前读数未确认");
+    for(int i=0;i<2;++i) if(auto *label=findChild<QLabel *>(QString("networkQueryState%1").arg(i)))
+        label->setText("数据服务离线 · 无法确认最新接口状态");
     updateSettingsControls();
     updatePageMetrics({});
     for (auto *table : networkTables) {
@@ -2572,7 +2646,12 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
     }
 
     updateNetworkTables(root);
+    for(int i=0;i<2;++i) if(auto *label=findChild<QLabel *>(QString("networkQueryState%1").arg(i)))
+        label->setText("接口快照接收于 " + QDateTime::currentDateTime().toString("HH:mm:ss") +
+            " · 只读查询；目标服务需另行核对");
     if (!monitorPaused) {
+        if(auto *state=findChild<QLabel *>("monitorDisplayState"))
+            state->setText("页面接收于 "+QDateTime::currentDateTime().toString("HH:mm:ss")+" · 非逐点采样时间");
         const QJsonArray sensors = root.value("sensors").toArray();
         deviceTable->setRowCount(sensors.size());
         for (int i = 0; i < sensors.size(); ++i) {
@@ -2592,6 +2671,8 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
             auto *state = cell(stateText, available && stateText == "正常" ? kSuccess : kMuted);
             state->setToolTip(sourceText(sensor, state->text()));
             deviceTable->setItem(i, 3, state);
+            deviceTable->setItem(i,4,cell(sensor["source"]=="demo" ? "样例"
+                : sensor["source"]=="real" ? "设备" : "未确认"));
         }
     }
 

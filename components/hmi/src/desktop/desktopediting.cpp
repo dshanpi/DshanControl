@@ -536,14 +536,39 @@ void DesktopCanvas::editTrendBinding(int slot)
     if (dialog.exec() == QDialog::Accepted)
         bindTrend(slot, boxes[0]->currentData().toString(), boxes[1]->currentData().toString());
 }
-void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObject &binding)
+void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObject &binding, bool detailed)
 {
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
     bool any = false;
+    if(detailed) {
+        p.save();p.setPen(QPen(QColor("#e0e8f2"),1));
+        for(int i=0;i<=4;++i) {
+            const qreal x=r.left()+r.width()*i/4.0;
+            p.drawLine(QPointF(x,r.top()),QPointF(x,r.bottom()));
+        }
+        for(int i=0;i<=2;++i) {
+            const qreal y=r.top()+r.height()*i/2.0;
+            p.drawLine(QPointF(r.left(),y),QPointF(r.right(),y));
+        }
+        p.restore();
+        for(int i=0;i<=2;++i)
+            txt(p,r.left()+r.width()*i/2.0-30,r.bottom()+4,60,18,
+                QStringList{"-30分钟","-15分钟","现在"}[i],11,QColor("#71859D"),false,Qt::AlignCenter);
+    }
     for (int lineIndex = 0; lineIndex < 2; ++lineIndex)
     {
         const auto id = binding[lineIndex ? "secondary_point_id" : "point_id"].toString();
         const auto data = pointHistory.series(id, now);
+        if(detailed) {
+            const auto point=pointById(id);
+            const QString summary=id.isEmpty() ? QString("对照：未绑定")
+                : data.isEmpty() ? QString("%1：无有效历史").arg(lineIndex?"对照":"主点")
+                : QString("%1：%2点 / 覆盖%3秒%4").arg(lineIndex?"对照":"主点")
+                    .arg(data.size()).arg(qMax(qint64(0),(data.last().utc-data.first().utc)/1000))
+                    .arg(data.size()<2 ? " · 待更多采样" : "");
+            txt(p,r.x()-38,r.y()-40+lineIndex*19,r.width()+76,18,summary,11,
+                QColor(lineIndex?"#159D85":"#1468FA"));
+        }
         if (data.isEmpty())
             continue;
         any = true;
@@ -559,6 +584,13 @@ void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObje
         const double margin = qMax(.05, (high - low) * .1);
         low -= margin;
         high += margin;
+        if(detailed) {
+            const QColor color(lineIndex?"#159D85":"#1468FA");
+            const qreal x=lineIndex?r.right()+3:r.left()-50;
+            txt(p,x,r.center().y()-9,48,18,pointById(id)["unit"].toString(),11,color,false,Qt::AlignCenter);
+            txt(p,x,r.top(),48,18,QString::number(high*magnitude,'g',3),11,color,false,Qt::AlignCenter);
+            txt(p,x,r.bottom()-18,48,18,QString::number(low*magnitude,'g',3),11,color,false,Qt::AlignCenter);
+        }
         p.save();
         p.setClipRect(r.adjusted(-2, -2, 2, 2));
         p.setPen(QPen(QColor(lineIndex ? "#159D85" : "#1468FA"), 2));
@@ -620,7 +652,8 @@ void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObje
                               : QString("等待有效采样 · 不补生成历史"),
             12, QColor("#71859D"), false, Qt::AlignCenter);
     else
-        txt(p, r.x(), r.bottom() + 6, r.width(), 20, "最近 30 分钟 · 本次会话 · 两条曲线各自量程",
+        txt(p, r.x(), r.bottom() + (detailed?24:6), r.width(), 20,
+            detailed?"缺测保持断段 · 不补生成历史":"最近 30 分钟 · 本次会话 · 两条曲线各自量程",
             11, QColor("#71859D"));
 }
 } // namespace DesktopV1

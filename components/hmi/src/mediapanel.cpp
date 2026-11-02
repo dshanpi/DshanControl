@@ -15,6 +15,7 @@
 #include <QListWidget>
 #include <QPainter>
 #include <QPushButton>
+#include <QPlainTextEdit>
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QSignalBlocker>
@@ -70,6 +71,13 @@ QFrame *panel(QVBoxLayout **layout)
     (*layout)->setContentsMargins(12, 12, 12, 12);
     (*layout)->setSpacing(4);
     return w;
+}
+QString fileSizeText(qint64 bytes)
+{
+    if (bytes < 1024) return QString::number(bytes) + " B";
+    if (bytes < 1024*1024) return QString::number(bytes/1024.0,'f',1) + " KB";
+    if (bytes < qint64(1024)*1024*1024) return QString::number(bytes/1024.0/1024.0,'f',1) + " MB";
+    return QString::number(bytes/1024.0/1024.0/1024.0,'f',1) + " GB";
 }
 QString timeText(qint64 milliseconds)
 {
@@ -298,6 +306,10 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     selectedPanel->setObjectName("mediaSelectedFilePanel");
     selectedLayout->addWidget(label("选中视频详情","cardHeading"));
     auto *selectedDetail=label("在列表中选择一个视频。","mediaSelectedFileDetail");
+    auto *selectedPath=new QPlainTextEdit;
+    selectedPath->setObjectName("mediaSelectedFilePath"); selectedPath->setReadOnly(true);
+    selectedPath->setFixedHeight(60); selectedPath->setPlaceholderText("选中文件后显示完整路径");
+    selectedLayout->addWidget(selectedPath);
     selectedLayout->addWidget(selectedDetail); selectedLayout->addStretch();
     auto *select=button("选择此视频",false);
     select->setObjectName("selectLibraryVideo"); select->setEnabled(false);
@@ -305,12 +317,13 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     auto *browseOther=button("浏览其他位置");
     selectedLayout->addWidget(browseOther);
     connect(browseOther,&QPushButton::clicked,this,&MediaPanel::choose);
-    connect(files,&QTableWidget::itemSelectionChanged,this,[this,selectedDetail,select]() {
+    connect(files,&QTableWidget::itemSelectionChanged,this,[this,selectedDetail,selectedPath,select]() {
         const int row=files->currentRow(); const auto *item=files->item(row,0);
         const bool selected=item && files->item(row,1) && !files->selectedItems().isEmpty();
         select->setEnabled(selected);
+        selectedPath->setPlainText(selected ? item->data(Qt::UserRole).toString() : QString());
         selectedDetail->setText(selected
-            ? QString("文件名：%1\n\n大小：%2\n\n选择后返回播放器，再点击播放。")
+            ? QString("文件名：%1\n大小：%2\n选择只设置当前文件；组件就绪后才能播放。")
                 .arg(item->text(),files->item(row,1)->text())
             : "在列表中选择一个视频。");
     });
@@ -346,7 +359,7 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
             session.command("loop", {{"value", value}});
     });
     options->addStretch();
-    options->addWidget(label("离开播放页面会暂停并隐藏视频，返回后可继续播放。", "infoNote"));
+    options->addWidget(label("离开播放页面会暂停并隐藏视频。", "mediaSettingsState"));
     information->addWidget(label("解码状态", "cardHeading"));
     fps = label("当前解码器：--\n显示帧率：--\n硬件解码：待板端验证", "caption");
     information->addWidget(fps);
@@ -402,7 +415,7 @@ void MediaPanel::scan()
         files->insertRow(row);
         files->setItem(row, 0, new QTableWidgetItem(entry.fileName()));
         files->item(row,0)->setData(Qt::UserRole,path);
-        auto *size=new MediaSizeItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1)+" MB");
+        auto *size=new MediaSizeItem(fileSizeText(entry.size()));
         size->setData(Qt::UserRole,entry.size());size->setData(Qt::UserRole+1,path);
         files->setItem(row,1,size);
 
@@ -461,7 +474,7 @@ bool MediaPanel::selectFile(const QString &path)
     }
     showSection(0);
     session.start(true);
-    lastFeedback = "已选择：" + file.fileName() + "。点击“播放”开始。";
+    lastFeedback = "已选择：" + file.fileName() + "，尚未开始播放。";
     apply(session.snapshot());
     return true;
 }
@@ -610,6 +623,10 @@ void MediaPanel::apply(const QJsonObject &status)
         surface->description = "从本地存储打开视频";
     }
     surface->update();
+    findChild<QLabel *>("mediaSettingsState")->setText(
+        !available ? "播放组件未就绪；当前无法应用循环或开始播放。"
+        : !active ? "先选择并播放视频，再调整循环；画面比例由本页选择。"
+        : "离开播放页面会暂停并隐藏视频；返回后点击播放继续。");
     note->setText(name == "error"
                       ? "播放未完成（" + status["error"].toString() + "）。没有自动重试。"
                       : !available

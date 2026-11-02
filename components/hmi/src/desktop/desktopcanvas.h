@@ -70,7 +70,7 @@ class DesktopCanvas : public QWidget
     }
     void paintPointHistory(QPainter &p, const QRectF &r, const QJsonObject &binding)
     {
-        drawPointTrend(p, r, binding);
+        drawPointTrend(p, r, binding, true);
     }
     bool bindVideo(int slot, const QString &path);
     bool bindHome(int slot, const QString &deviceId);
@@ -145,7 +145,7 @@ class DesktopCanvas : public QWidget
     bool pointsConnected = false;
     void refreshPointBindings();
     void editTrendBinding(int slot);
-    void drawPointTrend(QPainter &p, const QRectF &rect, const QJsonObject &binding);
+    void drawPointTrend(QPainter &p, const QRectF &rect, const QJsonObject &binding, bool detailed=false);
     void refreshImages();
     void editImageBinding(int slot);
     void showImage(int slot);

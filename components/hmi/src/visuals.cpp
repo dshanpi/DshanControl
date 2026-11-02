@@ -519,14 +519,14 @@ void OverviewDashboard::drawSummary(QPainter &p,const QRectF &r)
         text(p,QRectF(card.x()+14,card.y()+8,w-28,22),titles[i],15,ink,true);
         const bool demo=data.value("settings").toObject().value("demo_mode").toBool();
         const QString value=i==0?(connected?(demo?QString("样例数据"):QString("已连接")):QString("服务离线")):values[i];
-        const QColor color=i==0?(connected?green:muted):i==2?QColor("#c22b3d"):blue;
+        const QColor color=i==0?(connected?(demo?QColor("#a65c00"):green):muted):i==2?QColor("#c22b3d"):blue;
         text(p,QRectF(card.x()+14,card.y()+30,w-28,32),value+(i==1?" 台在线":i==2?" 条":""),24,color,true);
         const QString detail=i==0?("运行状态："+values[0]+" · 时长 "+values[3]):
             i==1?QString("设备数量来自最近服务记录"):QString("确认记录不消除现场故障");
         text(p,QRectF(card.x()+14,card.y()+65,w-28,22),detail,12,muted);
         if(!narrow && i==0)
             text(p,QRectF(card.x()+14,card.y()+87,w-28,18),
-                 connected?"以最新服务响应为准":"当前设备状态未确认",11,muted);
+                 connected?(demo?"样例来源 · 不代表现场设备":"以最新服务响应为准"):"当前设备状态未确认",11,muted);
     }
 }
 void OverviewDashboard::drawTopology(QPainter &p, const QRectF &r, bool narrow)

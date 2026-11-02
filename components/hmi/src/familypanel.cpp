@@ -166,9 +166,16 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     right->addWidget(privacy);
     right->addStretch();
     auto *clear = new QPushButton("清空对话记录");
+    clear->setObjectName("voiceClear");
     clear->setProperty("kind", "secondary");
     right->addWidget(clear);
-    connect(clear, &QPushButton::clicked, this, [this]() { client->request("voice.clear"); });
+    connect(clear, &QPushButton::clicked, this, [this]() {
+        updateVoiceActions();
+        if (findChild<QPushButton *>("voiceClear")->isEnabled()) client->request("voice.clear");
+    });
+    auto *clearState=label("", "voiceClearState");
+    right->addWidget(clearState);
+    connect(client,&DesktopClient::requestStateChanged,this,&FamilyPanel::updateVoiceActions);
     tabs->addTab(voicePage, "语音对话");
     auto *homePage = new LayoutPage;
     auto *homeLayout = new PageLayout(homePage);
@@ -180,6 +187,10 @@ FamilyPanel::FamilyPanel(DesktopClient *service, QWidget *parent) : QWidget(pare
     rooms->addItem("全部房间");
     rooms->setMinimumWidth(130);
     toolbar->addWidget(rooms);
+    auto *allRooms=new QPushButton("清除筛选");
+    allRooms->setObjectName("clearHomeRoom"); allRooms->setProperty("kind","secondary");
+    allRooms->setEnabled(false);toolbar->addWidget(allRooms);
+    connect(allRooms,&QPushButton::clicked,this,[this](){rooms->setCurrentIndex(0);apply(current);});
     homeState = label("家庭账号尚未授权", "caption");
     toolbar->addWidget(homeState, 1);
     sync = new QPushButton("同步设备");
@@ -439,9 +450,9 @@ void FamilyPanel::apply(const QJsonObject &state)
     voiceState->setText(
         !connected ? "服务未连接" : !ready ? "语音尚未就绪" : states.value(status, "等待服务状态"));
     transcript->setPlaceholderText(ready
-        ? "按住下方按钮说话，松开后等待识别与回复。"
+        ? "按住下方按钮说话，松开后等待识别与回复。对话仅保留在本次会话。"
         : "语音服务尚未就绪\n请先在设备上完成语音服务接入与录放音配置，再开始对话。");
-    activation->setText(ready ? "激活与录放音已就绪"
+    activation->setText(ready ? "激活与录放音已就绪 · 对话仅保留在本次会话"
                               : voice["configured"] == true ? "等待激活与录放音就绪"
                                                             : "涂鸦运行时尚未接入");
     talk->setEnabled(ready && (talk->isDown() || status == "idle" || status == "speaking"));
@@ -463,7 +474,8 @@ void FamilyPanel::apply(const QJsonObject &state)
     findChild<QStackedWidget *>("voiceContent")->setCurrentIndex(
         !ready && transcript->toPlainText().isEmpty() ? 1 : 0);
     if (!connected && !transcript->toPlainText().isEmpty())
-        activation->setText("服务已离线，保留上次对话记录。");
+        activation->setText("服务已离线 · 保留上次对话（本次会话）");
+    updateVoiceActions();
     homeState->setText(!connected
                            ? "接入服务未连接"
                            : home["busy"] == true
@@ -471,7 +483,7 @@ void FamilyPanel::apply(const QJsonObject &state)
                                  : home["authorization"] == "expired"
                                        ? "家庭授权已失效"
                                        : home["authorization"] == "authorized"
-                                             ? (home["fresh"] == true ? "设备状态已同步"
+                                             ? (home["fresh"] == true ? QString("已同步 %1 个设备").arg(home["devices"].toArray().size())
                                                                       : "设备状态已过期，请同步")
                                              : "请先在官网关联家庭账号");
     loading = true;
@@ -509,6 +521,10 @@ void FamilyPanel::apply(const QJsonObject &state)
             }
     }
     loading = false;
+    findChild<QPushButton *>("clearHomeRoom")->setEnabled(rooms->currentIndex()>0);
+    if(connected && home["authorization"]=="authorized" && home["fresh"]==true && home["busy"]!=true)
+        homeState->setText(QString("已同步 %1 个 · 当前显示 %2 个")
+            .arg(home["devices"].toArray().size()).arg(devices->rowCount()));
     if (devices->currentRow() < 0 && !selectedDevice.isEmpty()) {
         selectedDevice.clear();
         ++controlRevision;
@@ -608,4 +624,17 @@ void FamilyPanel::hideEvent(QHideEvent *event)
 {
     stopVoiceInteraction();
     QWidget::hideEvent(event);
+}
+
+void FamilyPanel::updateVoiceActions()
+{
+    const bool connected=current["service_connected"]==true;
+    const bool pending=client->isPending("voice.clear");
+    const bool hasHistory=!transcript->toPlainText().isEmpty();
+    auto *clear=findChild<QPushButton *>("voiceClear");
+    clear->setEnabled(connected && hasHistory && !pending);
+    clear->setText(pending ? "正在清空记录…" : "清空对话记录");
+    findChild<QLabel *>("voiceClearState")->setText(!connected ? "服务未连接，保留本次会话记录。"
+        : pending ? "等待服务确认，暂不重复提交。"
+        : !hasHistory ? "当前没有对话记录。" : "仅清空本次会话显示的对话记录。");
 }

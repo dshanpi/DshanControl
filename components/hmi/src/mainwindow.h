@@ -107,6 +107,7 @@ class MainWindow : public QMainWindow
     bool portInitialized = false;
     QLineEdit *serialPort = nullptr;
     bool alarmRequestActive = false;
+    bool auditRequestActive = false;
     bool alarmsAvailable = false;
     bool alarmAckPending = false;
     bool settingsDirty = false;

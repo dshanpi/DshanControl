@@ -148,6 +148,143 @@ class HmiUiTest : public QObject
   private slots:
 
 
+    void auditRefreshIsSingleFlightAndRetainsFailedRead()
+    {
+        MainWindow w;isolate(w);w.updateSnapshot(snapshot());w.refreshTimer.stop();
+        QJsonObject record{{"ts",100},{"action","service"},{"target","ntp"},{"result","failed"}};
+        w.handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{record}}},"audit"));
+        w.auditTable->setCurrentCell(0,0);
+        const int before=w.networkManager.findChildren<QNetworkReply *>().size();
+        w.sendJson("GET","/audit",{},"audit");w.sendJson("GET","/audit",{},"audit");
+        QCOMPARE(w.networkManager.findChildren<QNetworkReply *>().size(),before+1);
+        QVERIFY(w.auditRequestActive);QVERIFY(!w.findChild<QPushButton *>("reloadAudit")->isEnabled());
+        QVERIFY(w.findChild<QLabel *>("auditRefreshState")->text().contains("正在刷新"));
+        w.handleReply(new FixtureReply({{"ok",true},{"audit","malformed"}},"audit"));
+        QCOMPARE(w.auditTable->rowCount(),1);QCOMPARE(w.auditTable->currentRow(),0);
+        QVERIFY(!w.auditRequestActive);QVERIFY(w.findChild<QPushButton *>("reloadAudit")->isEnabled());
+        QVERIFY(w.findChild<QLabel *>("auditRefreshState")->text().contains("保留"));
+        w.handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray()}},"audit"));
+        QCOMPARE(w.auditTable->rowCount(),0);
+        QVERIFY(w.findChild<QLabel *>("auditRefreshState")->text().contains("记录接收"));
+    }
+    void pageAvailabilityDistinguishesOfflineAndMissingCapability()
+    {
+        MainWindow w;isolate(w);auto data=snapshot();
+        w.updateSnapshot(data);w.refreshTimer.stop();
+        auto *reason=w.findChild<QLabel *>("serviceAvailability-ntp");QVERIFY(reason);
+        QVERIFY(reason->text().contains("未提供启停"));
+        QVERIFY(!w.findChild<QPushButton *>("service-ntp-start")->isEnabled());
+        auto services=data["services"].toObject();auto ntp=services["ntp"].toObject();
+        ntp["available"]=true;services["ntp"]=ntp;data["services"]=services;
+        w.updateSnapshot(data);w.refreshTimer.stop();
+        QVERIFY(reason->text().contains("可操作"));QVERIFY(w.findChild<QPushButton *>("service-ntp-start")->isEnabled());
+        data["networks"]=QJsonArray();w.updateSnapshot(data);w.refreshTimer.stop();
+        QVERIFY(w.networkDetails[1]->text().contains("未发现"));
+        w.pauseMonitor->setChecked(true);
+        QVERIFY(w.findChild<QLabel *>("monitorDisplayState")->text().contains("已冻结"));
+        w.markOffline();
+        QVERIFY(reason->text().contains("离线"));
+        QVERIFY(w.findChild<QLabel *>("networkQueryState1")->text().contains("离线"));
+        QVERIFY(w.networkDetails[1]->text().contains("离线"));
+    }
+    void mediaNextStepMatchesCapabilityAndExactFileSize()
+    {
+        QTemporaryDir dir;QVERIFY(dir.isValid());const auto path=dir.filePath("tiny.mp4");
+        QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write(QByteArray(127,'x'));file.close();
+        MediaPanel panel;panel.mediaDirectory=dir.path();panel.scan();
+        QCOMPARE(panel.files->item(0,1)->text(),QString("127 B"));
+        panel.files->setCurrentCell(0,0);
+        QCOMPARE(panel.findChild<QPlainTextEdit *>("mediaSelectedFilePath")->toPlainText(),path);
+        QVERIFY(panel.selectFile(path));
+        panel.apply({{"available",false},{"state","not_installed"}});
+        QVERIFY(!panel.play->isEnabled());QVERIFY(!panel.note->text().contains("点击"));
+        QVERIFY(panel.findChild<QLabel *>("mediaSettingsState")->text().contains("未就绪"));
+        panel.apply({{"available",true},{"state","idle"}});
+        QVERIFY(panel.play->isEnabled());QVERIFY(panel.note->text().contains("等待点击"));
+        file.open(QIODevice::WriteOnly);file.resize(2048);file.close();panel.scan();
+        QCOMPARE(panel.files->item(0,1)->text(),QString("2.0 KB"));
+        QCOMPARE(panel.selectedFile,path);
+    }
+    void sdoPreviewMatchesSignedAndHexPayload()
+    {
+        MainWindow w;isolate(w);
+        auto *value=w.findChild<QLineEdit *>("canSdoValue");
+        auto *preview=w.findChild<QLabel *>("sdoValuePreview");QVERIFY(value && preview);
+        value->setText("-1");QVERIFY(preview->text().contains("FF FF FF FF"));
+        value->setText("0x12345678");QVERIFY(preview->text().contains("78 56 34 12"));
+        value->setText("4294967296");QVERIFY(preview->text().contains("无效"));
+        value->setText("not a value");QVERIFY(preview->text().contains("无效"));
+        QVERIFY(!w.actionPending);
+    }
+    void alarmLongDetailsScrollAndAcknowledgedViewHasNoAckAction()
+    {
+        DesktopV1::DesktopShell shell;shell.resize(1024,600);shell.show();
+        auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();shell.openApplication("alarms");
+        const QString detail=QString("长消息 literal <b> text\n").repeated(100)+"END";
+        QJsonObject item{{"id",1},{"ts",100},{"severity","warning"},{"source","demo"},{"message",detail},{"state","acknowledged"}};
+        w->handleReply(new FixtureReply({{"ok",true},{"alarms",QJsonArray{item}}},"alarms"));
+        w->alarmTabs->setCurrentIndex(2);w->alarmTable->setCurrentCell(0,0);QTest::qWait(40);
+        QVERIFY(w->alarmAck->isHidden());QVERIFY(!w->alarmAck->isEnabled());
+        auto *scroll=w->findChild<QScrollArea *>("alarmDetailScroll");QVERIFY(scroll);
+        QVERIFY(scroll->verticalScrollBar()->maximum()>0);
+        QCOMPARE(w->alarmDetail->textFormat(),Qt::PlainText);QVERIFY(w->alarmDetail->text().contains("END"));
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DV-P06-长告警详情.png"));
+    }
+    void updateMissingPrerequisitesAreIndividuallyVisible()
+    {
+        QTemporaryDir dir;QVERIFY(dir.isValid());UpdatePanel panel;
+        panel.nativeMode=false;panel.configPath=dir.filePath("missing.json");panel.updaterExecutable=dir.filePath("missing-executable");
+        panel.reloadIdentity();
+        auto *label=panel.findChild<QLabel *>("updatePrerequisites");QVERIFY(label);
+        QVERIFY(label->text().contains("应用记录：缺失"));
+        QVERIFY(label->text().contains("系统身份：缺失"));
+        QVERIFY(label->text().contains("签名公钥文件：不可读或缺失"));
+        QVERIFY(!panel.check->isEnabled());QVERIFY(!panel.install->isEnabled());
+    }
+    void homeRoomResetIsLocalAndKeepsSelectionSafety()
+    {
+        DesktopClient client;client.poll.stop();client.disconnect();FamilyPanel panel(&client);
+        auto state=homeReviewState();panel.apply(state);panel.selectSection(1);
+        auto *rooms=panel.findChild<QComboBox *>("homeRooms");
+        rooms->setCurrentIndex(rooms->findText("书房"));panel.apply(state);
+        auto *clear=panel.findChild<QPushButton *>("clearHomeRoom");QVERIFY(clear->isEnabled());
+        auto *devices=panel.findChild<QTableWidget *>("homeDevices");QCOMPARE(devices->rowCount(),1);
+        clear->click();QCOMPARE(rooms->currentIndex(),0);QCOMPARE(devices->rowCount(),2);
+        QVERIFY(!clear->isEnabled());
+    }
+
+
+    void settingsDraftNamesChangedFields()
+    {
+        MainWindow w;isolate(w);w.updateSnapshot(snapshot());
+        w.brightnessSlider->setValue(190);
+        auto *state=w.findChild<QLabel *>("settingsEditState");
+        QVERIFY(state->text().contains("未保存：亮度"));
+        w.demoCheck->setChecked(!w.demoCheck->isChecked());
+        QVERIFY(state->text().contains("样例模式"));
+        w.markOffline();QVERIFY(state->text().contains("未连接"));
+        QCOMPARE(w.brightnessSlider->value(),190);
+    }
+
+    void voiceClearRequiresConnectedHistoryAndNoPendingRequest()
+    {
+        DesktopClient client;client.poll.stop();client.disconnect();FamilyPanel panel(&client);
+        auto *clear=panel.findChild<QPushButton *>("voiceClear");
+        QVERIFY(clear);QVERIFY(!clear->isEnabled());
+        QJsonObject state{{"service_connected",true},{"voice",QJsonObject{
+            {"history",QJsonArray{QJsonObject{{"speaker","user"},{"text","保留的对话"}}}}}}};
+        panel.apply(state);QVERIFY(clear->isEnabled());
+        client.awaitingSnapshot.insert("voice.clear");emit client.requestStateChanged();
+        QVERIFY(!clear->isEnabled());
+        client.awaitingSnapshot.clear();emit client.requestStateChanged();QVERIFY(clear->isEnabled());
+        panel.apply({{"service_connected",false}});
+        QVERIFY(!clear->isEnabled());QVERIFY(panel.findChild<QPlainTextEdit *>()->toPlainText().contains("保留的对话"));
+        state["voice"]=QJsonObject{{"history",QJsonArray{}}};panel.apply(state);
+        QVERIFY(!clear->isEnabled());
+    }
+
     void refinedPagesPreserveStateAndExposeRecovery()
     {
         DesktopV1::DesktopShell shell; shell.resize(1024,600); shell.show();
@@ -3312,6 +3449,7 @@ if [ "$2" = update.identity ]; then cat identity; else cat task; fi
         }); timer.start(10);
         w.alarmAck->click(); QVERIFY(!w.alarmAck->isEnabled()); w.alarmAck->click();
         QTRY_COMPARE(paths.size(), 1); QTRY_COMPARE(dialogs.size(), 1);
+        QVERIFY(w.findChild<QLabel *>("alarmOperationResult")->text().contains("2147483655"));
         QVERIFY(!w.alarmAckPending); QVERIFY(!w.alarmAck->isEnabled());
         load(); QVERIFY(w.alarmAck->isEnabled()); w.alarmAck->click();
         QTRY_COMPARE(paths.size(), 2); QTRY_COMPARE(dialogs.size(), 2); timer.stop();

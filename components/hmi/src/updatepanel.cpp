@@ -91,6 +91,10 @@ UpdatePanel::UpdatePanel(QWidget *parent) : QWidget(parent)
         identity->hide();
     }
     form->addRow("当前版本", version);
+    auto *prerequisites=valueLabel();
+    prerequisites->setObjectName("updatePrerequisites");
+    prerequisites->setText("更新前提尚未读取");
+    form->addRow(prerequisites);
     columns->addWidget(info, 1);
     auto *preflight = new SectionCard("更新流程与检查");
     auto *checks = new QFormLayout(preflight);
@@ -254,6 +258,7 @@ void UpdatePanel::reloadIdentity(bool restoreTask)
         nativeIdentityReady = false;
         check->setEnabled(false);
         status->setText("正在读取系统更新服务的版本记录…");
+        findChild<QLabel *>("updatePrerequisites")->setText("应用记录：读取中\n系统身份：读取中\n更新服务配置：读取中");
         requestNative("update.identity", {});
         return;
     }
@@ -273,6 +278,12 @@ void UpdatePanel::reloadIdentity(bool restoreTask)
                             !contractId.isEmpty() && key.isFile() && key.isReadable() &&
                             executable.isFile() && executable.isExecutable();
     check->setEnabled(configured);
+    findChild<QLabel *>("updatePrerequisites")->setText(
+        QString("应用记录：%1\n系统身份：%2\n签名公钥文件：%3\n更新器：%4\n文件存在不等于签名或兼容性通过。")
+        .arg(!root.isEmpty()&&!currentVersion.isEmpty()?"已提供":"缺失")
+        .arg(!boardId.isEmpty()&&!contractId.isEmpty()?"已提供":"缺失")
+        .arg(key.isFile()&&key.isReadable()?"可读":"不可读或缺失")
+        .arg(executable.isFile()&&executable.isExecutable()?"可执行":"不可执行或缺失"));
     status->setText(configured ? "可以检查兼容应用更新，尚未开始检查。"
                                : "应用更新尚未就绪：需要系统版本记录、预装应用记录、更新器和签名公钥。");
 }
@@ -351,6 +362,7 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
     const QByteArray errorOutput = process.readAllStandardError().trimmed();
     if (exitStatus != QProcess::NormalExit || code != 0) {
         nativeIdentityReady = false;
+        findChild<QLabel *>("updatePrerequisites")->setText("更新服务读取失败 · 当前前提未确认");
         taskPoll.stop();
         check->setEnabled(true);
         download->setEnabled(false);
@@ -378,6 +390,11 @@ void UpdatePanel::nativeResult(int code, QProcess::ExitStatus exitStatus)
         contract->setText(contractId.isEmpty() ? "未提供系统接口记录" : contractId);
         nativeIdentityReady = !currentVersion.isEmpty() && !boardId.isEmpty() && !contractId.isEmpty() &&
             identity["check_configured"].isBool() && identity["check_configured"].toBool();
+        findChild<QLabel *>("updatePrerequisites")->setText(
+            QString("应用记录：%1\n系统身份：%2\n更新服务配置：%3\n兼容性与签名仍需检查更新。")
+            .arg(currentVersion.isEmpty()?"缺失":"已提供")
+            .arg(boardId.isEmpty()||contractId.isEmpty()?"缺失":"已提供")
+            .arg(identity["check_configured"]==true?"服务报告已配置":"未确认"));
         check->setEnabled(true); // A later click may refresh unavailable identity.
         download->setEnabled(false);
         install->setEnabled(false);
