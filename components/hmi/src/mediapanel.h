@@ -36,6 +36,8 @@ class MediaPanel : public QWidget
     QPushButton *play, *previous, *next, *mute, *fullscreen;
     QSlider *seek, *volume;
     QComboBox *aspect;
+    QComboBox *librarySort = nullptr;
+    QLabel *libraryCount = nullptr;
     QCheckBox *loop;
     QTableWidget *files;
     QListWidget *playlist;
@@ -45,6 +47,7 @@ class MediaPanel : public QWidget
     QJsonObject state;
     bool full = false, loading = false, selectionNeedsOpen = false;
     void scan();
+    void sortLibrary();
     void choose();
     void open(const QString &path);
     void apply(const QJsonObject &status);

@@ -35,6 +35,7 @@
 #include <QMessageBox>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QPlainTextEdit>
 #include <QPainterPath>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -1762,12 +1763,30 @@ QWidget *MainWindow::buildSettings()
     auto *auditPanel = new SectionCard("操作记录");
     auto *auditBody = new QVBoxLayout(auditPanel);
     auto *auditHeader = new QHBoxLayout;
+    responsiveRows << auditHeader;
     auditHeader->addWidget(new QLabel("执行结果"));
     auditResult = new QComboBox;
     auditResult->addItem("全部", "");
     auditResult->addItem("成功", "success");
     auditResult->addItem("失败", "failed");
     auditHeader->addWidget(auditResult);
+    auditAction = new QComboBox;
+    auditAction->setObjectName("auditActionFilter");
+    auditAction->setAccessibleName("筛选操作动作");
+    auditAction->addItem("全部动作", "");
+    auditAction->setMinimumWidth(160); auditAction->setMaximumWidth(220);
+    auditAction->setMinimumHeight(48);
+    auditAction->setStyleSheet("QComboBox { min-height: 48px; }");
+    auditHeader->addWidget(auditAction);
+    auto *clearAudit = actionButton("清除筛选", "secondary");
+    clearAudit->setObjectName("clearAuditFilters"); clearAudit->setEnabled(false);
+    clearAudit->setMinimumHeight(48);
+    auditHeader->addWidget(clearAudit);
+    connect(auditAction,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this]() {updateAuditFilter();});
+    connect(clearAudit,&QPushButton::clicked,this,[this]() {
+        const QSignalBlocker resultBlock(auditResult), actionBlock(auditAction);
+        auditResult->setCurrentIndex(0); auditAction->setCurrentIndex(0); updateAuditFilter();
+    });
     auditHeader->addStretch();
     auto *reload = actionButton("刷新记录", "secondary");
     reload->setObjectName("reloadAudit");
@@ -1778,21 +1797,32 @@ QWidget *MainWindow::buildSettings()
     static_cast<DataTable *>(auditTable)->setEmptyText("暂无操作记录");
     auto *details=actionButton("查看选中详情","secondary");
     details->setObjectName("auditDetails");details->setEnabled(false);
+    details->setMinimumHeight(48);
     auditHeader->insertWidget(auditHeader->count()-1,details);
-    connect(auditTable,&QTableWidget::itemSelectionChanged,this,[this,details]() {
-        const int row=auditTable->currentRow();
-        details->setEnabled(row>=0 && !auditTable->isRowHidden(row) && auditTable->item(row,3));
-    });
+    connect(auditTable,&QTableWidget::itemSelectionChanged,this,&MainWindow::updateAuditSelection);
     connect(details,&QPushButton::clicked,this,[this]() {
         const int row=auditTable->currentRow();
-        if(row<0 || auditTable->isRowHidden(row) || !auditTable->item(row,3)) return;
+        if(row<0 || auditTable->selectedItems().isEmpty() || auditTable->isRowHidden(row) || !auditTable->item(row,3)) return;
         QStringList lines;
         for(int col=0;col<4;++col)
             lines << auditTable->horizontalHeaderItem(col)->text()+"："+auditTable->item(row,col)->text();
         const auto detail=auditTable->item(row,3)->toolTip();
         lines << "详细结果："+(detail.isEmpty() ? QString("服务未提供详情") : detail);
-        QMessageBox dialog(QMessageBox::Information,"操作记录详情",lines.join("\n"),QMessageBox::Ok,this);
-        dialog.setTextFormat(Qt::PlainText);dialog.button(QMessageBox::Ok)->setText("返回日志");
+        QDialog dialog(this); dialog.setObjectName("auditDetailDialog");
+        dialog.setWindowTitle("操作记录详情");
+        auto *layout=new QVBoxLayout(&dialog);
+        auto *heading=new QLabel("操作记录详情"); heading->setObjectName("panelTitle");
+        layout->addWidget(heading);
+        auto *body=new QPlainTextEdit;
+        body->setObjectName("auditDetailText"); body->setReadOnly(true);
+        body->setPlainText(lines.join("\n"));
+        QScroller::grabGesture(body->viewport(),QScroller::TouchGesture);
+        layout->addWidget(body,1);
+        auto *close=actionButton("返回日志","secondary");
+        close->setObjectName("closeAuditDetails"); close->setMinimumHeight(48);
+        layout->addWidget(close);
+        connect(close,&QPushButton::clicked,&dialog,&QDialog::accept);
+        dialog.resize(qMin(900,window()->width()-32),qMin(520,window()->height()-64));
         dialog.exec();
     });
     auto *auditColumns = new QHBoxLayout;
@@ -1807,16 +1837,6 @@ QWidget *MainWindow::buildSettings()
     auditHeader->removeWidget(details);
     selectedLayout->addWidget(details);
     auditColumns->addWidget(selectedPanel,2);
-    connect(auditTable,&QTableWidget::itemSelectionChanged,this,[this,selectedPreview]() {
-        const int row=auditTable->currentRow();
-        if(row<0 || auditTable->isRowHidden(row) || !auditTable->item(row,3)) {
-            selectedPreview->setText("选择一条记录查看详情。"); return;
-        }
-        QStringList lines;
-        for(int col=0;col<4;++col)
-            lines << auditTable->horizontalHeaderItem(col)->text()+"："+auditTable->item(row,col)->text();
-        selectedPreview->setText(lines.join("\n"));
-    });
     auditBody->addLayout(auditColumns, 1);
     auditCount = captionLabel("显示最近 200 条操作记录");
     auditBody->addWidget(auditCount);
@@ -2239,12 +2259,24 @@ void MainWindow::handleReply(QNetworkReply *reply)
         applyAlarmFilter();
     } else if (kind == "audit") {
         const QJsonArray rows = root.value("audit").toArray();
+        const int selectedRow=auditTable->currentRow();
+        const auto *selected=auditTable->item(selectedRow,0);
+        const QByteArray identity=selected && !auditTable->selectedItems().isEmpty() && !auditTable->isRowHidden(selectedRow)
+            ? selected->data(Qt::UserRole).toByteArray() : QByteArray();
+        const QString actionFilter=auditAction->currentData().toString(), actionLabel=auditAction->currentText();
+        const QSignalBlocker tableBlock(auditTable), actionBlock(auditAction);
+        auditTable->clearSelection(); auditTable->setCurrentCell(-1,-1);
         auditTable->setRowCount(rows.size());
+        auditAction->clear(); auditAction->addItem("全部动作", "");
+        int matchingRow=-1, matches=0;
         for (int i = 0; i < rows.size(); ++i) {
             QJsonObject x = rows[i].toObject();
             auditTable->setItem(i, 0,
                                 cell(QDateTime::fromSecsSinceEpoch(x.value("ts").toVariant().toLongLong())
                                          .toString("MM-dd hh:mm:ss")));
+            const auto rowIdentity=QJsonDocument(x).toJson(QJsonDocument::Compact);
+            auditTable->item(i,0)->setData(Qt::UserRole,rowIdentity);
+            if(!identity.isEmpty() && rowIdentity==identity) {matchingRow=i; ++matches;}
             static const QMap<QString, QString> actionNames = {{"brightness", "背光亮度"},
                                                                {"service", "服务管理"},
                                                                {"can_apply", "CAN 参数配置"},
@@ -2260,6 +2292,9 @@ void MainWindow::handleReply(QNetworkReply *reply)
             const QString action = x.value("action").toString();
             auto *actionCell = cell(actionNames.value(action, action));
             actionCell->setToolTip(action);
+            actionCell->setData(Qt::UserRole,action);
+            if(!action.isEmpty() && auditAction->findData(action)<0)
+                auditAction->addItem(actionNames.value(action,action),action);
             auditTable->setItem(i, 1, actionCell);
             auditTable->setItem(i, 2, cell(x.value("target").toString()));
             const QString result = x.value("result").toString();
@@ -2271,6 +2306,10 @@ void MainWindow::handleReply(QNetworkReply *reply)
             state->setToolTip(x["detail"].toString());
             auditTable->setItem(i, 3, state);
         }
+        if(!actionFilter.isEmpty() && auditAction->findData(actionFilter)<0)
+            auditAction->addItem(actionLabel,actionFilter);
+        auditAction->setCurrentIndex(qMax(0,auditAction->findData(actionFilter)));
+        if(matches==1) auditTable->setCurrentCell(matchingRow,0);
         updateAuditFilter();
     } else {
         if (kind == "ack" && !alarmRequestActive) {
@@ -2582,28 +2621,36 @@ void MainWindow::updateSnapshot(const QJsonObject &root)
         pageTimer.stop();
 }
 
+void MainWindow::updateAuditSelection()
+{
+    const int row=auditTable->currentRow();
+    const bool selected=row>=0 && !auditTable->selectedItems().isEmpty() &&
+        !auditTable->isRowHidden(row) && auditTable->item(row,3);
+    if(auto *details=findChild<QPushButton *>("auditDetails")) details->setEnabled(selected);
+    if(auto *preview=findChild<QLabel *>("auditSelectedPreview")) {
+        QStringList lines;
+        if(selected) for(int col=0;col<4;++col)
+            lines << auditTable->horizontalHeaderItem(col)->text()+"："+auditTable->item(row,col)->text();
+        preview->setText(selected ? lines.join("\n") : "选择一条记录查看详情。");
+    }
+}
+
 void MainWindow::updateAuditFilter()
 {
-    int visible = 0;
-    for (int row = 0; row < auditTable->rowCount(); ++row) {
-        const auto *item = auditTable->item(row, 3);
-        const bool show =
-            auditResult->currentData().toString().isEmpty() ||
-            (item && item->data(Qt::UserRole).toString() == auditResult->currentData().toString());
-        auditTable->setRowHidden(row, !show);
-        visible += show;
+    const QString result=auditResult->currentData().toString(), action=auditAction->currentData().toString();
+    int visible=0;
+    for(int row=0;row<auditTable->rowCount();++row) {
+        const auto *state=auditTable->item(row,3), *operation=auditTable->item(row,1);
+        const bool show=(result.isEmpty() || (state && state->data(Qt::UserRole).toString()==result)) &&
+            (action.isEmpty() || (operation && operation->data(Qt::UserRole).toString()==action));
+        auditTable->setRowHidden(row,!show); visible+=show;
     }
-    if (auto *details=findChild<QPushButton *>("auditDetails")) {
-        const int row=auditTable->currentRow();
-        details->setEnabled(row>=0 && !auditTable->isRowHidden(row) && auditTable->item(row,3));
-    }
-    const int selectedRow=auditTable->currentRow();
-    if(selectedRow<0 || auditTable->isRowHidden(selectedRow) || !auditTable->item(selectedRow,3))
-        if(auto *preview=findChild<QLabel *>("auditSelectedPreview"))
-            preview->setText("选择一条记录查看详情。");
+    const int row=auditTable->currentRow();
+    if(row>=0 && auditTable->isRowHidden(row)) {auditTable->clearSelection();auditTable->setCurrentCell(-1,-1);}
+    updateAuditSelection();
+    if(auto *clear=findChild<QPushButton *>("clearAuditFilters")) clear->setEnabled(!result.isEmpty() || !action.isEmpty());
     static_cast<DataTable *>(auditTable)->setEmptyText(auditTable->rowCount()==0
-        ? "尚未加载操作记录；可以刷新记录。"
-        : "没有匹配记录；请选择全部执行结果。");
-    auditCount->setText(
-        QString("显示 %1 / %2 条记录 · 最近 200 条").arg(visible).arg(auditTable->rowCount()));
+        ? "当前列表没有操作记录；可以刷新记录。"
+        : "没有匹配记录；点击“清除筛选”查看全部已加载记录。");
+    auditCount->setText(QString("显示 %1 / %2 条记录 · 最近 200 条").arg(visible).arg(auditTable->rowCount()));
 }

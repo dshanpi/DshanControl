@@ -87,6 +87,7 @@ class MainWindow : public QMainWindow
     void updateNetworkTables(const QJsonObject &root);
     void updatePageMetrics(const QJsonObject &root);
     void updateAuditFilter();
+    void updateAuditSelection();
     void updateSnapshot(const QJsonObject &root);
     void sendJson(const QByteArray &method, const QString &path, const QJsonObject &body,
                   const QString &kind);
@@ -164,6 +165,7 @@ class MainWindow : public QMainWindow
     QPushButton *alarmAck = nullptr;
     QTableWidget *auditTable = nullptr;
     QComboBox *auditResult = nullptr;
+    QComboBox *auditAction = nullptr;
     QLabel *auditCount = nullptr;
     QSlider *brightnessSlider = nullptr;
     QCheckBox *demoCheck = nullptr;

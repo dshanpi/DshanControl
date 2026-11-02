@@ -26,6 +26,16 @@
 
 namespace
 {
+class MediaSizeItem : public QTableWidgetItem
+{
+  public:
+    using QTableWidgetItem::QTableWidgetItem;
+    bool operator<(const QTableWidgetItem &other) const override
+    {
+        const auto bytes=data(Qt::UserRole).toLongLong(), otherBytes=other.data(Qt::UserRole).toLongLong();
+        return bytes==otherBytes ? data(Qt::UserRole+1).toString()<other.data(Qt::UserRole+1).toString() : bytes<otherBytes;
+    }
+};
 QLabel *label(const QString &value, const QString &name = QString())
 {
     auto *w = new QLabel(value);
@@ -260,6 +270,13 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     auto *libraryHead = new QHBoxLayout;
     libraryHead->addWidget(label("本地视频文件", "panelTitle"));
     libraryHead->addStretch();
+    librarySort=new QComboBox;
+    librarySort->setObjectName("librarySort"); librarySort->setAccessibleName("视频列表排序");
+    librarySort->addItems({"名称排序","大小：从小到大","大小：从大到小"});
+    librarySort->setMinimumHeight(48);
+    librarySort->setStyleSheet("QComboBox { min-height: 48px; }");
+    libraryHead->addWidget(librarySort);
+    connect(librarySort,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this]() {sortLibrary();});
     auto *refresh = button("刷新列表");
     libraryHead->addWidget(refresh);
     libraryLayout->addLayout(libraryHead);
@@ -303,8 +320,10 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     });
     libraryColumns->addWidget(selectedPanel,2);
     libraryLayout->addLayout(libraryColumns,1);
+    libraryCount=label("尚未读取视频列表","libraryCount");
+    libraryLayout->addWidget(libraryCount);
     libraryLayout->addWidget(
-        label("列表只读取可访问的媒体文件；选择不自动播放，能否播放取决于实际解码能力。", "caption"));
+        label("排序只改变此列表；选择不自动播放。当前播放及前后切换顺序保持不变。", "caption"));
     pages->addWidget(library);
     auto *settings = new LayoutPage;
     auto *settingsLayout = new PageRowLayout(settings);
@@ -383,15 +402,28 @@ void MediaPanel::scan()
         files->insertRow(row);
         files->setItem(row, 0, new QTableWidgetItem(entry.fileName()));
         files->item(row,0)->setData(Qt::UserRole,path);
-        files->setItem(
-            row, 1,
-            new QTableWidgetItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1) + " MB"));
+        auto *size=new MediaSizeItem(QString::number(entry.size() / 1024.0 / 1024.0, 'f', 1)+" MB");
+        size->setData(Qt::UserRole,entry.size());size->setData(Qt::UserRole+1,path);
+        files->setItem(row,1,size);
 
     }
     const int libraryRow = mediaFiles.indexOf(libraryPath);
     if (libraryRow >= 0) files->setCurrentCell(libraryRow, 0);
     const int playlistRow = mediaFiles.indexOf(playlistPath);
     if (playlistRow >= 0) playlist->setCurrentRow(playlistRow);
+    sortLibrary();
+    libraryCount->setText(QString("显示 %1 个视频 · 最多列出 200 个 · 按所选顺序查看").arg(files->rowCount()));
+}
+
+void MediaPanel::sortLibrary()
+{
+    if(!files || !librarySort) return;
+    const auto *item=files->item(files->currentRow(),0);
+    const auto path=item && !files->selectedItems().isEmpty() ? item->data(Qt::UserRole).toString() : QString();
+    files->sortItems(librarySort->currentIndex()==0 ? 0 : 1,
+        librarySort->currentIndex()==2 ? Qt::DescendingOrder : Qt::AscendingOrder);
+    if(!path.isEmpty()) for(int row=0;row<files->rowCount();++row)
+        if(files->item(row,0)->data(Qt::UserRole).toString()==path) {files->setCurrentCell(row,0);break;}
 }
 void MediaPanel::choose()
 {

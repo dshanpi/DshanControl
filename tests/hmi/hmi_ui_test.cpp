@@ -349,6 +349,140 @@ class HmiUiTest : public QObject
         capture("P21-已选文件等待播放");
     }
 
+    void listLookupReviewCaptures()
+    {
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(output.isEmpty())QSKIP("Set review directory for host rendering.");
+        QVERIFY(QDir().mkpath(output));
+        DesktopV1::DesktopShell shell;auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();shell.resize(1024,600);shell.show();
+        auto capture=[&](const QString &name) {
+            QTest::qWait(40);QCOMPARE(shell.size(),QSize(1024,600));
+            QVERIFY(shell.grab().save(output+"/"+name+".png"));
+        };
+        QVERIFY(shell.openApplication("settings"));w->findChild<QTabWidget *>("settingsTabs")->setCurrentIndex(2);
+        QJsonObject a{{"id",1},{"ts",1793599200},{"action","canopen_nmt"},{"target","can0/node1"},{"result","failed"},
+            {"detail",QString("设备未确认：主机隔离样例，不是真实现场结果。\n").repeated(80)+"原文末尾"}};
+        QJsonObject b{{"id",2},{"ts",1793599199},{"action","service"},{"target","ntp"},{"result","success"},{"detail","host fixture"}};
+        w->handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{a,b}}},"audit"));
+        w->auditTable->setCurrentCell(0,0);
+        auto *filter=w->findChild<QComboBox *>("auditActionFilter");QVERIFY(filter);
+        auto *clear=w->findChild<QPushButton *>("clearAuditFilters");QVERIFY(clear);
+        auto *details=w->findChild<QPushButton *>("auditDetails");QVERIFY(details);
+        filter->setCurrentIndex(filter->findData("canopen_nmt"));
+        capture("DU-P16-动作与结果组合筛选");
+        for(QWidget *control:QList<QWidget *>{filter,clear,details}) {
+            QVERIFY(control->visibleRegion().contains(control->rect()));
+            QVERIFY2(control->height()>=48,qPrintable(control->objectName()+":"+QString::number(control->height())+" min "+QString::number(control->minimumHeight())));
+            QVERIFY(control->mapTo(&shell,control->rect().bottomRight()).y()<600);
+        }
+        bool modal=false;
+        QTimer::singleShot(40,[&]() {
+            auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());if(!dialog)return;
+            auto *body=dialog->findChild<QPlainTextEdit *>("auditDetailText");
+            if(body){modal=dialog->grab().save(output+"/DU-P16-长详情可滚动.png");body->verticalScrollBar()->setValue(body->verticalScrollBar()->maximum());
+                modal=modal && dialog->grab().save(output+"/DU-P16-长详情末尾.png");}
+            dialog->accept();
+        });
+        details->click();QVERIFY(modal);
+        w->auditResult->setCurrentIndex(1);capture("DU-P16-无匹配可清除");
+        QVERIFY(!details->isEnabled());clear->click();QCOMPARE(w->auditTable->currentRow(),-1);
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const QStringList names{"现场演示.mp4","设备说明.mp4","巡检记录.mp4"};
+        for(int i=0;i<3;++i){QFile f(dir.filePath(names[i]));QVERIFY(f.open(QIODevice::WriteOnly));QVERIFY(f.resize((i+1)*1024*1024));}
+        QVERIFY(shell.openApplication("video"));auto *media=w->mediaPanel;
+        media->mediaDirectory=dir.path();media->scan();media->showSection(1);
+        media->files->setCurrentCell(1,0);auto *sort=media->findChild<QComboBox *>("librarySort");QVERIFY(sort);
+        sort->setCurrentIndex(2);capture("DU-P22-大小排序保留选中");
+        QVERIFY(sort->visibleRegion().contains(sort->rect()));QVERIFY(sort->height()>=48);
+        auto *select=media->findChild<QPushButton *>("selectLibraryVideo");QVERIFY(select->visibleRegion().contains(select->rect()));
+        QVERIFY(media->selectedFile.isEmpty());QVERIFY(media->session.queue.isEmpty());
+        auto *count=media->findChild<QLabel *>("libraryCount");QVERIFY(count->mapTo(&shell,count->rect().bottomRight()).y()<600);
+        media->mediaDirectory=dir.filePath("unavailable");media->scan();capture("DU-P22-目录不可用");
+        QVERIFY(!select->isEnabled());QCOMPARE(media->files->currentRow(),-1);
+    }
+
+    void auditRefreshKeepsExactRecordAndClearsAmbiguity()
+    {
+        MainWindow w;isolate(w);
+        QJsonObject a{{"id",1},{"ts",100},{"action","service"},{"target","ntp"},{"result","failed"},{"detail","original"}};
+        QJsonObject b{{"id",2},{"ts",100},{"action","brightness"},{"target","lcd"},{"result","success"}};
+        const auto load=[&](const QJsonArray &rows) {w.handleReply(new FixtureReply({{"ok",true},{"audit",rows}},"audit"));};
+        load({a,b});w.auditTable->setCurrentCell(0,0);
+        load({b,a});
+        QCOMPARE(w.auditTable->currentRow(),1);
+        QVERIFY(w.findChild<QLabel *>("auditSelectedPreview")->text().contains("ntp"));
+        load({a,a,b});
+        QCOMPARE(w.auditTable->currentRow(),-1);
+        QVERIFY(!w.findChild<QPushButton *>("auditDetails")->isEnabled());
+        w.auditTable->setCurrentCell(2,0);load({a});
+        QCOMPARE(w.auditTable->currentRow(),-1);
+        w.auditTable->setCurrentCell(0,0);a["detail"]="different result";load({a});
+        QCOMPARE(w.auditTable->currentRow(),-1);
+    }
+    void auditActionFilterCombinesAndClearsSelection()
+    {
+        MainWindow w;isolate(w);
+        auto *filter=w.findChild<QComboBox *>("auditActionFilter");QVERIFY(filter);
+        auto *clear=w.findChild<QPushButton *>("clearAuditFilters");QVERIFY(clear);
+        QJsonObject a{{"id",1},{"ts",100},{"action","service"},{"target","ntp"},{"result","failed"}};
+        QJsonObject b{{"id",2},{"ts",101},{"action","brightness"},{"target","lcd"},{"result","success"}};
+        const auto load=[&](const QJsonArray &rows) {w.handleReply(new FixtureReply({{"ok",true},{"audit",rows}},"audit"));};
+        load({a,b});w.auditTable->setCurrentCell(1,0);
+        filter->setCurrentIndex(filter->findData("service"));
+        QCOMPARE(w.auditTable->currentRow(),-1);QVERIFY(w.auditTable->isRowHidden(1));
+        QVERIFY(w.auditCount->text().contains("1 / 2"));
+        w.auditResult->setCurrentIndex(1);QVERIFY(w.auditCount->text().contains("0 / 2"));
+        clear->click();QCOMPARE(filter->currentData().toString(),QString());QCOMPARE(w.auditResult->currentIndex(),0);
+        QCOMPARE(w.auditTable->currentRow(),-1);QVERIFY(!clear->isEnabled());
+        filter->setCurrentIndex(filter->findData("service"));load({b});
+        QCOMPARE(filter->currentData().toString(),QString("service"));QVERIFY(w.auditCount->text().contains("0 / 1"));
+        clear->click();QVERIFY(!w.auditTable->isRowHidden(0));
+    }
+    void auditLongDetailsRemainScrollableAndFrozen()
+    {
+        MainWindow w;isolate(w);w.resize(1024,600);w.show();
+        const QString detail=QString("<b>literal</b>\\n").repeated(160)+"END-OF-DETAIL";
+        QJsonObject a{{"id",1},{"ts",100},{"action","service"},{"target","ntp"},{"result","failed"},{"detail",detail}};
+        w.handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{a}}},"audit"));w.auditTable->setCurrentCell(0,0);
+        bool valid=false;
+        QTimer::singleShot(30,[&]() {
+            auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());if(!dialog)return;
+            auto *body=dialog->findChild<QPlainTextEdit *>("auditDetailText");
+            auto *close=dialog->findChild<QPushButton *>("closeAuditDetails");
+            if(body && close) {
+                const QString frozen=body->toPlainText();
+                a["target"]="another target";
+                w.handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{a}}},"audit"));
+                body->verticalScrollBar()->setValue(body->verticalScrollBar()->maximum());
+                valid=body->isReadOnly() && frozen.contains(detail) && body->toPlainText()==frozen &&
+                    body->verticalScrollBar()->maximum()>0 && close->height()>=48 &&
+                    dialog->width()<=1024 && dialog->height()<=600 && close->visibleRegion().contains(close->rect());
+            }
+            dialog->reject();
+        });
+        w.findChild<QPushButton *>("auditDetails")->click();QVERIFY(valid);
+    }
+    void mediaLibrarySortPreservesPathAndPlaybackOrder()
+    {
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const QStringList names{"a.mp4","b.mp4","c.mp4"};const QList<qint64> sizes{1000002,1000001,12000000};
+        for(int i=0;i<names.size();++i){QFile f(dir.filePath(names[i]));QVERIFY(f.open(QIODevice::WriteOnly));QVERIFY(f.resize(sizes[i]));}
+        MediaPanel panel;panel.mediaDirectory=dir.path();panel.scan();panel.showSection(1);
+        auto *sort=panel.findChild<QComboBox *>("librarySort");QVERIFY(sort);
+        panel.files->setCurrentCell(0,0);const auto order=panel.mediaFiles;
+        sort->setCurrentIndex(1);
+        QCOMPARE(panel.files->item(0,0)->text(),QString("b.mp4"));
+        QCOMPARE(panel.files->item(panel.files->currentRow(),0)->data(Qt::UserRole).toString(),dir.filePath("a.mp4"));
+        sort->setCurrentIndex(2);QCOMPARE(panel.files->item(0,0)->text(),QString("c.mp4"));
+        QCOMPARE(panel.mediaFiles,order);QVERIFY(panel.selectedFile.isEmpty());QVERIFY(panel.session.queue.isEmpty());
+        for(int i=0;i<order.size();++i)QCOMPARE(panel.playlist->item(i)->data(Qt::UserRole).toString(),order[i]);
+        panel.scan();QCOMPARE(sort->currentIndex(),2);QCOMPARE(panel.files->item(0,0)->text(),QString("c.mp4"));
+        QCOMPARE(panel.files->item(panel.files->currentRow(),0)->data(Qt::UserRole).toString(),dir.filePath("a.mp4"));
+        QVERIFY(QFile::remove(dir.filePath("a.mp4")));panel.scan();QCOMPARE(panel.files->currentRow(),-1);
+        QVERIFY(!panel.findChild<QPushButton *>("selectLibraryVideo")->isEnabled());
+        QVERIFY(panel.findChild<QLabel *>("libraryCount")->text().contains("2"));
+    }
     void auditDetailsAreTouchAccessibleAndBoundToSelection()
     {
         DesktopV1::DesktopShell shell;shell.show();
@@ -367,10 +501,11 @@ class HmiUiTest : public QObject
         QCOMPARE(preview->textFormat(),Qt::PlainText);QVERIFY(preview->text().contains("can0/node1"));
         bool visible=false;
         QTimer::singleShot(20,[&]() {
-            auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+            auto *box=qobject_cast<QDialog *>(QApplication::activeModalWidget());
             if(!box)return;
-            visible=box->textFormat()==Qt::PlainText && box->text().contains("<device> refused") &&
-                box->text().contains("can0/node1");
+            auto *body=box->findChild<QPlainTextEdit *>("auditDetailText");
+            visible=body && body->isReadOnly() && body->toPlainText().contains("<device> refused") &&
+                body->toPlainText().contains("can0/node1");
             const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
             if(!output.isEmpty()) {QDir().mkpath(output);visible=visible && box->grab().save(output+"/操作日志详情.png");}
             box->accept();

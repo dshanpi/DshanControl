@@ -36,7 +36,8 @@
     "added": [],
     "changed": [
       "按DN补标题分隔、未保存标记、亮度原值范围、紧凑辅助按钮和独立结果/动作行；离线保留编辑及结果。",
-      "DT：编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件"
+      "DT：编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+      "共享MainWindow/MediaPanel构造绑定更新；本页业务、参数和布局无直接改动"
     ],
     "removed": [],
     "proposed_not_implemented": []
@@ -81,14 +82,14 @@
     ]
   },
   "implementation": {
-    "summary": "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+    "summary": "DU：日志动作筛选、刷新保持记录、长详情滚动；本地视频排序与数量说明；共享页面行为边界保留。",
     "source_hashes": {
       "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
       "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
       "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
       "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
-      "components/hmi/src/mainwindow.cpp": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
-      "components/hmi/src/mediapanel.cpp": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+      "components/hmi/src/mainwindow.cpp": "df13f4d8a4aa4757020c0791d1075f0eecc8d92afbdf949df18c244500089ed3",
+      "components/hmi/src/mediapanel.cpp": "0cbaf374e14f4cdf46af48189bb1598a504fed5cf8a5a779b0542cb0b535655d",
       "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
       "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
       "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
@@ -96,18 +97,20 @@
       "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
       "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
       "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
-      "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828"
+      "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+      "components/hmi/src/mainwindow.h": "e666dc72357f935fe84fe4588af52ca5bb259e0e5f1263d2442ad4617e3b228b",
+      "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9"
     },
     "verification": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-03-result.json: final make test-hmi PASS 7/132/6/16; all tracked source hashes unchanged.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/repository-relevant-source-consistency.json: core5 and repository386/399 PASS with13 explicit environment skips; backend-relevant sources unchanged; not a whole-tree unchanged claim.",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/final-visual-comparison.json: final actual host captures bound by full SHA; not board qualification."
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/test-result.json:core5 PASS; repository386/399 PASS13environment skips; all source unchanged",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/test-hmi-result.json:7/137/6/16 PASS0FAIL0SKIP; all source unchanged",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/final-visual-comparison.json:actual final captures bound bySHA; new states equal visually reviewed focused06; not hardware acceptance"
     ],
     "actual_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/full-hmi-captures/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
     ],
     "remaining_risks": [
-      "本轮主机验证和程序构建不代表实板业务资格；DT 尚未安装，真实业务与原73项剩余验收继续。"
+      "主机功能回归已通过；DU未部署，真实硬件/网络/解码和原73项剩余验收未升级。"
     ],
     "history": [
       {
@@ -877,13 +880,123 @@
         "remaining_risks": [
           "本轮主机验证和程序构建不代表实板业务资格；DT 尚未安装，真实业务与原73项剩余验收继续。"
         ]
+      },
+      {
+        "id": "DU-lookup-implementation-01",
+        "date": "2026-11-02",
+        "summary": "DU：日志动作筛选、刷新保持记录、长详情滚动；本地视频排序与数量说明；共享页面行为边界保留。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有能力、确认、后台契约及媒体生命周期；其余页面布局与流程保持"
+          ],
+          "added": [],
+          "changed": [
+            "共享MainWindow/MediaPanel构造绑定更新；本页业务、参数和布局无直接改动"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "df13f4d8a4aa4757020c0791d1075f0eecc8d92afbdf949df18c244500089ed3",
+          "components/hmi/src/mediapanel.cpp": "0cbaf374e14f4cdf46af48189bb1598a504fed5cf8a5a779b0542cb0b535655d",
+          "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+          "components/hmi/src/mainwindow.h": "e666dc72357f935fe84fe4588af52ca5bb259e0e5f1263d2442ad4617e3b228b",
+          "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/focused-06-result.json:9 PASS0FAIL0SKIP incl init/cleanup;7 focused cases; actual host captures",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/regression-before-result.json:original source2PASS4FAIL retained; two new capability tests expected absent",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/DU-visual-review.json:actual1024x600 page and900x520 dialog reviewed; full suite pending"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+        ],
+        "remaining_risks": [
+          "完整主机回归与正式构建待完成；DU未部署，截图/排序/滚动测试不代表真实解码或实板业务资格。"
+        ]
+      },
+      {
+        "id": "DU-final-verification-02",
+        "date": "2026-11-02",
+        "summary": "DU最终完整仓库/HMI验证通过；源与实际图绑定，DU未部署。",
+        "business_flow": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "operation_steps": [
+          "编辑亮度10至255、刷新周期及演示开关",
+          "保存前确认实际提交值；撤销前确认服务记录恢复值",
+          "分别核对保存与背光结果，失败保留并按指引恢复"
+        ],
+        "function_changes": {
+          "retained": [
+            "既有能力、确认、后台契约及媒体生命周期；其余页面布局与流程保持"
+          ],
+          "added": [],
+          "changed": [
+            "共享MainWindow/MediaPanel构造绑定更新；本页业务、参数和布局无直接改动"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "e34a9f17d507d23b7b220f762c880c3fcb38d6156b12aecd2d6c4d9f3764d1f7",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "d06eaffaa2875d815fa209ab0d8b4eea503dfd11da413e0ca8acb5bc9976e0a0",
+          "components/hmi/src/familypanel.cpp": "53dd7d1a1287ea872a9f9683ec8fb405c2980786ba493e02437585b55e5691b4",
+          "components/hmi/src/mainwindow.cpp": "df13f4d8a4aa4757020c0791d1075f0eecc8d92afbdf949df18c244500089ed3",
+          "components/hmi/src/mediapanel.cpp": "0cbaf374e14f4cdf46af48189bb1598a504fed5cf8a5a779b0542cb0b535655d",
+          "components/hmi/src/updatepanel.cpp": "4571cfbedde387ac74c961d9be0087f49b0bae5c184ee67027ed18a8e221e42f",
+          "components/hmi/src/visuals.cpp": "3f01d074c1126defb182112f81ad1b574ef365bd49ec3149692d150591167cd8",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/familypanel.h": "5923c3ecf28236c6997972a6039e102b13588e5912963bbebf3d7939bf49c2d0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+          "components/hmi/src/mainwindow.h": "e666dc72357f935fe84fe4588af52ca5bb259e0e5f1263d2442ad4617e3b228b",
+          "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/test-result.json:core5 PASS; repository386/399 PASS13environment skips; all source unchanged",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/test-hmi-result.json:7/137/6/16 PASS0FAIL0SKIP; all source unchanged",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/final-visual-comparison.json:actual final captures bound bySHA; new states equal visually reviewed focused06; not hardware acceptance"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/full-hmi-captures/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+        ],
+        "remaining_risks": [
+          "主机功能回归已通过；DU未部署，真实硬件/网络/解码和原73项剩余验收未升级。"
+        ]
       }
     ]
   },
   "hardware_validation": {
-    "status": "pending_for_DT",
+    "status": "pending_for_DU",
     "evidence": [],
-    "historical": "DP whole-system flash and identity verification are historical; DT HMI and DQ/DS network changes are not installed. No current board or physical business qualification in DT."
+    "historical": "DP historical installed; DT/DQ/DS/DU not deployed in this iteration."
   },
   "direction_review": {
     "decision": "approved_direction_only",
@@ -897,8 +1010,8 @@
     "scope": "按已展示图稿统一实施全部页面，代理修正已记录的能力/字段/布局偏差；无需逐页重复确认，最终验收仍须关闭偏差与绑定记录。"
   },
   "work_in_progress": {
-    "id": "DT-host-complete-build-delivery-pending",
-    "summary": "24页及公共界面流程审查、设计和必要修复完成；最终HMI通过；正式程序构建与源码交付证据归档SDK，DT未上板。"
+    "id": "DU-host-verified",
+    "summary": "DU日志定位与视频排序实现、完整主机验证完成；提交/构建/源码包证据归档SDK，未上板。"
   },
   "design_discrepancies_under_review": [
     "无主题/语言设置；撤销只改表单，连接/记录/编辑变化使确认失效"
@@ -947,15 +1060,14 @@
   ],
   "implementation_design_review": {
     "decision": "reviewed_against_authorized_direction",
-    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/DT-design-resolution.json",
+    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/DU-visual-review.json",
     "resolved_discrepancies": [
-      "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
-      "共享操作确认/反馈/等待遵循DT设计稿；保留既有布局和能力边界。"
+      "DU实际新页面/弹窗已查看；新下拉框44px覆盖修正至48px；保持其余页面既有设计与业务边界"
     ],
     "actual_review_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/full-hmi-captures/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
     ],
-    "scope": "Existing unified authorization; original per-page human detail approval unchanged. Current shared-state images and DP per-page baseline reviewed."
+    "scope": "explicit continued UI/function authorization; original per-control human approval unchanged; other pages retain reviewed DT layout"
   },
   "workflow_review_history": [
     {
@@ -982,6 +1094,18 @@
         "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页图稿对照收束_DP/full-hmi-captures-02/discardSettingsDraft-确认.png SHA256 b487f39ffcf2e8f0975212200b21ede0da105d486cca2ed8fdf6a9a5f08782dd"
       ],
       "scope": "实际Qt逐图代理核对；用户统一授权单列，保留原pending细节评审，不冒充用户批准。"
+    },
+    {
+      "decision": "reviewed_against_authorized_direction",
+      "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/DT-design-resolution.json",
+      "resolved_discrepancies": [
+        "编辑与服务记录分开；保存与应用各自核回包，撤销不写硬件",
+        "共享操作确认/反馈/等待遵循DT设计稿；保留既有布局和能力边界。"
+      ],
+      "actual_review_screenshots": [
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页业务深化_DT/full-hmi-captures-03/P14-未保存.png SHA256 71b249d2c232c9342b3f43394c897ffce7eab373871a480c996886895a60b272"
+      ],
+      "scope": "Existing unified authorization; original per-page human detail approval unchanged. Current shared-state images and DP per-page baseline reviewed."
     }
   ],
   "hardware_validation_history": [
@@ -989,12 +1113,21 @@
       "status": "pending_for_DP",
       "evidence": [],
       "historical": "DO image already flashed and identity verified; physical LCD illumination still unconfirmed by human."
+    },
+    {
+      "status": "pending_for_DT",
+      "evidence": [],
+      "historical": "DP whole-system flash and identity verification are historical; DT HMI and DQ/DS network changes are not installed. No current board or physical business qualification in DT."
     }
   ],
   "work_in_progress_history": [
     {
       "id": "DP-full-host-verified-package-pending",
       "summary": "全部24页UI审计、专项状态、完整HMI/仓库检查和正式主机/ARM构建完成；继续源码同步、整机打包及获授权烧写。"
+    },
+    {
+      "id": "DT-host-complete-build-delivery-pending",
+      "summary": "24页及公共界面流程审查、设计和必要修复完成；最终HMI通过；正式程序构建与源码交付证据归档SDK，DT未上板。"
     }
   ]
 }

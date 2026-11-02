@@ -277,7 +277,7 @@
     },
     {
       "path": "components/hmi/src/mainwindow.cpp",
-      "sha256": "327113e874ef97ee39686aa42d128bedef6cf25b461a9379a298a81bdc8a154c",
+      "sha256": "df13f4d8a4aa4757020c0791d1075f0eecc8d92afbdf949df18c244500089ed3",
       "pages": [
         "P01",
         "P02",
@@ -304,11 +304,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "保守覆盖全部24页：共享窗口/桌面导航/公共头文件编译与布局，以及应用组件切换会影响整体路由；不缩小共享影响集合。"
+      "rationale": "DU：MainWindow和MediaPanel由公共桌面实例化，保守保留全部24页共享编译/构造影响；行为改动集中P16和P22，P21/P23保持播放与切页生命周期，其余业务和布局不变。"
     },
     {
       "path": "components/hmi/src/mediapanel.cpp",
-      "sha256": "71fe709a1470663aaae451a1d914ac3e38f1dd2956497a47729f0aeb60845854",
+      "sha256": "0cbaf374e14f4cdf46af48189bb1598a504fed5cf8a5a779b0542cb0b535655d",
       "pages": [
         "P01",
         "P02",
@@ -335,7 +335,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+      "rationale": "DU：MainWindow和MediaPanel由公共桌面实例化，保守保留全部24页共享编译/构造影响；行为改动集中P16和P22，P21/P23保持播放与切页生命周期，其余业务和布局不变。"
     },
     {
       "path": "components/hmi/src/updatepanel.cpp",
@@ -584,6 +584,68 @@
         "P24"
       ],
       "rationale": "DT：共享桌面客户端/云家庭/媒体/更新组件组合于同一窗口，保守覆盖24页及导航、确认、反馈与离线状态；页面业务核对见workflow-review-dt.md。"
+    },
+    {
+      "path": "components/hmi/src/mainwindow.h",
+      "sha256": "e666dc72357f935fe84fe4588af52ca5bb259e0e5f1263d2442ad4617e3b228b",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DU：MainWindow和MediaPanel由公共桌面实例化，保守保留全部24页共享编译/构造影响；行为改动集中P16和P22，P21/P23保持播放与切页生命周期，其余业务和布局不变。"
+    },
+    {
+      "path": "components/hmi/src/mediapanel.h",
+      "sha256": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9",
+      "pages": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "rationale": "DU：MainWindow和MediaPanel由公共桌面实例化，保守保留全部24页共享编译/构造影响；行为改动集中P16和P22，P21/P23保持播放与切页生命周期，其余业务和布局不变。"
     }
   ],
   "source_scope": "all regular files under components/hmi, including images, fonts, resource files and build definitions"
