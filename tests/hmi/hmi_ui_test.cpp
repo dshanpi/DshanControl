@@ -216,6 +216,61 @@ class HmiUiTest : public QObject
         value->setText("not a value");QVERIFY(preview->text().contains("无效"));
         QVERIFY(!w.actionPending);
     }
+    void acknowledgedShortcutPreservesFiltersAndSelectsOnlyExactRecord()
+    {
+        DesktopV1::DesktopShell shell;auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();QVERIFY(shell.openApplication("alarms"));
+        shell.resize(1024,600);shell.show();QTest::qWait(30);
+        auto *button=w->findChild<QPushButton *>("viewAcknowledgedAlarm");QVERIFY(button);
+        QVERIFY(button->isHidden());QVERIFY(!button->isEnabled());
+        const QString id="2147483655";
+        const QJsonObject target{{"id",2147483655.0},{"ts",QDateTime::currentSecsSinceEpoch()},
+            {"severity","warning"},{"source","泵站"},{"message","压力告警 · 主机流程样例"},{"state","acknowledged"}};
+        const QJsonObject other{{"id",22},{"ts",QDateTime::currentSecsSinceEpoch()},
+            {"severity","error"},{"source","泵站"},{"message","另一条记录"},{"state","acknowledged"}};
+        auto load=[&](const QJsonArray &rows) { w->handleReply(new FixtureReply({{"ok",true},{"alarms",rows}},"alarms")); };
+        auto reply=[&](bool ok) {
+            w->alarmRequestActive=true; // Suppress the existing refresh transport in this isolated reply fixture.
+            auto *r=new FixtureReply({{"ok",ok},{"error","测试拒绝"}},"ack");r->setProperty("alarmRecordId",id);r->setProperty("alarmConnectionRevision",w->settingsConnectionRevision);
+            QTimer::singleShot(20,[](){if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();});
+            w->handleReply(r);w->refreshTimer.stop();
+        };
+        reply(true);QVERIFY(!button->isEnabled());QVERIFY(!button->isHidden());
+        load(QJsonArray{other,target});w->alarmSeverity->setCurrentIndex(1);
+        w->alarmTime->setCurrentIndex(1);
+        const int severity=w->alarmSeverity->currentIndex(),time=w->alarmTime->currentIndex();
+        w->alarmTabs->setCurrentIndex(1);
+        button->click();QCOMPARE(w->alarmTabs->currentIndex(),2);
+        QCOMPARE(w->alarmSeverity->currentIndex(),severity);QCOMPARE(w->alarmTime->currentIndex(),time);
+        QCOMPARE(w->alarmTable->item(w->alarmTable->currentRow(),0)->text(),id);
+        QVERIFY(w->alarmDetail->text().contains(id));QVERIFY(w->alarmAck->isHidden());
+        QVERIFY(!w->alarmAckPending);QTest::qWait(40);
+        QVERIFY(button->height()>=48);QVERIFY(button->visibleRegion().contains(button->rect()));
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DW-P06-定位原确认记录.png"));
+        w->alarmSeverity->setCurrentIndex(2);w->alarmTable->setCurrentCell(0,0);button->click();
+        QCOMPARE(w->alarmSeverity->currentIndex(),2);QVERIFY(w->alarmTable->selectedItems().isEmpty());
+        QVERIFY(w->findChild<QLabel *>("alarmOperationResult")->text().contains("筛选隐藏"));
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DW-P06-记录被筛选隐藏.png"));
+        load(QJsonArray{other});button->click();QVERIFY(w->alarmTable->selectedItems().isEmpty());
+        QVERIFY(w->findChild<QLabel *>("alarmOperationResult")->text().contains("无法唯一定位"));
+        load(QJsonArray{target,target});button->click();QVERIFY(w->alarmTable->selectedItems().isEmpty());
+        QVERIFY(w->findChild<QLabel *>("alarmOperationResult")->text().contains("无法唯一定位"));
+        w->alarmAckPending=true;w->updateAlarmSelection();QVERIFY(!button->isEnabled());
+        w->alarmAckPending=false;
+        const auto oldRevision=w->settingsConnectionRevision;
+        w->markOffline();QVERIFY(!button->isEnabled());QVERIFY(button->isHidden());
+        w->updateSnapshot(snapshot());w->refreshTimer.stop();load(QJsonArray{target});
+        QVERIFY(button->isHidden());QVERIFY(!button->isEnabled());
+        auto *late=new FixtureReply({{"ok",true}},"ack");late->setProperty("alarmRecordId",id);
+        late->setProperty("alarmConnectionRevision",oldRevision);w->alarmRequestActive=true;
+        QTimer::singleShot(20,[](){if(auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))box->accept();});
+        w->handleReply(late);load(QJsonArray{target});
+        QVERIFY(button->isHidden());QVERIFY(!button->isEnabled());
+        reply(false);QVERIFY(button->isHidden());QVERIFY(!button->isEnabled());
+        load(QJsonArray{target});QVERIFY(!button->isEnabled());
+    }
+
     void alarmLongDetailsScrollAndAcknowledgedViewHasNoAckAction()
     {
         DesktopV1::DesktopShell shell;shell.resize(1024,600);shell.show();
@@ -3958,6 +4013,71 @@ if [ "$2" = update.identity ]; then cat identity; else cat task; fi
         QTest::mouseClick(&canvas,Qt::LeftButton,Qt::NoModifier,QPoint(750,185));QCOMPARE(canvas.state,3);
         QCOMPARE(canvas.layoutSnapshot()["pages"].toArray()[0].toObject()["slots"].toArray()[0].toObject()["type"].toString(),QString("image"));
         canvas.discardLayout();QCOMPARE(canvas.layoutSnapshot(),before);
+    }
+
+    void expandedTrendUsesOnlySharedSamplesAndKeepsGaps()
+    {
+        QTemporaryDir dir;DesktopV1::DesktopCanvas source;
+        source.configureLayoutStorage(dir.filePath("layout.json"));
+        const qint64 now=QDateTime::currentMSecsSinceEpoch(),base=now-40000;
+        const QJsonObject binding{{"point_id","machine/pressure"},{"secondary_point_id","room/temp"}};
+        auto point=[](const QString &id,const QString &unit,qint64 stamp,double value) {
+            return QJsonObject{{"point_id",id},{"name",id=="room/temp"?"环境温度":"泵出口压力"},
+                {"type",id=="room/temp"?"temperature":"pressure"},{"unit",unit},{"value",value},
+                {"quality","good"},{"source","modbus"},{"timestamp",QDateTime::fromMSecsSinceEpoch(stamp,Qt::UTC).toString(Qt::ISODateWithMs)}};
+        };
+        auto ingest=[&](qint64 a,qint64 b,double value) {
+            source.applyServices({{"service_connected",true},{"reporting",QJsonObject{{"points",QJsonArray{
+                point("machine/pressure","MPa",a,value),point("room/temp","°C",b,20+value*5)}}}}});
+        };
+        QCOMPARE(source.pointHistoryWindow(binding,true,now),qMakePair(now-1800000,now));
+        ingest(base,base+1000,.6);source.change(3);
+        QVERIFY(source.bindTrend(0,"machine/pressure","room/temp"));QVERIFY(source.commitLayout());
+        QCOMPARE(source.pointHistoryWindow(binding,false,now),qMakePair(now-1800000,now));
+        QCOMPARE(source.pointHistoryWindow(binding,true,now),qMakePair(base,base+1000));
+        QCOMPARE(source.pointHistoryWindow(QJsonObject{{"point_id","machine/pressure"}},true,now),qMakePair(base-1000,base));
+        ingest(base+10000,base+15000,.8);
+        source.applyServices({});ingest(base+30000,base+35000,.7);
+        const auto before=source.boundHistory(0),secondary=source.boundHistory(0,true);
+        QCOMPARE(before.size(),3);QVERIFY(before[2].startsSegment);
+        QCOMPARE(source.pointHistoryWindow(binding,true,now),qMakePair(base,base+35000));
+        DesktopV1::DesktopShell shell;auto *w=shell.findChild<MainWindow *>();QVERIFY(w);isolate(*w);
+        w->setDesktopPointSource(&source);QVERIFY(shell.openApplication("devices",binding));
+        shell.resize(1024,600);shell.show();QTest::qWait(40);
+        auto *button=w->findChild<QPushButton *>("expandTrendHistory");QVERIFY(button);
+        QVERIFY(button->height()>=48);QVERIFY(button->visibleRegion().contains(button->rect()));
+        QVERIFY(!w->boundTrendPanel->expandedTimeRange());
+        const auto output=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DW-P03-30分钟.png"));
+        button->click();QVERIFY(w->boundTrendPanel->expandedTimeRange());QCOMPARE(button->text(),QString("恢复30分钟"));
+        QTest::qWait(40);
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DW-P03-展开已有采样.png"));
+        button->click();QVERIFY(!w->boundTrendPanel->expandedTimeRange());button->click();
+        QCOMPARE(source.boundHistory(0).size(),before.size());
+        QCOMPARE(source.boundHistory(0,true).size(),secondary.size());
+        for(int i=0;i<before.size();++i) {
+            QCOMPARE(source.boundHistory(0)[i].utc,before[i].utc);
+            QCOMPARE(source.boundHistory(0)[i].value,before[i].value);
+            QCOMPARE(source.boundHistory(0)[i].startsSegment,before[i].startsSegment);
+        }
+        MainWindow narrow;isolate(narrow);narrow.setDesktopPointSource(&source);
+        QVERIFY(narrow.openApplication("devices",binding));narrow.resize(640,600);narrow.show();QTest::qWait(40);
+        narrow.findChild<QPushButton *>("expandTrendHistory")->click();QTest::qWait(40);
+        QCOMPARE(narrow.size(),QSize(640,600));
+        QVERIFY(narrow.boundTrendPanel->visibleRegion().contains(narrow.boundTrendPanel->rect()));
+        QVERIFY(narrow.findChild<QPushButton *>("expandTrendHistory")->visibleRegion().contains(
+            narrow.findChild<QPushButton *>("expandTrendHistory")->rect()));
+        if(!output.isEmpty())QVERIFY(narrow.grab().save(output+"/DW-P03-窄屏展开.png"));
+        source.applyServices({});QVERIFY(narrow.boundTrendPanel->reading()["value"].isNull());
+        QCOMPARE(source.pointHistoryWindow(binding,true,now),qMakePair(base,base+35000));
+        if(!output.isEmpty())QVERIFY(narrow.grab().save(output+"/DW-P03-离线保留展开.png"));
+        QJsonObject primaryOnly{{"point_id","machine/pressure"}};
+        QCOMPARE(source.pointHistoryWindow(primaryOnly,true,now),qMakePair(base,base+30000));
+        QCOMPARE(source.pointHistoryWindow(binding,true,now+1800001),qMakePair(now+1,now+1800001));
+        DesktopV1::DesktopCanvas empty;empty.configureLayoutStorage(dir.filePath("empty-layout.json"));
+        w->setDesktopPointSource(&empty);QTest::qWait(40);
+        QVERIFY(w->boundTrendPanel->expandedTimeRange());
+        if(!output.isEmpty())QVERIFY(shell.grab().save(output+"/DW-P03-无采样展开.png"));
     }
 
     void trendContextUsesSharedStablePointHistoryAndLegacyRouteStillWorks()

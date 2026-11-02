@@ -180,7 +180,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/cloudpanel.h",
@@ -211,11 +211,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktop/desktopcanvas.h",
-      "sha256": "8e0435c93d1e8b719e381532af9bbe70d5092b86c01b2c593596ee008030834c",
+      "sha256": "47bdb3ef55cd89fe195a0f2db035addf07a469cb8fd025d1f538783d61a50771",
       "pages": [
         "P01",
         "P02",
@@ -242,11 +242,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktop/desktopediting.cpp",
-      "sha256": "f755f0b390bd5f5f6895c7a3bb5ae685c3d0960a2f93d093587aa4542c0b492a",
+      "sha256": "e9d5f596d9a8ed80fde584447fd9a2c8d6d1fa443854a848b325f8d683b71712",
       "pages": [
         "P01",
         "P02",
@@ -273,7 +273,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktop/desktopshell.cpp",
@@ -304,11 +304,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktop/desktoptrendpanel.h",
-      "sha256": "961c537279c5534c82cd1887d640f587b6993b913af00930f8327b519469acbb",
+      "sha256": "ebe24183e237e1d4b0048151f6217bfcb88ca7dd55c603f5ef3feb03ba69f984",
       "pages": [
         "P01",
         "P02",
@@ -335,7 +335,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktopclient.cpp",
@@ -366,7 +366,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/desktopclient.h",
@@ -397,7 +397,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/familypanel.cpp",
@@ -428,7 +428,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/familypanel.h",
@@ -459,11 +459,11 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/mainwindow.cpp",
-      "sha256": "057bd52f298eabd9701752b867ba2502c5f24f4efae3941c3b7ba862c3958afe",
+      "sha256": "00f6e6f9bcbccc5528c147449fcdacc9dcfc811ee74e48459c02261d1a653dbe",
       "pages": [
         "P01",
         "P02",
@@ -490,7 +490,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/mainwindow.h",
@@ -521,7 +521,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/mediapanel.cpp",
@@ -552,7 +552,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/mediapanel.h",
@@ -583,7 +583,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/updatepanel.cpp",
@@ -614,7 +614,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/updatepanel.h",
@@ -645,7 +645,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/visuals.cpp",
@@ -676,7 +676,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     },
     {
       "path": "components/hmi/src/visuals.h",
@@ -707,7 +707,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DV：公共MainWindow/MediaPanel/FamilyPanel/CloudPanel/趋势组件由共享桌面构造；保守覆盖24页编译、导航及状态传递，逐页实际改动与边界见DV记录。"
+      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
     }
   ],
   "source_scope": "all regular files under components/hmi, including images, fonts, resource files and build definitions"

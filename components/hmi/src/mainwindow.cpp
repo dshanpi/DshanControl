@@ -1342,6 +1342,33 @@ QWidget *MainWindow::buildAlarms()
     body->addWidget(details, 2);
     auto *actions = new QHBoxLayout;
     actions->addWidget(alarmAck);
+    auto *reviewAck=actionButton("查看已确认记录","secondary");
+    reviewAck->setObjectName("viewAcknowledgedAlarm");
+    reviewAck->hide();reviewAck->setEnabled(false);
+    actions->addWidget(reviewAck);
+    connect(reviewAck,&QPushButton::clicked,this,[this,reviewAck]() {
+        updateAlarmSelection();
+        if(!reviewAck->isEnabled())return;
+        const QString id=reviewAck->property("recordId").toString();
+        alarmTabs->setCurrentIndex(2);
+        alarmTable->clearSelection();alarmTable->setCurrentCell(-1,-1);
+        int match=-1,count=0;
+        for(int row=0;row<alarmTable->rowCount();++row) {
+            const auto *item=alarmTable->item(row,0),*state=alarmTable->item(row,5);
+            if(item && state && item->text()==id &&
+               state->data(Qt::UserRole).toString()=="acknowledged") {match=row;++count;}
+        }
+        auto *result=findChild<QLabel *>("alarmOperationResult");
+        if(count==1 && !alarmTable->isRowHidden(match)) {
+            alarmTable->setCurrentCell(match,0);alarmTable->selectRow(match);
+            alarmTable->scrollToItem(alarmTable->item(match,1));
+            result->setText("已定位确认记录 ID "+id+"；确认表示知悉，现场故障仍需处理。");
+        } else if(count==1)
+            result->setText("已确认记录 ID "+id+" 被当前筛选隐藏；可清除筛选后再次查看。");
+        else
+            result->setText("当前列表无法唯一定位已确认记录 ID "+id+"；请刷新核对，未选择其他记录。");
+        updateAlarmSelection();
+    });
     actions->addStretch();
     actions->addWidget(exportButton);
     layout->addLayout(actions);
@@ -1355,6 +1382,7 @@ QWidget *MainWindow::buildAlarms()
             return;
         const QString id = alarmTable->item(alarmTable->currentRow(), 0)->text();
         alarmAckPending = true;
+        findChild<QPushButton *>("viewAcknowledgedAlarm")->setProperty("recordId",QString());
         findChild<QLabel *>("alarmOperationResult")->setText("正在确认告警 ID "+id+"，等待服务回复。");
         updateAlarmSelection();
         sendJson("POST", QString("/alarms/%1/ack").arg(id), {}, "ack");
@@ -1413,6 +1441,10 @@ QByteArray MainWindow::visibleAlarmCsv() const
 
 void MainWindow::updateAlarmSelection()
 {
+    auto *reviewAck=findChild<QPushButton *>("viewAcknowledgedAlarm");
+    const bool hasTarget=!reviewAck->property("recordId").toString().isEmpty();
+    reviewAck->setVisible(hasTarget);
+    reviewAck->setEnabled(hasTarget && alarmsAvailable && !latestSnapshot.isEmpty() && !alarmAckPending);
     alarmAck->setVisible(alarmTabs->currentIndex()!=2);
     alarmAck->setText(alarmAckPending ? "正在确认告警…" : "确认选中告警");
     const int row = alarmTable->currentRow();
@@ -2022,7 +2054,10 @@ void MainWindow::sendJson(const QByteArray &method, const QString &path, const Q
         upload->setParent(reply);
     }
     reply->setProperty("kind", kind);
-    if (kind=="ack") reply->setProperty("alarmRecordId",path.section('/',2,2));
+    if (kind=="ack") {
+        reply->setProperty("alarmRecordId",path.section('/',2,2));
+        reply->setProperty("alarmConnectionRevision",settingsConnectionRevision);
+    }
     QTimer::singleShot(30000, reply, [reply]() {
         if (reply->isRunning())
             reply->abort();
@@ -2164,8 +2199,14 @@ void MainWindow::handleReply(QNetworkReply *reply)
     if(kind=="ack") {
         const QString id=reply->property("alarmRecordId").toString();
         const QString target=id.isEmpty() ? "告警" : "告警 ID "+id;
+        const bool success=reply->error()==QNetworkReply::NoError && doc.isObject() && doc.object()["ok"]==true;
+        const bool sameConnection=reply->property("alarmConnectionRevision").isValid() &&
+            reply->property("alarmConnectionRevision").toULongLong()==settingsConnectionRevision &&
+            !latestSnapshot.isEmpty();
+        findChild<QPushButton *>("viewAcknowledgedAlarm")->setProperty("recordId",success && sameConnection?id:QString());
+        updateAlarmSelection();
         findChild<QLabel *>("alarmOperationResult")->setText(target +
-            (reply->error()==QNetworkReply::NoError && doc.isObject() && doc.object()["ok"]==true
+            (success
             ? "确认已回复；请在已确认页核对。现场故障仍需处理。"
             : "确认结果未确认；保留记录，先刷新核对。"));
     }
@@ -2494,6 +2535,7 @@ void MainWindow::discardSettingsDraft()
 void MainWindow::markOffline()
 {
     ++settingsConnectionRevision;
+    findChild<QPushButton *>("viewAcknowledgedAlarm")->setProperty("recordId",QString());
     emit hmiSnapshotChanged({});
     alarmsAvailable = false;
     applyAlarmFilter();

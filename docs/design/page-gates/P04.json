@@ -8,18 +8,22 @@
   "business_goal": "选择记录查看详情。",
   "prerequisites": "当前页汇集已加载告警，仍受级别、来源和时间筛选影响。",
   "operation_steps": [
-    "选择状态、级别、来源和时间筛选",
-    "选中记录核对详情",
-    "确认现场条件后确认记录，或导出当前匹配快照"
+    "按级别、来源和时间筛选并选择告警",
+    "确认待处理记录，等待回复与列表刷新",
+    "查看已确认记录，定位原ID并核对详情",
+    "被筛选隐藏时保留条件并提示；缺失或重复不选其他记录",
+    "断线使旧回看目标失效；确认仅表示知悉"
   ],
   "confirmed_result": "确认仅表示已知悉，不会清除现场故障；导出以保存完成为准。",
   "failure_recovery": "离线保留记录不是最新状态；无匹配先清除筛选。",
   "related_route": "devices",
   "primary_action": "查看详情／确认／导出",
   "business_flow": [
-    "选择状态、级别、来源和时间筛选",
-    "选中记录核对详情",
-    "确认现场条件后确认记录，或导出当前匹配快照"
+    "按级别、来源和时间筛选并选择告警",
+    "确认待处理记录，等待回复与列表刷新",
+    "查看已确认记录，定位原ID并核对详情",
+    "被筛选隐藏时保留条件并提示；缺失或重复不选其他记录",
+    "断线使旧回看目标失效；确认仅表示知悉"
   ],
   "state_coverage": {
     "normal": "按页面真实能力设计与验证",
@@ -38,7 +42,8 @@
       "告警总表保留筛选、选中详情、确认及导出；位置标题去掉会过期的条数，条数只随标签实时更新。",
       "DT：可见ID约束；导出冻结点击时快照；离线保留记录只读",
       "共享MainWindow/MediaPanel构造绑定更新；本页业务、参数和布局无直接改动",
-      "DV：长告警详情支持触屏滚动、纯文本选择；知悉说明集中在操作区。"
+      "DV：长告警详情支持触屏滚动、纯文本选择；知悉说明集中在操作区。",
+      "DW：成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。"
     ],
     "removed": [],
     "proposed_not_implemented": [
@@ -53,19 +58,19 @@
     "known_gaps": []
   },
   "implementation": {
-    "summary": "DV：长告警详情支持触屏滚动、纯文本选择；知悉说明集中在操作区。",
+    "summary": "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。",
     "source_hashes": {
       "components/hmi/src/cloudpanel.cpp": "2bd14bc9ef969f0bb3d6ea4c6c15da93222d3241d6c85956f7602fff5ab60898",
       "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
-      "components/hmi/src/desktop/desktopcanvas.h": "8e0435c93d1e8b719e381532af9bbe70d5092b86c01b2c593596ee008030834c",
-      "components/hmi/src/desktop/desktopediting.cpp": "f755f0b390bd5f5f6895c7a3bb5ae685c3d0960a2f93d093587aa4542c0b492a",
+      "components/hmi/src/desktop/desktopcanvas.h": "47bdb3ef55cd89fe195a0f2db035addf07a469cb8fd025d1f538783d61a50771",
+      "components/hmi/src/desktop/desktopediting.cpp": "e9d5f596d9a8ed80fde584447fd9a2c8d6d1fa443854a848b325f8d683b71712",
       "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
-      "components/hmi/src/desktop/desktoptrendpanel.h": "961c537279c5534c82cd1887d640f587b6993b913af00930f8327b519469acbb",
+      "components/hmi/src/desktop/desktoptrendpanel.h": "ebe24183e237e1d4b0048151f6217bfcb88ca7dd55c603f5ef3feb03ba69f984",
       "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
       "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
       "components/hmi/src/familypanel.cpp": "de55daa6ee8682dda8ae75f5cc2758cdf12703612b440ac510da07ff2f2acca4",
       "components/hmi/src/familypanel.h": "7f289b5ea57fa3750681163c59ec93185a51bfa1d8bed08bc9b6c6f09225ea36",
-      "components/hmi/src/mainwindow.cpp": "057bd52f298eabd9701752b867ba2502c5f24f4efae3941c3b7ba862c3958afe",
+      "components/hmi/src/mainwindow.cpp": "00f6e6f9bcbccc5528c147449fcdacc9dcfc811ee74e48459c02261d1a653dbe",
       "components/hmi/src/mainwindow.h": "7247184d353f3e175cbee07e25d9588335b3e3f8e9dea547f728a7d08f042fca",
       "components/hmi/src/mediapanel.cpp": "eb7aa74a5a24c0b0ae6cfeb9d584c6eb0efb43c279a525eac0a56aa414359422",
       "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9",
@@ -75,16 +80,17 @@
       "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
     },
     "verification": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/test-summary.json:7/146/6/16PASS0FAIL0SKIP; all source unchanged",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/backend-scope-unchanged.json:466files unchanged; DU backend evidence historical, not rerun",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/DV-visual-review.json:actual images reviewed, not hardware acceptance"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/test-summary.json:7/148/6/16 PASS0FAIL0SKIP; source unchanged",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/backend-scope-unchanged.json:466files unchanged; historical backend tests not rerun",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json:24pages and new states reviewed; host fixtures only"
     ],
     "actual_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/full-hmi-captures/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-定位原确认记录.png SHA256 e475c0db4481ef0a1713099abb46980c04a937e5fece90fa881d45a1459499cd",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-记录被筛选隐藏.png SHA256 19329816960781f6816cf387a3a2a68f064ca88d8bff8d21712bfba38b40e72f"
     ],
     "remaining_risks": [
-      "保留列表摘要，详情支持完整阅读与滚动；把“确认表示知悉”放在确认动作附近。；本轮实际完成及未扩展范围见workflow-review-dv.md",
-      "DV未部署；物理显示/业务和原73项剩余资格未升级。"
+      "DW仅主机验证，未部署；物理显示、触摸和全部业务资格未升级。"
     ],
     "history": [
       {
@@ -1118,13 +1124,139 @@
           "保留列表摘要，详情支持完整阅读与滚动；把“确认表示知悉”放在确认动作附近。；本轮实际完成及未扩展范围见workflow-review-dv.md",
           "DV未部署；物理显示/业务和原73项剩余资格未升级。"
         ]
+      },
+      {
+        "id": "DW-implementation-01",
+        "date": "2026-11-02",
+        "summary": "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。",
+        "business_flow": [
+          "选择状态、级别、来源和时间筛选",
+          "选中记录核对详情",
+          "确认现场条件后确认记录，或导出当前匹配快照"
+        ],
+        "operation_steps": [
+          "选择状态、级别、来源和时间筛选",
+          "选中记录核对详情",
+          "确认现场条件后确认记录，或导出当前匹配快照"
+        ],
+        "function_changes": {
+          "retained": [
+            "原业务能力、默认取消、采集与媒体生命周期约束"
+          ],
+          "added": [
+            "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。"
+          ],
+          "changed": [],
+          "removed": [],
+          "proposed_not_implemented": [
+            "未部署；主机流程与图像不等于实板业务验收。"
+          ]
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "2bd14bc9ef969f0bb3d6ea4c6c15da93222d3241d6c85956f7602fff5ab60898",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/desktop/desktopcanvas.h": "47bdb3ef55cd89fe195a0f2db035addf07a469cb8fd025d1f538783d61a50771",
+          "components/hmi/src/desktop/desktopediting.cpp": "e9d5f596d9a8ed80fde584447fd9a2c8d6d1fa443854a848b325f8d683b71712",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "ebe24183e237e1d4b0048151f6217bfcb88ca7dd55c603f5ef3feb03ba69f984",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/familypanel.cpp": "de55daa6ee8682dda8ae75f5cc2758cdf12703612b440ac510da07ff2f2acca4",
+          "components/hmi/src/familypanel.h": "7f289b5ea57fa3750681163c59ec93185a51bfa1d8bed08bc9b6c6f09225ea36",
+          "components/hmi/src/mainwindow.cpp": "00f6e6f9bcbccc5528c147449fcdacc9dcfc811ee74e48459c02261d1a653dbe",
+          "components/hmi/src/mainwindow.h": "7247184d353f3e175cbee07e25d9588335b3e3f8e9dea547f728a7d08f042fca",
+          "components/hmi/src/mediapanel.cpp": "eb7aa74a5a24c0b0ae6cfeb9d584c6eb0efb43c279a525eac0a56aa414359422",
+          "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9",
+          "components/hmi/src/updatepanel.cpp": "a875212fb12817a40dbcd7f01d456d8ef69ee07c5e9fc3a3b09b456751c7aff0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/visuals.cpp": "29353f605be32eb0bd75b94bf1944bd50de426a03420df89ab4cd7f81119eb33",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/focused-02-result.json:build0/test0; 15PASS0FAIL0SKIP",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/DW-visual-review.json",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/backend-scope-unchanged.json:backend unchanged; not rerun"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/captures-02/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/captures-02/DW-P06-定位原确认记录.png",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/captures-02/DW-P06-记录被筛选隐藏.png"
+        ],
+        "remaining_risks": [
+          "完整HMI回归、正式构建待完成；未部署。"
+        ]
+      },
+      {
+        "id": "DW-final-verification-02",
+        "date": "2026-11-02",
+        "summary": "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。",
+        "business_flow": [
+          "按级别、来源和时间筛选并选择告警",
+          "确认待处理记录，等待回复与列表刷新",
+          "查看已确认记录，定位原ID并核对详情",
+          "被筛选隐藏时保留条件并提示；缺失或重复不选其他记录",
+          "断线使旧回看目标失效；确认仅表示知悉"
+        ],
+        "operation_steps": [
+          "按级别、来源和时间筛选并选择告警",
+          "确认待处理记录，等待回复与列表刷新",
+          "查看已确认记录，定位原ID并核对详情",
+          "被筛选隐藏时保留条件并提示；缺失或重复不选其他记录",
+          "断线使旧回看目标失效；确认仅表示知悉"
+        ],
+        "function_changes": {
+          "retained": [
+            "原业务能力、默认取消、采集与媒体生命周期约束"
+          ],
+          "added": [
+            "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。"
+          ],
+          "changed": [],
+          "removed": [],
+          "proposed_not_implemented": [
+            "未部署；主机流程与图像不等于实板业务验收。"
+          ]
+        },
+        "source_hashes": {
+          "components/hmi/src/cloudpanel.cpp": "2bd14bc9ef969f0bb3d6ea4c6c15da93222d3241d6c85956f7602fff5ab60898",
+          "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
+          "components/hmi/src/desktop/desktopcanvas.h": "47bdb3ef55cd89fe195a0f2db035addf07a469cb8fd025d1f538783d61a50771",
+          "components/hmi/src/desktop/desktopediting.cpp": "e9d5f596d9a8ed80fde584447fd9a2c8d6d1fa443854a848b325f8d683b71712",
+          "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+          "components/hmi/src/desktop/desktoptrendpanel.h": "ebe24183e237e1d4b0048151f6217bfcb88ca7dd55c603f5ef3feb03ba69f984",
+          "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
+          "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
+          "components/hmi/src/familypanel.cpp": "de55daa6ee8682dda8ae75f5cc2758cdf12703612b440ac510da07ff2f2acca4",
+          "components/hmi/src/familypanel.h": "7f289b5ea57fa3750681163c59ec93185a51bfa1d8bed08bc9b6c6f09225ea36",
+          "components/hmi/src/mainwindow.cpp": "00f6e6f9bcbccc5528c147449fcdacc9dcfc811ee74e48459c02261d1a653dbe",
+          "components/hmi/src/mainwindow.h": "7247184d353f3e175cbee07e25d9588335b3e3f8e9dea547f728a7d08f042fca",
+          "components/hmi/src/mediapanel.cpp": "eb7aa74a5a24c0b0ae6cfeb9d584c6eb0efb43c279a525eac0a56aa414359422",
+          "components/hmi/src/mediapanel.h": "8631319fe5ef056f8b6bc703b21098d6e5215b429def79c13238cf235b0079d9",
+          "components/hmi/src/updatepanel.cpp": "a875212fb12817a40dbcd7f01d456d8ef69ee07c5e9fc3a3b09b456751c7aff0",
+          "components/hmi/src/updatepanel.h": "3e9d02f3692bfd144c510da45cc1cf97791bb160aa03c864159700f4896bd9a6",
+          "components/hmi/src/visuals.cpp": "29353f605be32eb0bd75b94bf1944bd50de426a03420df89ab4cd7f81119eb33",
+          "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/test-summary.json:7/148/6/16 PASS0FAIL0SKIP; source unchanged",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/backend-scope-unchanged.json:466files unchanged; historical backend tests not rerun",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json:24pages and new states reviewed; host fixtures only"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-定位原确认记录.png SHA256 e475c0db4481ef0a1713099abb46980c04a937e5fece90fa881d45a1459499cd",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-记录被筛选隐藏.png SHA256 19329816960781f6816cf387a3a2a68f064ca88d8bff8d21712bfba38b40e72f"
+        ],
+        "remaining_risks": [
+          "DW仅主机验证，未部署；物理显示、触摸和全部业务资格未升级。"
+        ]
       }
     ]
   },
   "hardware_validation": {
-    "status": "pending_for_DU",
+    "status": "pending_for_DW",
     "evidence": [],
-    "historical": "DP historical installed; DT/DQ/DS/DU not deployed in this iteration."
+    "historical": "DP board deployment historical; subsequent UI/network candidates including DW not deployed."
   },
   "direction_review": {
     "decision": "approved_direction_only",
@@ -1133,12 +1265,12 @@
   },
   "implementation_authorization": {
     "decision": "explicit_user_request",
-    "reference": "2026-11-02 human after all24 screenshot/recommendation gallery: 继续针对于每一个页面做优化",
-    "scope": "按逐页已展示评审继续实施全部24页，保留原业务能力/维护/生命周期约束，不冒充用户逐项批准。"
+    "reference": "2026-11-02 user: 继续优化",
+    "scope": "继续优化已有UI与操作流程，保留原人类细节pending。"
   },
   "work_in_progress": {
-    "id": "DV-host-verified",
-    "summary": "24页优化、完整主机HMI验证完成；正式程序构建、提交与源码包证据归档SDK，未上板。"
+    "id": "DW-host-verified",
+    "summary": "交互优化、完整HMI及实际截图回归完成；正式构建与源码交付见SDK证据，未上板。"
   },
   "design_discrepancies_under_review": [
     "无服务提供的确认时间和阈值不补造；确认不消除现场故障"
@@ -1184,14 +1316,16 @@
   ],
   "implementation_design_review": {
     "decision": "reviewed_against_authorized_direction",
-    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/DV-visual-review.json",
+    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json",
     "resolved_discrepancies": [
-      "长告警详情支持触屏滚动、纯文本选择；知悉说明集中在操作区。"
+      "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。"
     ],
     "actual_review_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/captures-09/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-定位原确认记录.png SHA256 e475c0db4481ef0a1713099abb46980c04a937e5fece90fa881d45a1459499cd",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/DW-P06-记录被筛选隐藏.png SHA256 19329816960781f6816cf387a3a2a68f064ca88d8bff8d21712bfba38b40e72f"
     ],
-    "scope": "用户明确继续逐页优化；原细节人类审批pending保持，未扩大硬件资格。"
+    "scope": "主机实际新状态已查看；其余沿用DV已审布局，原人类细节pending保持。"
   },
   "workflow_review_history": [
     {
@@ -1237,6 +1371,17 @@
         "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/列表查找与详情_DU/full-hmi-captures/P04-选中记录.png SHA256 86409e656d497578e27145e2241c17f5b77b6e2e024eab989e76a91a1328f463"
       ],
       "scope": "explicit continued UI/function authorization; original per-control human approval unchanged; other pages retain reviewed DT layout"
+    },
+    {
+      "decision": "reviewed_against_authorized_direction",
+      "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/DV-visual-review.json",
+      "resolved_discrepancies": [
+        "长告警详情支持触屏滚动、纯文本选择；知悉说明集中在操作区。"
+      ],
+      "actual_review_screenshots": [
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/captures-09/P04-选中记录.png SHA256 cce8b832087e39de54167058184aeadf0576d6404ba8f81f24a2cb71cfb1df08"
+      ],
+      "scope": "用户明确继续逐页优化；原细节人类审批pending保持，未扩大硬件资格。"
     }
   ],
   "hardware_validation_history": [
@@ -1249,6 +1394,11 @@
       "status": "pending_for_DT",
       "evidence": [],
       "historical": "DP whole-system flash and identity verification are historical; DT HMI and DQ/DS network changes are not installed. No current board or physical business qualification in DT."
+    },
+    {
+      "status": "pending_for_DU",
+      "evidence": [],
+      "historical": "DP historical installed; DT/DQ/DS/DU not deployed in this iteration."
     }
   ],
   "work_in_progress_history": [
@@ -1263,6 +1413,10 @@
     {
       "id": "DU-host-verified",
       "summary": "DU日志定位与视频排序实现、完整主机验证完成；提交/构建/源码包证据归档SDK，未上板。"
+    },
+    {
+      "id": "DV-host-verified",
+      "summary": "24页优化、完整主机HMI验证完成；正式程序构建、提交与源码包证据归档SDK，未上板。"
     }
   ],
   "planned_dv": {
@@ -1270,5 +1424,11 @@
     "proposal": "保留列表摘要，详情支持完整阅读与滚动；把“确认表示知悉”放在确认动作附近。",
     "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/review-source.json",
     "render": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/DV-design-A.png"
+  },
+  "planned_dw": {
+    "observation": "DV真实截图及代码核对：短历史仍挤右侧；确认成功后缺少返回原告警记录的直接入口。",
+    "proposal": "成功确认后增加查看已确认记录；保持筛选并定位原ID，隐藏/未加载明确说明；等待/失败/离线禁止旧目标回看。",
+    "render": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/DW-design.png",
+    "boundary": "本地视图操作，不新增采集/告警命令，不改变硬件资格。"
   }
 }

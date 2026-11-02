@@ -536,9 +536,25 @@ void DesktopCanvas::editTrendBinding(int slot)
     if (dialog.exec() == QDialog::Accepted)
         bindTrend(slot, boxes[0]->currentData().toString(), boxes[1]->currentData().toString());
 }
-void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObject &binding, bool detailed)
+QPair<qint64,qint64> DesktopCanvas::pointHistoryWindow(const QJsonObject &binding, bool expanded, qint64 now) const
+{
+    QPair<qint64,qint64> window(now-1800000,now);
+    if (!expanded) return window;
+    bool found=false;
+    for (const auto &key:{"point_id","secondary_point_id"}) {
+        const auto data=pointHistory.series(binding[key].toString(),now);
+        if (data.isEmpty()) continue;
+        if (!found) { window={data.first().utc,data.last().utc}; found=true; }
+        else { window.first=qMin(window.first,data.first().utc); window.second=qMax(window.second,data.last().utc); }
+    }
+    // One real sample remains one point; the minimum axis span invents no history.
+    if (found && window.second-window.first<1000) window.first=window.second-1000;
+    return window;
+}
+void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObject &binding, bool detailed, bool expanded)
 {
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    const auto window=pointHistoryWindow(binding,expanded,now);
     bool any = false;
     if(detailed) {
         p.save();p.setPen(QPen(QColor("#e0e8f2"),1));
@@ -551,9 +567,13 @@ void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObje
             p.drawLine(QPointF(r.left(),y),QPointF(r.right(),y));
         }
         p.restore();
-        for(int i=0;i<=2;++i)
-            txt(p,r.left()+r.width()*i/2.0-30,r.bottom()+4,60,18,
-                QStringList{"-30分钟","-15分钟","现在"}[i],11,QColor("#71859D"),false,Qt::AlignCenter);
+        for(int i=0;i<=2;++i) {
+            const QString label=expanded
+                ? QDateTime::fromMSecsSinceEpoch(window.first+(window.second-window.first)*i/2).toString("HH:mm:ss")
+                : QStringList{"-30分钟","-15分钟","现在"}[i];
+            txt(p,r.left()+r.width()*i/2.0-48,r.bottom()+4,96,18,
+                label,11,QColor("#71859D"),false,Qt::AlignCenter);
+        }
     }
     for (int lineIndex = 0; lineIndex < 2; ++lineIndex)
     {
@@ -608,7 +628,7 @@ void DesktopCanvas::drawPointTrend(QPainter &p, const QRectF &r, const QJsonObje
         };
         for (const auto &sample : data)
         {
-            const qreal x = r.left() + r.width() * (sample.utc - (now - 1800000)) / 1800000.0;
+            const qreal x = r.left() + r.width() * (sample.utc - window.first) / double(window.second-window.first);
             const qreal y =
                 r.bottom() - r.height() * (sample.value / magnitude - low) / (high - low);
             const QPointF position(x, y);

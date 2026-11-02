@@ -68,9 +68,10 @@ class DesktopCanvas : public QWidget
     {
         return pointHistory.current(id, QDateTime::currentMSecsSinceEpoch(), pointClock.elapsed());
     }
-    void paintPointHistory(QPainter &p, const QRectF &r, const QJsonObject &binding)
+    QPair<qint64,qint64> pointHistoryWindow(const QJsonObject &binding, bool expanded, qint64 now) const;
+    void paintPointHistory(QPainter &p, const QRectF &r, const QJsonObject &binding, bool expanded=false)
     {
-        drawPointTrend(p, r, binding, true);
+        drawPointTrend(p, r, binding, true, expanded);
     }
     bool bindVideo(int slot, const QString &path);
     bool bindHome(int slot, const QString &deviceId);
@@ -145,7 +146,7 @@ class DesktopCanvas : public QWidget
     bool pointsConnected = false;
     void refreshPointBindings();
     void editTrendBinding(int slot);
-    void drawPointTrend(QPainter &p, const QRectF &rect, const QJsonObject &binding, bool detailed=false);
+    void drawPointTrend(QPainter &p, const QRectF &rect, const QJsonObject &binding, bool detailed=false, bool expanded=false);
     void refreshImages();
     void editImageBinding(int slot);
     void showImage(int slot);
