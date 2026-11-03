@@ -277,7 +277,7 @@
     },
     {
       "path": "components/hmi/src/desktop/desktopshell.cpp",
-      "sha256": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+      "sha256": "62b651ada446fb719faff6f2728f28a1ae7f9f3857e58970eb41da832ae183cc",
       "pages": [
         "P01",
         "P02",
@@ -304,7 +304,7 @@
         "P23",
         "P24"
       ],
-      "rationale": "DW：共享MainWindow与DesktopCanvas构造保守覆盖24页；仅P03趋势、P04—P06告警有直接交互变化，其余保持原业务。"
+      "rationale": "DY：全部应用是24页共有入口；仅修改公共菜单与继续当前页语义，保留各页业务与显式跨应用路由。"
     },
     {
       "path": "components/hmi/src/desktop/desktoptrendpanel.h",

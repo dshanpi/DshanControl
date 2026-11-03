@@ -253,7 +253,13 @@ void DesktopShell::chooseApplication()
         "QPushButton:focus{border:2px solid #0f62fe;}");
     auto *layout = new QVBoxLayout(&dialog);
     layout->setContentsMargins(20,16,20,16);
-    layout->addWidget(new QLabel("选择应用 · 当前应用已标记"));
+    layout->addWidget(new QLabel("全部应用 · 选择要执行的任务"));
+    auto *location=new QLabel("当前位置：" + applicationTitle->text());
+    location->setObjectName("switcherCurrentLocation");
+    location->setTextFormat(Qt::PlainText);
+    location->setWordWrap(true);
+    location->setStyleSheet("font-size:14px;font-weight:400;color:#525252;");
+    layout->addWidget(location);
     auto *grid = new QGridLayout;
     layout->addLayout(grid,1);
     const QStringList categories{"industrial","network_cloud","system_media"};
@@ -267,11 +273,14 @@ void DesktopShell::chooseApplication()
     for (const auto &app : catalog()) {
         const int column=categories.indexOf(app.category);
         if (column<0) continue;
-        auto *button=new QPushButton(app.name + "\n" + app.sub);
+        const bool current=app.id==activeId;
+        auto *button=new QPushButton(app.name + "\n" +
+                                     (current ? QString("继续当前页面") : app.sub));
+        button->setAutoDefault(false);
         button->setObjectName("appRoute_" + app.id);
         button->setCheckable(true);
         button->setChecked(app.id==activeId);
-        button->setAccessibleName(app.name);
+        button->setAccessibleName(app.name + (current ? QString("，继续当前页面") : QString()));
         grid->addWidget(button,rows[column]++,column);
         connect(button,&QPushButton::clicked,&dialog,[&dialog,&selected,app]() {
             selected=app.id;
@@ -280,10 +289,15 @@ void DesktopShell::chooseApplication()
     }
     auto *cancel=new QPushButton("取消 · 留在当前应用");
     cancel->setObjectName("cancelApplicationSwitch");
+    cancel->setAutoDefault(true);
+    cancel->setDefault(true);
+    cancel->setFocus(Qt::OtherFocusReason);
     layout->addWidget(cancel);
     connect(cancel,&QPushButton::clicked,&dialog,&QDialog::reject);
     dialog.resize(qMin(940,width()-32),qMin(560,height()-24));
-    if (dialog.exec()==QDialog::Accepted && !selected.isEmpty())
+    // Continuing the current application must not re-enter its default route:
+    // settings would reset its tab and a bound trend would lose its context.
+    if (dialog.exec()==QDialog::Accepted && !selected.isEmpty() && selected!=activeId)
         openApplication(selected);
 }
 

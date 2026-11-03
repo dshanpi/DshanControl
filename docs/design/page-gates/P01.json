@@ -39,7 +39,8 @@
       "DT：保留有效值/离线/样例标识；不把界面在线数当硬件验收",
       "共享MainWindow/MediaPanel构造绑定更新；本页业务、参数和布局无直接改动",
       "DV：样例来源改为琥珀色，来源与正常状态分开。",
-      "DW：DW共享构造源码更新；本页业务、操作与布局无直接改动，待24页回归截图核对。"
+      "DW：DW共享构造源码更新；本页业务、操作与布局无直接改动，待24页回归截图核对。",
+      "公共全部应用显示当前位置与继续当前页面；不重置子页和趋势上下文；默认取消。"
     ],
     "removed": [],
     "proposed_not_implemented": [
@@ -54,13 +55,13 @@
     "known_gaps": []
   },
   "implementation": {
-    "summary": "DW共享构造源码更新；本页业务、操作与布局无直接改动，待24页回归截图核对。",
+    "summary": "公共全部应用显示当前位置与继续当前页面；不重置子页和趋势上下文；默认取消。",
     "source_hashes": {
       "components/hmi/src/cloudpanel.cpp": "2bd14bc9ef969f0bb3d6ea4c6c15da93222d3241d6c85956f7602fff5ab60898",
       "components/hmi/src/cloudpanel.h": "029ed48fa6e4aa15f1c7858af8e6f4d476e9599c842c942f1e5e5109f2a9ca95",
       "components/hmi/src/desktop/desktopcanvas.h": "47bdb3ef55cd89fe195a0f2db035addf07a469cb8fd025d1f538783d61a50771",
       "components/hmi/src/desktop/desktopediting.cpp": "e9d5f596d9a8ed80fde584447fd9a2c8d6d1fa443854a848b325f8d683b71712",
-      "components/hmi/src/desktop/desktopshell.cpp": "7df9176c5ef3cbacd210b5820b7b13ce32951af48a9bd250b867f48ea191ae3b",
+      "components/hmi/src/desktop/desktopshell.cpp": "62b651ada446fb719faff6f2728f28a1ae7f9f3857e58970eb41da832ae183cc",
       "components/hmi/src/desktop/desktoptrendpanel.h": "ebe24183e237e1d4b0048151f6217bfcb88ca7dd55c603f5ef3feb03ba69f984",
       "components/hmi/src/desktopclient.cpp": "a75088c166494d100f07d5236f3b4ed1155b60fcddef58f87f8090aecee35828",
       "components/hmi/src/desktopclient.h": "69a75ea9f36d7f1255a9a5c18d8917d9712f589b2823675a7d01a6bdde866a3a",
@@ -76,15 +77,17 @@
       "components/hmi/src/visuals.h": "a556348091533746f36c22421af6a86aca0fb2393f962c34ef45e9a17f6a31ac"
     },
     "verification": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/test-summary.json:7/148/6/16 PASS0FAIL0SKIP; source unchanged",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/backend-scope-unchanged.json:466files unchanged; historical backend tests not rerun",
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json:24pages and new states reviewed; host fixtures only"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/baseline-tests.log:旧版本3个行为回归失败保留",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/test-summary.json:最终完整HMI7/151/6/16通过0fail0skip，测试期间全源码不变",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/final-visual-comparison.json:24页与公共菜单实际截图回归",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/unchanged-source-scope.json:未变后端矩阵未重复"
     ],
     "actual_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P01-连续样例曲线.png SHA256 63da68b6a44c9a525062c469e02772493e30bf67d42e010fab90789ab5535895"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前日志与继续入口.png SHA256 b38184352db5b2ac0158e256ea268f52a3156ddaae7ba236fbf0a5fdd77fe4ae",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前趋势与继续入口.png SHA256 3343db04bb5ea597a1d90381f9dc6a6dbddfabf8e5bf0b9713944d1f6cb61d76"
     ],
     "remaining_risks": [
-      "DW仅主机验证，未部署；物理显示、触摸和全部业务资格未升级。"
+      "DY为主机验证，尚未部署；真实显示、触摸与业务资格不升级。"
     ],
     "history": [
       {
@@ -1244,6 +1247,49 @@
         "remaining_risks": [
           "DW仅主机验证，未部署；物理显示、触摸和全部业务资格未升级。"
         ]
+      },
+      {
+        "id": "DY-implementation-01",
+        "date": "2026-11-03",
+        "summary": "公共全部应用显示当前位置与继续当前页面；不重置子页和趋势上下文；默认取消。",
+        "business_flow": [
+          "从当前子页打开全部应用",
+          "继续当前应用或取消：保持当前子页及编辑",
+          "选择其他应用：通过既有注册路由进入"
+        ],
+        "operation_steps": [
+          "查看当前位置和高亮应用",
+          "点击继续当前页面或取消返回原处；需要切换时明确选择其他应用"
+        ],
+        "function_changes": {
+          "retained": [
+            "全部12应用入口、原业务能力与显式路由上下文校验"
+          ],
+          "added": [
+            "公共菜单显示当前位置和继续当前页面标签"
+          ],
+          "changed": [
+            "当前应用按钮不再调用默认入口；默认聚焦取消"
+          ],
+          "removed": [],
+          "proposed_not_implemented": []
+        },
+        "source_hashes": {
+          "components/hmi/src/desktop/desktopshell.cpp": "62b651ada446fb719faff6f2728f28a1ae7f9f3857e58970eb41da832ae183cc"
+        },
+        "verification": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/baseline-tests.log:旧版本3个行为回归失败保留",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/test-summary.json:最终完整HMI7/151/6/16通过0fail0skip，测试期间全源码不变",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/final-visual-comparison.json:24页与公共菜单实际截图回归",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/unchanged-source-scope.json:未变后端矩阵未重复"
+        ],
+        "actual_screenshots": [
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前日志与继续入口.png SHA256 b38184352db5b2ac0158e256ea268f52a3156ddaae7ba236fbf0a5fdd77fe4ae",
+          "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前趋势与继续入口.png SHA256 3343db04bb5ea597a1d90381f9dc6a6dbddfabf8e5bf0b9713944d1f6cb61d76"
+        ],
+        "remaining_risks": [
+          "DY为主机验证，尚未部署；真实显示、触摸与业务资格不升级。"
+        ]
       }
     ]
   },
@@ -1263,8 +1309,8 @@
     "scope": "按逐页已展示评审继续实施全部24页，保留原业务能力/维护/生命周期约束，不冒充用户逐项批准。"
   },
   "work_in_progress": {
-    "id": "DW-host-verified",
-    "summary": "交互优化、完整HMI及实际截图回归完成；正式构建与源码交付见SDK证据，未上板。"
+    "id": "DY-host-verified",
+    "summary": "公共应用切换修复、专项与完整HMI及截图审查完成；程序构建与源码交付见SDK证据。"
   },
   "design_discrepancies_under_review": [
     "原通信拓扑保留为可切换视图；不伪造30分钟温压历史或总设备数"
@@ -1310,14 +1356,17 @@
   ],
   "implementation_design_review": {
     "decision": "reviewed_against_authorized_direction",
-    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json",
+    "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/final-visual-comparison.json",
     "resolved_discrepancies": [
-      "DW共享构造源码更新；本页业务、操作与布局无直接改动，待24页回归截图核对。"
+      "当前位置准确对应日志/趋势子页；12应用入口均可见，当前应用文字明确继续当前页面。",
+      "底部取消默认焦点清晰；48px以上目标和弹窗内边界通过专项断言。",
+      "三项旧版本失败在相同专项用例修复后通过；显式跨应用路由及新点位绑定保持。"
     ],
     "actual_review_screenshots": [
-      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P01-连续样例曲线.png SHA256 63da68b6a44c9a525062c469e02772493e30bf67d42e010fab90789ab5535895"
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前日志与继续入口.png SHA256 b38184352db5b2ac0158e256ea268f52a3156ddaae7ba236fbf0a5fdd77fe4ae",
+      "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/full-hmi-captures/DY-当前趋势与继续入口.png SHA256 3343db04bb5ea597a1d90381f9dc6a6dbddfabf8e5bf0b9713944d1f6cb61d76"
     ],
-    "scope": "主机实际新状态已查看；其余沿用DV已审布局，原人类细节pending保持。"
+    "scope": "actual Qt host dialog 940x560 on 1024x600 shell; not board screenshot；保留原人类细节pending。"
   },
   "workflow_review_history": [
     {
@@ -1374,6 +1423,17 @@
         "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/captures-09/P01-连续样例曲线.png SHA256 63da68b6a44c9a525062c469e02772493e30bf67d42e010fab90789ab5535895"
       ],
       "scope": "用户明确继续逐页优化；原细节人类审批pending保持，未扩大硬件资格。"
+    },
+    {
+      "decision": "reviewed_against_authorized_direction",
+      "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/final-visual-comparison.json",
+      "resolved_discrepancies": [
+        "DW共享构造源码更新；本页业务、操作与布局无直接改动，待24页回归截图核对。"
+      ],
+      "actual_review_screenshots": [
+        "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/趋势展开与告警回看_DW/full-hmi-captures/P01-连续样例曲线.png SHA256 63da68b6a44c9a525062c469e02772493e30bf67d42e010fab90789ab5535895"
+      ],
+      "scope": "主机实际新状态已查看；其余沿用DV已审布局，原人类细节pending保持。"
     }
   ],
   "hardware_validation_history": [
@@ -1409,6 +1469,10 @@
     {
       "id": "DV-host-verified",
       "summary": "24页优化、完整主机HMI验证完成；正式程序构建、提交与源码包证据归档SDK，未上板。"
+    },
+    {
+      "id": "DW-host-verified",
+      "summary": "交互优化、完整HMI及实际截图回归完成；正式构建与源码交付见SDK证据，未上板。"
     }
   ],
   "planned_dv": {
@@ -1416,5 +1480,14 @@
     "proposal": "把数据来源做成独立“样例”标记；状态与来源分开；让告警摘要直接进入对应记录。",
     "reference": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/review-source.json",
     "render": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/逐页清晰度优化_DV/DV-design-A.png"
+  },
+  "planned_dy": {
+    "id": "DY-design-first",
+    "scope": "shared application switcher, all 24 pages",
+    "observation": "current route selection calls openApplication without context; settings resets to display and devices clears trend binding",
+    "proposal": "全部应用明确当前位置；点当前应用只关闭菜单，保持子页、趋势绑定、筛选和未保存编辑；默认取消，其他应用仍走原注册路由。",
+    "render": "/home/ubuntu/T113-tina5v1.2-sdk/tmp/完整验收_20261023/桌面切换保留上下文_DY_20261103/DY-design.png",
+    "sha256": "8340394b3a58ed163c4da651f84f1a6abf0efb0be965e1d51130ccb2985534b1",
+    "user_authorization": "2026-11-03：继续优化我的桌面吧；沿用已有统一实施授权；不是细节批准"
   }
 }

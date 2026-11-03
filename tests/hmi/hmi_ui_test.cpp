@@ -1066,6 +1066,108 @@ class HmiUiTest : public QObject
         QVERIFY(!window->findChild<QPushButton *>("saveSettings")->isEnabled());
     }
 
+
+    void switcherKeepsCurrentSettingsPageAndEdits()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        w->updateSnapshot(snapshot()); w->refreshTimer.stop();
+        QVERIFY(shell.openApplication("settings"));
+        w->brightnessSlider->setValue(199);
+        auto *tabs=w->findChild<QTabWidget *>("settingsTabs"); QVERIFY(tabs);
+        tabs->setCurrentIndex(2);
+        w->handleReply(new FixtureReply({{"ok",true},{"audit",QJsonArray{
+            QJsonObject{{"ts",100},{"action","service"},{"target","ntp"},{"result","failed"}}}}},"audit"));
+        w->auditTable->setCurrentCell(0,0);
+        const auto location=shell.findChild<QLabel *>("applicationLocation")->text();
+        bool found=false, locationShown=false;
+        QTimer::singleShot(60,[&]() {
+            auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            if (!d) return;
+            auto *b=d->findChild<QPushButton *>("appRoute_settings");
+            auto *label=d->findChild<QLabel *>("switcherCurrentLocation");
+            locationShown=label && label->text().contains(location) && label->isVisible();
+            found=b && b->isChecked();
+            const auto out=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+            if (!out.isEmpty()) d->grab().save(out+"/DY-当前日志与继续入口.png");
+            if(b)b->click();else d->reject();
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click();
+        QVERIFY(found);
+        QCOMPARE(tabs->currentIndex(),2);
+        QCOMPARE(w->brightnessSlider->value(),199);
+        QVERIFY(w->settingsDirty);
+        QCOMPARE(w->auditTable->currentRow(),0);
+        QVERIFY(!w->auditRequestActive);
+        QCOMPARE(shell.findChild<QLabel *>("applicationLocation")->text(),location);
+        QVERIFY(locationShown);
+    }
+
+    void switcherKeepsCurrentTrendBindingAndRange()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        const QJsonObject context{{"point_id","sensor/temperature"},{"secondary_point_id","sensor/humidity"}};
+        QVERIFY(shell.openApplication("devices",context));
+        w->boundTrendPanel->findChild<QPushButton *>("expandTrendHistory")->click();
+        QTimer::singleShot(60,[&]() {
+            auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            if(!d)return;
+            const auto out=qEnvironmentVariable("DSHANCONTROL_UI_REVIEW_DIR");
+            if(!out.isEmpty())d->grab().save(out+"/DY-当前趋势与继续入口.png");
+            auto *b=d->findChild<QPushButton *>("appRoute_devices");
+            if(b)b->click();else d->reject();
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click();
+        QCOMPARE(w->devicePageStack->currentIndex(),1);
+        QCOMPARE(w->boundTrendPanel->context(),context);
+        QVERIFY(w->boundTrendPanel->expandedTimeRange());
+        QVERIFY(w->findChild<QTabBar *>("monitorSections")->isTabEnabled(1));
+        // Explicit navigation with a new binding must still work.
+        const QJsonObject next{{"point_id","sensor/pressure"}};
+        QVERIFY(shell.openApplication("devices",next));
+        QCOMPARE(w->boundTrendPanel->context(),next);
+    }
+
+    void switcherCancelIsKeyboardDefaultAndRoutesRemainExplicit()
+    {
+        DesktopV1::DesktopShell shell; shell.show();
+        auto *w=shell.findChild<MainWindow *>(); QVERIFY(w); isolate(*w);
+        QVERIFY(shell.openApplication("network"));
+        auto *tabs=w->findChild<QTabWidget *>("networkTabs"); QVERIFY(tabs);
+        tabs->setCurrentIndex(1);
+        bool cancelFocused=false, defaultCancel=false, geometry=true;
+        QTimer::singleShot(60,[&]() {
+            auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget());if(!d)return;
+            auto *cancel=d->findChild<QPushButton *>("cancelApplicationSwitch");
+            cancelFocused=cancel && cancel->hasFocus();defaultCancel=cancel && cancel->isDefault();
+            for(auto *b:d->findChildren<QPushButton *>())
+                geometry=geometry && b->isVisible() && b->height()>=48 &&
+                         d->rect().contains(QRect(b->mapTo(d,QPoint(0,0)),b->size()));
+            QTest::keyClick(d,Qt::Key_Return);
+            if(d->isVisible())d->reject();
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click();
+        QCOMPARE(shell.activeApplication(),QString("network"));
+        QCOMPARE(tabs->currentIndex(),1);
+        QVERIFY(cancelFocused);QVERIFY(defaultCancel);QVERIFY(geometry);
+        // Escape also leaves the existing page in place.
+        QTimer::singleShot(60,[]() {
+            if(auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget()))
+                QTest::keyClick(d,Qt::Key_Escape);
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click();
+        QCOMPARE(shell.activeApplication(),QString("network"));QCOMPARE(tabs->currentIndex(),1);
+        // Keyboard users can deliberately focus and activate another app.
+        QTimer::singleShot(60,[]() {
+            auto *d=qobject_cast<QDialog *>(QApplication::activeModalWidget());if(!d)return;
+            auto *b=d->findChild<QPushButton *>("appRoute_overview");
+            if(b){b->setFocus();QTest::keyClick(b,Qt::Key_Space);}else d->reject();
+        });
+        shell.findChild<QPushButton *>("switchApplication")->click();
+        QCOMPARE(shell.activeApplication(),QString("overview"));
+    }
+
     void applicationSwitcherRoutesEveryApplicationAndCancels()
     {
         DesktopV1::DesktopShell shell;
