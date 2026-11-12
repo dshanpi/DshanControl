@@ -1,0 +1,8 @@
+:root { --sl-content-width: 56rem; --sl-color-accent-low: #dceaff; --sl-color-accent: #1766d5; --sl-color-accent-high: #103e79; }
+:root[data-theme='dark'] { --sl-color-accent-low: #14345e; --sl-color-accent: #73b3ff; --sl-color-accent-high: #c5e0ff; }
+.sl-markdown-content { line-height: 1.85; }
+.sl-markdown-content img { max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--sl-color-gray-5); }
+.sl-markdown-content table { width: 100%; }
+.sl-markdown-content blockquote { border-inline-start-color: var(--sl-color-accent); }
+.sl-markdown-content :is(h2,h3) { scroll-margin-top: 6rem; }
+@media (max-width: 49.99rem) { .sl-markdown-content table :is(th,td) { min-width: 8rem; } }

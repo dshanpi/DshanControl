@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {rewriteLink, sourceForGeneratedFile} from '../source-links.mjs';
+const from='docs/guide/index.md';
+test('route and anchor use the project base',()=>assert.equal(rewriteLink('quickstart.md#step',from),'/DshanControl/quickstart/#step'));
+test('index resolves to root',()=>assert.equal(rewriteLink('index.md',from),'/DshanControl/'));
+test('published image path',()=>assert.equal(rewriteLink('../images/qt5-desktop/workbench.png',from),'/DshanControl/images/qt5-desktop/workbench.png'));
+test('source stays in GitHub',()=>assert.equal(rewriteLink('../../Makefile',from),'https://github.com/dshanpi/DshanControl/blob/main/Makefile'));
+test('external and local anchors are preserved',()=>{ assert.equal(rewriteLink('https://example.com',from),'https://example.com'); assert.equal(rewriteLink('#part',from),'#part'); });
+test('broken and escaped sources stop the build',()=>{ assert.throws(()=>rewriteLink('missing.md',from)); assert.throws(()=>rewriteLink('../../../outside',from)); assert.throws(()=>rewriteLink('/wrong-base/',from)); });
+test('generated files map to canonical source',()=>assert.equal(sourceForGeneratedFile('/tmp/docs/src/content/docs/index.md'),from));
