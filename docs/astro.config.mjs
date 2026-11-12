@@ -16,7 +16,7 @@ export default defineConfig({
     } },
   }, starlight({
     title: 'DshanControl',
-    description: 'Qt5 工业组件桌面详细教程：Ubuntu 体验、工作台、现场总线、云与家庭、开发集成及维护。',
+    description: 'DshanControl 中文使用与开发手册：主机体验、桌面操作、业务接入、维护验收和开发集成。',
     locales: { root: { label: '简体中文', lang: 'zh-CN' } },
     social: [{ icon: 'github', label: 'GitHub', href: repository }],
     sidebar, customCss: ['./src/styles/custom.css'],

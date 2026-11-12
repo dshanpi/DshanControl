@@ -1,41 +1,62 @@
-# 理解系统分层与源码目录
+# 定位系统模块与请求链路
 
-DshanControl 把桌面交互、业务适配、媒体会话和系统管理分开。阅读代码时沿着一次具体动作查调用链，比先遍历所有文件更容易理解。
+按一条实际请求定位源码，确定应修改的模块和应检查的服务。适用于准备扩展页面、接入数据或移植系统的开发者。
 
-![Qt5 应用框架架构图](../images/qt5-desktop/architecture.svg)
+## 1. 识别系统分层
 
-## 从点击到实际能力
+![DshanControl Qt5 应用框架与系统分层](../images/qt5-desktop/architecture.svg)
 
-1. `DesktopShell` 管理工作台、抽屉、遮罩与应用容器。
-2. `ApplicationRegistry` 校验稳定应用 ID 和上下文，生成明确路由。
-3. `MainWindow` 或专用 panel 展示业务页，发出 HTTP/本机 IPC 请求。
-4. Web API、desktop service 或 media worker 执行业务，并返回真实状态。
-5. Native Runtime 在系统边界管理角色、权限、健康和更新事务。
-
-成功切页只证明路由通过，不能证明后台授权、文件可读或现场控制成功。
-
-## 目录导航
-
-| 路径 | 主要职责 | 常见修改任务 |
+| 层次 | 主要模块 | 负责内容 |
 | --- | --- | --- |
-| `components/hmi/src/desktop/` | 组件、布局、注册器、键盘、图片 | 增加组件或应用入口 |
-| `components/hmi/src/` | 各业务页、更新、媒体会话 | 表单、状态展示和操作流程 |
-| `components/desktop/` | 本机 IPC 与业务 provider | 云/家庭/语音/传感器接入 |
-| `components/web/`、`components/core/` | HTTP API、统一模型 | 数据查询、协议动作和审计 |
-| `components/runtime/` | C++ 系统运行端 | 角色、健康、安装与回退 |
-| `components/media/` | 独立媒体进程与适配 | 解码、表面租约和资源释放 |
-| `boards/t113s4-sdnand/` | S4 系统集成 | Buildroot 配方、启动、系统契约 |
-| `tests/`、`scripts/` | 回归、构建和发布工具 | 新行为的验证和来源绑定 |
-| `docs/design/`、`docs/validation/` | 原始需求与证据 | 核对验收边界，保留历史失败 |
+| 桌面容器 | `DesktopShell`、`ApplicationRegistry` | 工作台、抽屉、应用路由、布局和上下文 |
+| 业务界面 | `MainWindow`、Cloud/Family/Media/Update Panel | 表单、状态展示、请求和反馈 |
+| 业务后台 | Web API、desktop service | 快照、告警、配置、云/家庭/语音与点位接入 |
+| 媒体工作进程 | media worker | 播放会话、解码适配、显示与资源生命周期 |
+| 系统运行端 | native runtime | 进程角色、显示/更新服务、身份和健康检查 |
+| 板级系统 | SDK、Buildroot、内核和设备树 | 硬件驱动、基础库、启动、存储和系统契约 |
 
-## 哪些修改属于系统层
+## 2. 按页面定位后台
 
-内核、DTB、bootloader、目标 libc/Qt 基础库、公钥和系统服务契约属于系统交付。应用更新不携带这些内容。界面调整、业务代码和应用资源可以走应用线，但仍需与系统契约兼容。
+| 页面或任务 | 请求通道 | 首先检查的源码 |
+| --- | --- | --- |
+| 总览、网络、现场总线、设置、告警 | loopback HTTP API | `mainwindow.cpp` → `components/web/hmi_api.py` |
+| 官网绑定、上报、家庭、语音 | desktop Unix socket | 对应 panel → `desktopclient.cpp` → desktop server/providers |
+| 视频播放 | HMI 管理的独立子进程 | `mediapanel.cpp` → `mediasession.cpp` → media worker |
+| 应用更新 | 系统更新任务/原生桥接 | `updatepanel.cpp` → 更新桥接 → runtime |
+| 布局保存 | 用户数据文件 | `desktopediting.cpp` → `desktoplayout.cpp` |
 
-S4 BSP 来自独立硬件仓库，本仓库提供用户态集成和适配。EinkOS 是文档/设计参考，不能把它的私有 SDK 或板型配置拷贝过来充当 S4 底座。
+例如“设置正常但家庭离线”应检查 desktop IPC，而不是首先修改 HTTP API。界面入口能够打开只说明路由成立。
 
-## 以一次上报为例
+## 3. 跟踪一次数据上报
 
-页面调整开关 → `reporting.configure` → 后台校验允许周期 → 可选持久配置 → MQTT 发送 → broker 确认 → 页面更新“最近代理确认”。其中页面状态、持久保存、代理确认和服务端入库各有独立检查点。
+1. `CloudPanel` 发出 `reporting.configure` 或 `reporting.send`。
+2. `DesktopClient` 检查服务 UID，通过本机 socket 发送单行 JSON。
+3. `DesktopServer` 校验调用方、协议和字段，再分发方法。
+4. provider 校验配置、持久目录或有效点位，提交对应操作。
+5. MQTT 代理确认后更新快照，HMI 读取并展示结果。
+6. 服务端接收/入库在外部业务系统中另行确认。
 
-下一步：[搭建开发循环](development.md)。深入资料：[运行端 README](../../components/runtime/README.md)、[架构索引](../architecture/README.md)。
+调试时分别检查请求、服务返回、异步状态及外部结果。通用 `accepted` 响应不能直接渲染为业务完成。
+
+## 4. 按改动类型选择目录
+
+| 修改任务 | 主要目录 |
+| --- | --- |
+| 增加组件、路由、输入或布局 | `components/hmi/src/desktop/` |
+| 修改业务页面 | `components/hmi/src/` |
+| 增加云/家庭/语音/点位适配 | `components/desktop/` |
+| 修改 HTTP 接口、采集模型 | `components/web/`、`components/core/` |
+| 修改媒体后端 | `components/media/` |
+| 修改系统更新、健康或进程角色 | `components/runtime/` |
+| 接入 S4 系统 | `boards/t113s4-sdnand/` |
+| 增加回归与发布验证 | `tests/`、`scripts/` |
+
+查阅 `docs/design/` 的需求和 `docs/validation/` 的对应证据，避免只依据当前界面推断完整功能合同。
+
+## 5. 确定应用与系统边界
+
+内核、DTB、bootloader、目标 libc/Qt 基础库、公钥和系统服务契约属于系统交付。应用包只包含允许的业务程序与资源，用户配置、布局、数据库和媒体保存在独立数据范围。
+
+新增功能前先确认它需要应用更新、系统更新还是配置变更，分别安排兼容性与恢复验证。
+
+继续[建立开发与测试流程](development.md)。技术依据：[框架说明](../../components/hmi/src/desktop/README.md)、[原生运行端](../../components/runtime/README.md)、[架构资料索引](../architecture/README.md)。

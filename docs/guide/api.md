@@ -1,49 +1,86 @@
-# 理解本机 HTTP API 与 IPC
+# 调用本机查询接口并处理异步结果
 
-**适用对象：** 开发业务页面或数据接入的工程师。本文解释调用边界，不把内部接口直接改为公网服务。
+供页面与接入开发者查阅。先完成[架构定位](architecture.md)和[桌面服务实验](desktop-service.md)，区分 HTTP API、desktop IPC 与系统更新/媒体协议。
 
-## HMI HTTP API
+## 1. 查询 HMI HTTP API
 
-HMI 默认访问 `http://127.0.0.1/api/hmi/v1`；健康入口为 `/api/health`。`/api/hmi/v1/` 走本机访问边界，普通 Web 管理接口另有登录与权限约束。
+HMI 默认使用 `http://127.0.0.1/api/hmi/v1`。这些接口走本机边界，普通 Web 管理接口另有认证规则。
 
-| 路径 | 方法 | 用途 |
+| 方法与路径 | 输入或范围 | 返回用途 |
 | --- | --- | --- |
-| `/api/health` | GET | Web 健康状态 |
-| `/api/hmi/v1/snapshot` | GET | 当前系统、接口及业务快照 |
-| `/api/hmi/v1/history` | GET | 历史数据 |
-| `/api/hmi/v1/alarms` | GET | 告警列表 |
-| `/api/hmi/v1/alarms/<id>/ack` | POST | 确认指定告警 |
-| `/api/hmi/v1/settings` | GET / PUT | 读取/保存 HMI 配置 |
-| `/api/hmi/v1/actions` | POST | 白名单业务动作 |
-| `/api/hmi/v1/audit` | GET | 审计记录 |
+| `GET /api/health` | 无 | Web 健康状态 |
+| `GET /api/hmi/v1/snapshot` | 无 | 系统、接口和业务快照 |
+| `GET /api/hmi/v1/history` | `metric`、`hours` | 系统指标历史点 |
+| `GET /api/hmi/v1/alarms` | `limit=1..500`，默认 100 | 最近告警集合 |
+| `POST /api/hmi/v1/alarms/<id>/ack` | 空对象或空请求体 | 确认指定可见告警 |
+| `GET /api/hmi/v1/settings` | 无 | 当前 HMI 设置 |
+| `PUT /api/hmi/v1/settings` | 合法设置字段 | 写入并返回设置 |
+| `POST /api/hmi/v1/actions` | 动作名、参数及确认状态 | 白名单业务动作 |
+| `GET /api/hmi/v1/audit` | 无 | 最近 200 条审计记录 |
 
-在已部署设备的本机终端可做只读检查（需系统有 curl）：
+在**已部署设备的本机终端**执行只读示例：
 
 ```bash
 curl --fail --silent --show-error http://127.0.0.1/api/health
-curl --fail --silent --show-error http://127.0.0.1/api/hmi/v1/snapshot
+curl --fail --silent --show-error \
+  'http://127.0.0.1/api/hmi/v1/history?metric=temperature&hours=1'
+curl --fail --silent --show-error \
+  'http://127.0.0.1/api/hmi/v1/alarms?limit=20'
 ```
 
-这些示例不发送控制命令。不要为了让远程调用成功而删除 loopback 检查；集成远程管理应设计独立认证与权限边界。
+检查 HTTP 状态、JSON 结构和业务字段，不只判断命令是否输出文本。`history.metric` 仅允许 `cpu`、`memory`、`temperature`、`storage`，`hours` 为 `1..720`；它不是任意工业点位的通用历史库接口。
 
-## 桌面服务 IPC
+远程管理应使用适用的认证入口，不删除 loopback 限制来复用 HMI 接口。
 
-默认 socket 为 `/run/dshancontrol/desktop/desktop.sock`。HMI 可通过 `DSHANCONTROL_DESKTOP_SOCKET` 选择路径，并通过 `DSHANCONTROL_DESKTOP_UID` 核对服务端身份。路径可连接不等于身份合法。
+## 2. 构造 desktop IPC 请求
 
-常见方法包括 `desktop.snapshot`、`cloud.refresh`、`reporting.configure`、`reporting.send`、`home.refresh`、`voice.command`。参数严格按服务端方法定义，不能把它当任意 shell 执行入口。
+默认 socket 为 `/run/dshancontrol/desktop/desktop.sock`。协议使用单行 UTF-8 JSON，一条连接处理一个有界请求；末尾必须有一个换行，服务端请求上限为 65536 字节。
 
-主机隔离实验可以构建 `make build-desktop`，为服务指定自己的 socket 和私密配置；参数入口见 [main.cpp](../../components/desktop/src/main.cpp)。不要指向正在运行设备的生产 socket 做测试。
+只读请求内容：
 
-## 设计请求和结果
+```json
+{"protocol":1,"method":"desktop.snapshot","params":{}}
+```
 
-异步操作至少区分：未配置、等待、进行中、成功、失败、结果未知。界面应展示真实阶段和错误，禁止用定时器假定成功。系统更新需要绑定具体任务 ID；历史成功不是当前任务成功。
+成功响应的外层为 `protocol`、`ok: true`、`result`；失败响应为 `ok: false` 及 `error.code`、`error.stage`、`error.message`。不要将附加字段或多条换行 JSON 拼入同一次请求。
 
-对于控制动作，提交前验证目标、参数、连接状态和维护条件；确认期间状态变化时拒绝旧确认。发生连接中断时先核对当前状态，避免重复执行。
+完整 Python 调用和实际结果检查见[接入服务实验](desktop-service.md)。HMI 用 `DSHANCONTROL_DESKTOP_SOCKET` 选择路径，并以 `DSHANCONTROL_DESKTOP_UID` 检查服务对端身份；服务端也检查调用方 UID。
 
-## 点位接入的基本原则
+## 3. 选择已实现的方法
 
-MQTT sensor 配置通过显式 `sources` 映射接入，主题形如 `devices/<device_id>/telemetry`。主题、设备 ID 和点位定义要相互匹配。后端拒绝将 retained 旧消息当作实时读数，过期与缺测也不填零。
+| 方法 | `params` | 需要注意 |
+| --- | --- | --- |
+| `desktop.snapshot` | `{}` | 读取状态，Web 角色仅获得允许的只读范围 |
+| `cloud.refresh` | `{}` | 查询登记归属/绑定码，异步返回状态 |
+| `reporting.configure` | `enabled`、`period_seconds` | 要求持久目录，周期仅 30/60/300 秒 |
+| `reporting.send` | `{}` | 要求 MQTT 在线、有有效点位且无在途上报 |
+| `home.refresh` | `{}` | 刷新授权和设备状态 |
+| `home.functions` | `device_id` | 读取目标设备可用属性 |
+| `home.command` | 设备、属性、值、命令 ID、修订和确认字段 | 必须绑定最新能力与授权，详见 provider 合同 |
+| `voice.command` | `command` | 运行时就绪后执行允许的语音命令 |
+| `voice.clear` | `{}` | 清理本次服务会话记录 |
 
-新 provider 需要同时设计：数值类型和范围、单位、时间/时效、质量标记、断线行为和来源身份。先用隔离测试验证错误路径，再连接真实数据源。
+字段严格按方法校验。示例结构只能说明协议，外部业务仍需实际配置与权限。控制请求应由产品流程验证目标和维护条件，不将内部方法作为任意 shell 入口。
 
-精确协议以 [server.cpp](../../components/desktop/src/server.cpp)、[providers.cpp](../../components/desktop/src/providers.cpp)、[hmi_api.py](../../components/web/hmi_api.py)为准。生产外部账号和密钥不属于示例配置。
+## 4. 处理请求受理与最终状态
+
+请求返回 `accepted` 后，通过后续快照检查实际阶段。建议页面分别展示：未配置、未连接、等待、进行中、成功、失败和结果未知。
+
+| 错误或状态 | 客户端处理 |
+| --- | --- |
+| `not-configured` | 引导准备对应登记/授权配置 |
+| `not-connected` | 检查连接，读取新状态 |
+| `no-data` | 检查点位有效性与时效 |
+| `not-ready` | 检查语音激活和录放音状态 |
+| `stale-or-denied` | 重新同步授权与能力后再操作 |
+| `read-only` | 保留只读展示，不提供写入动作 |
+| `busy` | 等待当前请求结束 |
+| 超时 / 断线 / 结果未知 | 查询原对象/任务结果，避免自动重发控制 |
+
+## 5. 接入新点位
+
+为每个点位明确稳定身份、数值类型、单位、范围、时间、质量和过期策略。MQTT 输入使用显式来源和 `devices/<device_id>/telemetry` 主题映射；retained 消息不能替代实时样本。
+
+先验证正常样本、重复身份、非法类型、过期、断线与恢复，再接入真实源。缺测保留为空，不使用零或随机数据补齐。
+
+技术依据：[HTTP API](../../components/web/hmi_api.py)、[IPC 服务](../../components/desktop/src/server.cpp)、[方法与点位处理](../../components/desktop/src/providers.cpp)。

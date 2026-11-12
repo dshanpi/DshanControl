@@ -1,65 +1,76 @@
-# 在 Ubuntu 上完成首次体验
+# 在 Ubuntu 编译并运行桌面
 
-**适用对象：** 第一次运行 DshanControl 的用户和开发者。**执行位置：** Ubuntu 主机。此流程不需要开发板、云账号或现场设备。
+在 Ubuntu 主机上编译 HMI（人机界面程序），生成界面图，并打开可交互的桌面窗口。此流程不依赖开发板或外部账号。
 
-## 1. 安装主机依赖
+## 1. 准备主机环境
 
-Qt 使用主机的 Qt5；不要把目标板 SDK 的 Qt 库复制到电脑系统目录。Ubuntu 22.04/24.04 可安装以下包：
+本流程已在 Ubuntu 24.04、Qt 5.15.13 上验证。Ubuntu 22.04 可采用相同包名安装依赖，但应记录实际 Qt 版本。准备普通用户终端、网络连接和可写工作目录；第 5 步还需要本机图形桌面会话。
+
+在 **Ubuntu 主机终端**执行：
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential git qtbase5-dev libqt5charts5-dev \
   libssl-dev zlib1g-dev libsqlite3-dev python3-venv python3-pil \
   mosquitto mosquitto-clients
-qmake -v
+/usr/bin/qmake -v
+g++ --version
+python3 --version
 ```
 
-`qmake -v` 应显示 Qt 5.x。Python 虚拟环境和 MQTT 工具用于后面的仓库回归；只查看图片不需要运行业务服务。项目历史主机证据使用 Qt5.12.8；不同发行版的 Qt 版本要记录，不能沿用历史测试数字。
+确认 `qmake -v` 显示 Qt 5.x。若提示 Qt6、缺少 qmake 或 QtCharts，先检查对应开发包；不要混用目标板 SDK 中的 ARM 库与主机编译器。
 
-## 2. 获取源码并记录版本
+## 2. 获取源码并记录提交
+
+以下示例将仓库放在 `$HOME/dshancontrol-work/DshanControl`。若已有同名仓库，先确认其用途和工作区状态，不要覆盖。
 
 ```bash
+mkdir -p "$HOME/dshancontrol-work"
+cd "$HOME/dshancontrol-work"
 git clone https://github.com/dshanpi/DshanControl.git
 cd DshanControl
 git rev-parse HEAD
 git status --short
 ```
 
-记下完整提交。若要严格复现本教程的应用基线，可在新克隆中执行：
+保存完整提交号。新克隆的 `git status --short` 应没有输出。需要严格复现本手册应用基线时，可在这个**新克隆**中切换：
 
 ```bash
 git switch --detach 6c7a5e382fd44c159eeec71b7a19af67498f589e
 ```
 
-旧应用基线不包含后来新增的教程文件，这是正常的。日常阅读使用在线教程，开发时选择适合自己的分支。
+分离 HEAD 适合复现；正式修改代码前应创建自己的开发分支。该应用基线早于教程提交，在线手册可以继续使用。
 
-## 3. 编译桌面
+## 3. 编译 HMI
 
-在仓库根目录执行：
+在 **仓库根目录**执行：
 
 ```bash
 mkdir -p dist/hmi
 cd dist/hmi
 /usr/bin/qmake ../../components/hmi/src/omnigate-hmi.pro
 make -j2
+test -x ./omnigate-hmi && printf 'HMI executable is ready\n'
 ```
 
-成功后应生成 `dist/hmi/omnigate-hmi`。如果出现找不到 QtCharts 或头文件，先检查开发包和 `qmake` 所属版本，不要跳过编译错误。
+成功后输出 `HMI executable is ready`，程序位于 `dist/hmi/omnigate-hmi`。编译失败时停在本步，检查第一处编译错误；末尾的 `make: Error` 通常只是汇总。
 
-## 4. 无屏幕也能生成界面图
+## 4. 生成界面图
 
-保持在 `dist/hmi`：
+保持在 **`dist/hmi`**，执行：
 
 ```bash
 QT_QPA_PLATFORM=offscreen ./omnigate-hmi --desktop-render ../desktop-render
-find ../desktop-render -maxdepth 1 -type f -name '*.png'
+find ../desktop-render -maxdepth 1 -type f -name '*.png' -printf '%f\n'
 ```
 
-成功判据是进程正常结束并生成 PNG；这些文件是固定示例渲染。`offscreen` 不会打开可操作的窗口，也不验证触摸和物理显示。
+当前基线应生成 10 张 PNG，包括工作台、抽屉、搜索、编辑和宽屏视图。打开图片检查中文、布局和组件是否完整，图片对应入口见[界面图索引](gallery.md)。
 
-## 5. 打开窗口，体验桌面
+此命令正常结束并生成图片即可完成离屏检查。SSH 环境停在此处也能继续[接入服务实验](desktop-service.md)；`offscreen` 不提供鼠标可操作窗口。
 
-在有图形桌面的 Ubuntu 会话中执行：
+## 5. 打开桌面窗口
+
+在 **Ubuntu 图形会话中的终端**进入同一 `dist/hmi` 目录，执行：
 
 ```bash
 mkdir -p "$HOME/.local/share/dshancontrol/desktop"
@@ -68,23 +79,31 @@ DSHANCONTROL_DESKTOP_STATE_DIR="$HOME/.local/share/dshancontrol/desktop" \
   ./omnigate-hmi --windowed
 ```
 
-这里为主机指定个人布局目录，避免把目标板的 `/mnt/UDISK` 路径当作电脑的用户目录。以后用同一目录启动才能读取已保存布局。
+该命令将主机布局保存到个人目录。后续启动应使用相同环境变量，才能读取同一份布局。
 
-SSH 纯终端没有图形会话时，先完成第 4 步；不要把 `could not connect to display` 误诊成应用源码坏了。
+窗口打开后依次操作：
 
-打开后依次检查：能看到工作台；能打开应用抽屉；能进入系统设置；能返回工作台。云、家庭、协议或媒体未配置时显示不可用，属于预期。窗口体验和隔离渲染是两个入口。
+1. 打开“全部应用”，确认能看到应用分类和入口。
+2. 进入“系统设置”，再返回工作台。
+3. 进入“编辑工作台”，完成一次小修改并保存，具体操作见[保存工作台](widgets.md)。
+4. 正常关闭窗口，使用上面命令再次启动，核对布局。
 
-## 6. 验证开发环境
+未启动 Web API 或桌面接入服务时，相关业务显示未连接、未配置或不可用。此时可检查导航和布局，不具备真实采集、云控制或视频解码条件。
 
-回到仓库根目录：
+## 6. 处理首次运行问题
 
-```bash
-cd ../..
-make test-bootstrap
-make test HMI_QMAKE=/usr/bin/qmake
-make test-hmi HMI_QMAKE=/usr/bin/qmake
-```
+| 现象 | 检查与处理 |
+| --- | --- |
+| `Unknown module(s) in QT: charts` | 安装 `libqt5charts5-dev`，确认使用 `/usr/bin/qmake` 后重新生成 Makefile |
+| `could not connect to display` | 当前终端没有图形会话；使用第 4 步离屏检查，或在 Ubuntu 桌面内运行第 5 步 |
+| 布局不能保存 | 检查个人布局目录的所有者和可写性；关闭重复编辑进程后重试 |
+| 云、家庭或视频不可用 | 继续对应服务集成步骤；只编译 HMI 不会安装这些能力 |
+| 程序直接退出 | 保留终端首个错误和退出码，按[故障排查](troubleshooting.md)检查字体、库和路径 |
 
-记录失败与跳过，不能只看最后一行“完成”。测试会编译原生运行端、桌面后台、媒体工作进程与 Qt 用例，耗时比只编译 HMI 长。详细解释见[开发与测试](development.md)。
+## 完成检查
 
-完成后继续[操作桌面](desktop.md)。常见编译和连接问题见[故障排查](troubleshooting.md)。命令来源：[Makefile](../../Makefile)、[主程序](../../components/hmi/src/main.cpp)。
+应保留源码提交、Qt 版本、编译结果和渲染输出。图形环境下还应确认窗口可打开、应用可进入/返回、布局可重新加载。
+
+接下来进行[桌面操作](desktop.md)；需要调试云/家庭页面的本机连接时，继续[启动接入服务](desktop-service.md)。完整工程测试在[开发流程](development.md)中执行。
+
+技术依据：[主程序入口](../../components/hmi/src/main.cpp)、[HMI 工程](../../components/hmi/src/omnigate-hmi.pro)。

@@ -2,7 +2,7 @@
 
 **面向带屏工业网关与边缘设备的 Qt5 组件桌面和应用框架。**
 
-📖 **[详细中文教程](https://dshanpi.github.io/DshanControl/)** · [Ubuntu 快速开始](docs/guide/quickstart.md) · [教程源码目录](docs/guide/index.md)
+📖 **[中文使用与开发手册](https://dshanpi.github.io/DshanControl/)** · [Ubuntu 快速开始](docs/guide/quickstart.md) · [接入服务实验](docs/guide/desktop-service.md) · [现场总线](docs/guide/fieldbus.md) · [维护验收](docs/guide/acceptance.md)
 
 把设备趋势、告警、媒体与业务入口放在同一个工作台，通过本机 API 和独立后台服务连接设备与外部业务。
 
