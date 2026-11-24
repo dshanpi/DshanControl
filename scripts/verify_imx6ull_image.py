@@ -101,6 +101,8 @@ def main():
         require(all('CONFIG_' + name + '=y' in kernel_config for name in builtin),
                 'Missing built-in boot/display/input support')
         report['kernel_required_builtins'] = builtin
+        require('CONFIG_RTL8XXXU=m' in kernel_config or 'CONFIG_RTL8XXXU=y' in kernel_config,
+                'RTL8723BU driver missing')
         report['buildroot_config_sha256'] = sha256(build / '.config')
         report['kernel_config_sha256'] = sha256(kernel_configs[0])
 
@@ -127,6 +129,9 @@ def main():
                       'etc/init.d/S99dshancontrol', 'etc/init.d/S99lvgl9-demo', 'etc/dshancontrol/display.env',
                       'usr/share/dshancontrol/platform.json', 'usr/lib/dshancontrol/web/app.py',
                       'usr/lib/dshancontrol/web/hmi_api.py', 'etc/fonts/fonts.conf']
+        installed += ['etc/init.d/S35dshan-data', 'etc/init.d/S41wifi',
+                      'usr/sbin/wpa_supplicant', 'usr/sbin/wpa_cli', 'usr/sbin/iw',
+                      'lib/firmware/rtlwifi/rtl8723bu_nic.bin']
         for pattern in ('usr/lib/libfontconfig.so.*', 'usr/share/fonts/**/*.ttf'):
             matches = [p for p in target.glob(pattern) if p.is_file() and not p.is_symlink()]
             require(matches, 'Missing target files: ' + pattern)
@@ -152,9 +157,15 @@ def main():
         report['service_identities'] = {name: {'uid': int(users[name][2]), 'gid': int(users[name][3])}
                                         for name in ('dshan-web', 'dshan-hmi', 'dshan-desktop')}
         require('exit 0' in fsread('/etc/init.d/S99lvgl9-demo'), 'LVGL start was not disabled')
-        for path in ('/etc/init.d/S99dshancontrol', '/etc/init.d/S99lvgl9-demo'):
+        for path in ('/etc/init.d/S35dshan-data', '/etc/init.d/S41wifi',
+                     '/etc/init.d/S99dshancontrol', '/etc/init.d/S99lvgl9-demo'):
             stat = run(debugfs, '-R', 'stat ' + path, rootfs)
             require(re.search(r'Mode:\s+0755', stat), 'Init script is not executable: ' + path)
+        for private in ('/data/dshancontrol/network/wpa_supplicant.conf', '/root/.ssh/authorized_keys'):
+            require('Inode:' not in run(debugfs, '-R', 'stat ' + private, rootfs),
+                    'Private configuration must not be included: ' + private)
+        report['wifi'] = {'driver': 'rtl8xxxu', 'firmware': 'rtlwifi/rtl8723bu_nic.bin',
+                          'private_profile_embedded': False, 'hardware_validation': 'not-run'}
         manifest = json.loads(fsread('/usr/share/dshancontrol/platform.json'))
         require(manifest['display']['width'] == 1024 and manifest['display']['height'] == 600, 'Incorrect display manifest')
 
