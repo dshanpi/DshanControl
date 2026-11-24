@@ -175,6 +175,7 @@ QT_QPA_PLATFORM=offscreen ./omnigate-hmi --desktop-render ../desktop-render
 | `Exec format error` | 是否误把 x86 主机程序放到 ARM 板上 |
 | 缺少 `ld-linux-armhf.so.3` 或 GLIBC 版本 | 是否混用了其他工具链的 sysroot/rootfs |
 | Qt platform plugin 无法加载 | 检查新 rootfs 中 linuxfb 插件及其依赖，开启 `QT_DEBUG_PLUGINS=1` 获取加载错误 |
+| `无法初始化搜索框字体渲染配置` | 检查 Qt Fontconfig 支持、`libfontconfig.so.1` 和 DejaVu 字体是否进入目标根文件系统；本适配已将这些项目纳入依赖 |
 | 有 framebuffer 但黑屏 | 检查实际屏幕时序、驱动、背光、设备权限和是否有另一 GUI 占用 |
 | 有画面但触摸不响应 | 检查实际 event 设备、evdev 权限、坐标范围及旋转 |
 | 布局目录不可用 | 检查 `/data/dshancontrol/hmi` 是否由 UID 401 所有且可写 |
@@ -192,6 +193,27 @@ python3 scripts/smoke_imx6ull_qemu.py \
 ```
 
 脚本先验证 ELF 架构和 hard-float 标志，再以 Cortex-A7 用户态模拟运行 ARM Python 本地 API、ARM 桌面服务和 ARM Qt 界面；检查 API、RPC、布局初始化和截图。临时进程与数据在结束后清理，证据目录保留日志、截图和二进制哈希。它不会访问 framebuffer、串口或烧录设备，也不验证内核、驱动或启动脚本。
+
+### 检查完整镜像
+
+完整构建返回 0 后，在同一主机执行：
+
+```sh
+python3 scripts/verify_imx6ull_image.py \
+  --buildroot-output /absolute/path/to/new-output/buildroot \
+  --output /absolute/path/to/new-image-evidence
+```
+
+检查脚本使用 Buildroot 的主机工具及 Ubuntu 的 `e2fsprogs` 工具，只读检查普通镜像文件，不挂载、不访问块设备。证据目录必须不存在。成功标志为退出码 0，且 `result.json` 中 `passed` 为 `true`。
+
+检查内容包括 MBR 分区及偏移、嵌入镜像的字节一致性、FAT 分区中的内核/DTB、ext4 完整性与特性、根文件系统中的程序/显示插件/字体、服务用户及设备组、启动脚本权限和设备树参数。`SHA256SUMS` 可用于复制后校验：
+
+```sh
+cd /absolute/path/to/new-output/buildroot/images
+sha256sum -c /absolute/path/to/new-image-evidence/SHA256SUMS
+```
+
+这些检查不启动镜像内的 Linux 内核。内核启动、init 流程和显示触摸驱动仍需后续上板验收。
 
 ## 8. 实板接入前仍需确认的内容
 
