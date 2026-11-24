@@ -21,7 +21,7 @@
 
 ## 接口与软件验证
 
-- 完整 `make test`：345 项，结果 OK，11 项跳过；`make test-hmi` 通过。
+- 完整 `make test`：350 项，结果 OK，12 项跳过；`make test-hmi` 通过。
 - root 身份补充测试最初因非 root fixture 不能遍历主机 home 目录出现 1 项错误。将测试程序复制到任务自己的可遍历临时目录后复测通过，没有放宽原 home 目录权限。要求真实 S4 system daemon 的用例保持跳过。
 - 定向检查：可配置 `local_api_port`、5 项 fieldbus、3 项原生 peer 权限检查通过。
 - 涂鸦网关 7 项检查通过，包含真实 Qt 桌面进程 → HTTPS WSGI 网关 → 模拟涂鸦 API 的整链路，以及网关重启后的幂等保留。发现并修复了桌面单条 `{code,value}` 与上游 `commands` 数组的转换问题，同时规范功能类型；没有使用真实项目凭据或真实家庭设备。此修正仅影响服务端网关，不改变板上 `.2` 二进制。

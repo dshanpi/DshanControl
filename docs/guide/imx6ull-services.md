@@ -45,7 +45,7 @@ make test
 make test-hmi
 ```
 
-`tests/requirements.txt` 固定了 Modbus 模拟测试所需的 `minimalmodbus==2.1.1` 和 `pyserial==3.5`。最新完整 Python 回归为 345 项、11 项跳过，Qt/HMI 回归通过；需要 root/真实系统服务的检查单独记录，不把跳过计入实板通过数量。
+`tests/requirements.txt` 固定了 Modbus 模拟测试所需的 `minimalmodbus==2.1.1` 和 `pyserial==3.5`。最新完整 Python 回归为 350 项、12 项跳过，Qt/HMI 回归通过；需要 root/真实系统服务的检查单独记录，不把跳过计入实板通过数量。
 
 应用构建快照必须来自已提交源码；修改主 checkout 不会自动更新旧 external tree。依赖包括 SOEM、python-can、canopen、minimalmodbus、ALSA 和 FFmpeg。只执行包构建不会更新 `images/` 下的完整固件。本轮在已有实板系统上部署依赖并完成应用 OTA，没有重新生成全量启动/rootfs 镜像，旧镜像不可当作本次最新交付。
 
