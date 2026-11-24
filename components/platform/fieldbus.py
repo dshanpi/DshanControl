@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 import time
+import tempfile
 
 
 def integer(value, name, low, high):
@@ -140,10 +141,15 @@ class Fieldbus:
             if cfg['parity'] not in ('N','E','O'): raise ValueError('Invalid parity')
             self.state.mkdir(mode=0o700,parents=True,exist_ok=True)
             if self.state.is_symlink(): raise ValueError('State directory must not be linked')
-            temporary=self.state/'rs485.json.new'
-            with temporary.open('x') as output:
-                os.chmod(temporary,0o600); json.dump(cfg,output);output.flush();os.fsync(output.fileno())
-            temporary.replace(self.state/'rs485.json')
+            with tempfile.NamedTemporaryFile(mode='w',dir=self.state,prefix='.rs485-',delete=False) as output:
+                temporary=Path(output.name)
+                try:
+                    os.fchmod(output.fileno(),0o600);json.dump(cfg,output);output.flush();os.fsync(output.fileno())
+                    temporary.replace(self.state/'rs485.json')
+                    directory=os.open(self.state,os.O_RDONLY|os.O_DIRECTORY)
+                    try:os.fsync(directory)
+                    finally:os.close(directory)
+                finally:temporary.unlink(missing_ok=True)
             return dict(cfg,configured=True,polling=False,device_acknowledged=False)
         if action not in ('rs485_read','rs485_write'): raise ValueError('Unknown Modbus operation')
         fields(p,{'port','unit_id','address','count','function','value'}, {'address'})

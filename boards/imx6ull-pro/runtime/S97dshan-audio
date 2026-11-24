@@ -1,0 +1,14 @@
+#!/bin/sh
+# WM8960 output routes must be enabled or the PCM can fail with EIO.
+set -eu
+case "${1:-}" in
+start)
+    grep -q wm8960audio /proc/asound/cards || exit 1
+    amixer -q -c 0 sset 'Left Output Mixer PCM' on
+    amixer -q -c 0 sset 'Right Output Mixer PCM' on
+    amixer -q -c 0 sset Speaker 80%
+    amixer -q -c 0 sset Headphone 70%
+    ;;
+stop) : ;;
+*) echo 'Usage: S97dshan-audio start|stop' >&2; exit 2;;
+esac

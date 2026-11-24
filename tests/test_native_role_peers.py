@@ -66,3 +66,12 @@ class NativeRolePeerTests(unittest.TestCase):
             result=subprocess.run([str(self.f.binary),'serve',str(self.f.service_config)],capture_output=True,text=True,timeout=5)
             self.assertEqual(1,result.returncode);self.assertEqual('authorization',json.loads(result.stderr)['stage'])
             self.assertFalse(Path(self.f.socket_path).exists());self.assertEqual([],self.f.operations())
+
+    def test_fieldbus_authority_is_only_enabled_for_web_role(self):
+        self.settings['fieldbus_enabled']=True;self.save();self.f.start()
+        # Empty parameters stop before invoking a hardware executor.
+        web=self.child(400,'fieldbus.execute',{})
+        hmi=self.child(401,'fieldbus.execute',{})
+        self.assertEqual(web.returncode,1)
+        self.assertEqual(json.loads(web.stderr)['code'],'rejected')
+        self.assertEqual(json.loads(hmi.stderr)['code'],'method-denied')

@@ -52,6 +52,26 @@ class DesktopModelTests(unittest.TestCase):
         value = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
         self.assertEqual(value.returncode, 0, value.stdout + value.stderr)
 
+@unittest.skipUnless(BINARY.exists(), 'Native desktop build required')
+class LocalApiPortTests(unittest.TestCase):
+    def test_configured_loopback_port_is_used(self):
+        paths=[]
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def do_GET(self):
+                paths.append(self.path);body=b'{}'
+                self.send_response(200);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+        server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                base=Path(folder);config=base/'config.json'
+                config.write_text(json.dumps({'local_api_port':server.server_port,'local_points':{}}));config.chmod(0o600)
+                process=subprocess.Popen([str(BINARY),'--socket',str(base/'ipc/desktop.sock'),'--config',str(config)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                try:eventually(lambda:'/api/hmi/v1/snapshot' in paths,timeout=10)
+                finally:process.terminate();process.wait(5)
+        finally:server.shutdown();server.server_close();thread.join(2)
+
 
 @unittest.skipUnless(BINARY.exists() and shutil.which('openssl') and shutil.which('mosquitto') and
                      shutil.which('mosquitto_pub') and shutil.which('mosquitto_sub'),

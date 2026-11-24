@@ -6,7 +6,9 @@ DSHANCONTROL_IMX6ULL_LICENSE_FILES = LICENSE components/hmi/src/fonts/OFL.txt co
 # Include Flask's runtime packages explicitly so the package-only make target is
 # runnable too. Kconfig selects alone only guarantee installation with make all.
 DSHANCONTROL_IMX6ULL_DEPENDENCIES = qt5base dejavu openssl zlib sqlite ca-certificates python3 python-flask \
-	python-blinker python-click python-jinja2 python-werkzeug python-itsdangerous python-markupsafe
+	python-blinker python-click python-jinja2 python-werkzeug python-itsdangerous python-markupsafe \
+	iproute2 can-utils omnigate-ethercat python-canopen python-can python-minimalmodbus python-serial \
+	python-packaging python-wrapt python-typing-extensions alsa-utils ffmpeg
 
 define DSHANCONTROL_IMX6ULL_USERS
 	dshan-web 400 dshan-app 400 * - - - DshanControl_local_API
@@ -50,6 +52,7 @@ define DSHANCONTROL_IMX6ULL_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S41wifi $(TARGET_DIR)/etc/init.d/S41wifi
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S99dshancontrol $(TARGET_DIR)/etc/init.d/S99dshancontrol
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S98dshan-runtime $(TARGET_DIR)/etc/init.d/S98dshan-runtime
+	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S97dshan-audio $(TARGET_DIR)/etc/init.d/S97dshan-audio
 endef
 
 $(eval $(generic-package))
