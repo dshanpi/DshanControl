@@ -44,6 +44,8 @@ define DSHANCONTROL_IMX6ULL_INSTALL_TARGET_CMDS
 endef
 
 define DSHANCONTROL_IMX6ULL_INSTALL_INIT_SYSV
+	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S35dshan-data $(TARGET_DIR)/etc/init.d/S35dshan-data
+	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S41wifi $(TARGET_DIR)/etc/init.d/S41wifi
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S99dshancontrol $(TARGET_DIR)/etc/init.d/S99dshancontrol
 endef
 

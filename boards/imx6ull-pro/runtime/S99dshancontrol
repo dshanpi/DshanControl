@@ -7,6 +7,9 @@ DESKTOP=/usr/bin/dshancontrol-desktop-service
 PYTHON=/usr/bin/python3
 
 start() {
+    [ -f /run/dshancontrol-storage-ready ] || {
+        echo 'DshanControl: storage initialization failed' >&2; return 1;
+    }
     [ -c /dev/fb0 ] || { echo 'DshanControl: /dev/fb0 missing' >&2; return 1; }
     if pidof lvgl9-demo >/dev/null 2>&1; then
         echo 'DshanControl: LVGL owns the display; refusing a second GUI' >&2
@@ -16,8 +19,12 @@ start() {
     install -d -m 0755 "$BASE"
     install -d -o dshan-desktop -g dshan-app -m 0750 "$BASE/desktop"
     install -d -o dshan-hmi -g dshan-app -m 0700 "$BASE/hmi"
-    # This development image stores data on its writable ext4 root filesystem.
-    # Reflashing that root filesystem erases these data; no T113 UDISK is assumed.
+    # S35dshan-data mounts an existing p3 before any persistent files are opened.
+    # Fresh two-partition images use rootfs storage, which is lost on reflashing.
+    # Leave existing application/data/desktop directories and ownership untouched.
+    for directory in /data/dshancontrol /data/dshancontrol/hmi /data/dshancontrol/web; do
+        [ ! -L "$directory" ] || { echo 'DshanControl: data path is a symlink' >&2; return 1; }
+    done
     install -d -m 0755 /data/dshancontrol
     install -d -o dshan-hmi -g dshan-app -m 0700 /data/dshancontrol/hmi
     install -d -o dshan-web -g dshan-app -m 0700 /data/dshancontrol/web

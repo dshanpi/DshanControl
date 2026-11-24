@@ -1,0 +1,51 @@
+#!/bin/sh
+# Credentials live only in the retained private data partition, never the image.
+set -eu
+CONF=/data/dshancontrol/network/wpa_supplicant.conf
+WPA_PID=/run/wpa_supplicant-wlan0.pid
+DHCP_PID=/run/udhcpc-wlan0.pid
+case "${1:-}" in
+start)
+    [ -f /run/dshancontrol-storage-ready ] || {
+        echo 'Wi-Fi: persistent storage initialization failed' >&2; exit 1;
+    }
+    [ -s "$CONF" ] || { echo 'Wi-Fi: no private network profile configured'; exit 0; }
+    /usr/bin/python3 - "$CONF" <<'PY'
+import os, stat, sys
+for path in ('/data', '/data/dshancontrol', '/data/dshancontrol/network'):
+    value = os.lstat(path)
+    if not stat.S_ISDIR(value.st_mode) or value.st_uid != 0 or value.st_mode & 0o022:
+        raise SystemExit('Wi-Fi: profile parent must be a root-owned protected directory')
+value = os.lstat(sys.argv[1])
+if not stat.S_ISREG(value.st_mode) or value.st_uid != 0 or stat.S_IMODE(value.st_mode) != 0o600:
+    raise SystemExit('Wi-Fi: profile must be a root-owned regular file with mode 0600')
+PY
+    count=0
+    until [ -d /sys/class/net/wlan0 ]; do
+        count=$((count + 1))
+        [ "$count" -lt 10 ] || { echo 'Wi-Fi: wlan0 missing' >&2; exit 1; }
+        sleep 1
+    done
+    umask 077
+    if ! start-stop-daemon -K -t -p "$WPA_PID" -x /usr/sbin/wpa_supplicant >/dev/null 2>&1; then
+        ip link set wlan0 up
+        /usr/sbin/wpa_supplicant -B -D nl80211 -i wlan0 -c "$CONF" -P "$WPA_PID" -f /run/wpa-wlan0.log
+    fi
+    if ! start-stop-daemon -K -t -p "$DHCP_PID" -n udhcpc >/dev/null 2>&1; then
+        /sbin/udhcpc -b -i wlan0 -p "$DHCP_PID" -t 5 -T 2 -x hostname:DshanControl-6ULL
+    fi
+    ;;
+stop)
+    if [ -f "$DHCP_PID" ]; then
+        start-stop-daemon -K -p "$DHCP_PID" -n udhcpc || true
+        rm -f "$DHCP_PID"
+    fi
+    if [ -f "$WPA_PID" ]; then
+        start-stop-daemon -K -p "$WPA_PID" -x /usr/sbin/wpa_supplicant || true
+        rm -f "$WPA_PID"
+    fi
+    ip link set wlan0 down
+    ;;
+status) /usr/sbin/wpa_cli -i wlan0 status; ip -4 address show dev wlan0 ;;
+*) echo "Usage: $0 {start|stop|status}" >&2; exit 2 ;;
+esac
