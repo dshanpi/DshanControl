@@ -125,7 +125,8 @@ def main():
                      'dshancontrol-media-worker', 'dshancontrol-runtime')]
         installed += ['usr/lib/qt/plugins/platforms/libqlinuxfb.so', 'usr/lib/qt/plugins/platforms/libqoffscreen.so',
                       'etc/init.d/S99dshancontrol', 'etc/init.d/S99lvgl9-demo', 'etc/dshancontrol/display.env',
-                      'usr/share/dshancontrol/platform.json', 'usr/lib/dshancontrol/web/app.py', 'etc/fonts/fonts.conf']
+                      'usr/share/dshancontrol/platform.json', 'usr/lib/dshancontrol/web/app.py',
+                      'usr/lib/dshancontrol/web/hmi_api.py', 'etc/fonts/fonts.conf']
         for pattern in ('usr/lib/libfontconfig.so.*', 'usr/share/fonts/**/*.ttf'):
             matches = [p for p in target.glob(pattern) if p.is_file() and not p.is_symlink()]
             require(matches, 'Missing target files: ' + pattern)
