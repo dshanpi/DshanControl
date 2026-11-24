@@ -26,10 +26,12 @@ system/usr/bin/dshancontrol-fieldbus-worker
 system/usr/bin/dshancontrol-runtime
 system/usr/libexec/dshan-imx6ull-services
 LIST
-tar -tzf "$ARCHIVE" | sort > "$TASK/archive-list"
+gzip -dc "$ARCHIVE" > "$TASK/system-bundle.tar"
+tar -tf "$TASK/system-bundle.tar" > "$TASK/archive-list.unsorted"
+sort "$TASK/archive-list.unsorted" > "$TASK/archive-list"
 cmp "$TASK/archive-list" "$TASK/expected-list"
 mkdir "$TASK/stage"
-tar -xzf "$ARCHIVE" -C "$TASK/stage"
+tar -xf "$TASK/system-bundle.tar" -C "$TASK/stage"
 (cd "$TASK/stage" && sha256sum -c SHA256SUMS)
 for file in etc/dshancontrol/system-release.json etc/init.d/S41wifi etc/init.d/S99dshancontrol usr/bin/dshancontrol-fieldbus-worker usr/bin/dshancontrol-runtime usr/libexec/dshan-imx6ull-services; do
     [ -f "$TASK/stage/system/$file" ] && [ ! -L "$TASK/stage/system/$file" ] || exit 1
@@ -44,9 +46,9 @@ for directory in /usr /usr/bin /usr/libexec /etc /etc/init.d /etc/dshancontrol; 
 done
 FILES='etc/dshancontrol/system-release.json etc/init.d/S41wifi etc/init.d/S99dshancontrol usr/bin/dshancontrol-runtime usr/libexec/dshan-imx6ull-services'
 [ ! -e /usr/bin/dshancontrol-fieldbus-worker ] && [ ! -L /usr/bin/dshancontrol-fieldbus-worker ] || exit 1
-tar -czf "$TASK/system-preimage.tar.gz" -C / $FILES
+tar -cf "$TASK/system-preimage.tar" -C / $FILES
 mkdir "$TASK/preimage"
-tar -xzf "$TASK/system-preimage.tar.gz" -C "$TASK/preimage"
+tar -xf "$TASK/system-preimage.tar" -C "$TASK/preimage"
 changed=0
 rollback() {
     status=$?
@@ -71,7 +73,7 @@ trap 'exit 1' HUP INT TERM
 changed=1
 /usr/libexec/dshan-imx6ull-services stop
 # Data backup is private and remains on this board; stopped SQLite files are consistent.
-tar -czf "$TASK/user-data-preimage.tar.gz" -C /data/dshancontrol web hmi provider
+tar -cf "$TASK/user-data-preimage.tar" -C /data/dshancontrol web hmi provider
 /etc/init.d/S98dshan-runtime stop
 for file in $FILES usr/bin/dshancontrol-fieldbus-worker; do
     [ ! -e "/$file.native-new" ] && [ ! -L "/$file.native-new" ] || exit 1
