@@ -1,0 +1,38 @@
+From: DshanControl contributors
+Subject: [PATCH] ARM: dts: align i.MX6ULL Pro touch and eMMC with desktop baseline
+
+The selected panel and the existing Goodix configuration data are 1024x600,
+but the input driver's advertised coordinate bounds still say 800x480.
+Align those bounds without enabling controller firmware/configuration updates.
+
+Use the conservative USDHC2 settings documented by the BSP's
+skills/imx6ull-buildroot-emmc-guide/SKILL.md: four data lines, no 1.8 V
+switching and a 50 MHz clock limit. This is a software configuration based on
+that reference, not new physical validation of this DshanControl image.
+
+--- a/arch/arm/boot/dts/imx6ull-14x14-evk.dts
++++ b/arch/arm/boot/dts/imx6ull-14x14-evk.dts
+@@ -302,8 +302,8 @@
+                 irq-flags = <2>;                /*1:rising 2: falling*/
+ 
+                 touchscreen-max-id = <5>;
+-                touchscreen-size-x = <800>;
+-                touchscreen-size-y = <480>;
++                touchscreen-size-x = <1024>;
++                touchscreen-size-y = <600>;
+                 touchscreen-max-w = <1024>;
+                 touchscreen-max-p = <1024>;
+                 /*touchscreen-key-map = <172>, <158>;*/ /*KEY_HOMEPAGE, KEY_BACK*/
+@@ -886,8 +886,10 @@
+ 
+ &usdhc2 {
+         pinctrl-names = "default";
+-        pinctrl-0 = <&pinctrl_usdhc2_8bit>;
+-        bus-width = <8>;
++        pinctrl-0 = <&pinctrl_usdhc2>;
++        bus-width = <4>;
++        no-1-8-v;
++        max-frequency = <50000000>;
+         non-removable;
+         status = "okay";
+ };

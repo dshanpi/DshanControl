@@ -1,0 +1,94 @@
+#!/bin/sh
+# SysV startup for a newly built development image, not a live-device installer.
+set -eu
+BASE=/run/dshancontrol
+HMI=/usr/bin/omnigate-hmi
+DESKTOP=/usr/bin/dshancontrol-desktop-service
+PYTHON=/usr/bin/python3
+
+start() {
+    [ -c /dev/fb0 ] || { echo 'DshanControl: /dev/fb0 missing' >&2; return 1; }
+    if pidof lvgl9-demo >/dev/null 2>&1; then
+        echo 'DshanControl: LVGL owns the display; refusing a second GUI' >&2
+        return 1
+    fi
+    # Fixed system identities are created by the Buildroot package users table.
+    install -d -m 0755 "$BASE"
+    install -d -o dshan-desktop -g dshan-app -m 0750 "$BASE/desktop"
+    install -d -o dshan-hmi -g dshan-app -m 0700 "$BASE/hmi"
+    # This development image stores data on its writable ext4 root filesystem.
+    # Reflashing that root filesystem erases these data; no T113 UDISK is assumed.
+    install -d -m 0755 /data/dshancontrol
+    install -d -o dshan-hmi -g dshan-app -m 0700 /data/dshancontrol/hmi
+    install -d -o dshan-web -g dshan-app -m 0700 /data/dshancontrol/web
+    install -d -o dshan-web -g dshan-app -m 0700 "$BASE/web"
+    export DSHANCONTROL_DESKTOP_STATE_DIR=/data/dshancontrol/hmi
+    export DSHANCONTROL_HMI_API_PORT=8080
+    export OMNIGATE_LISTEN_ADDRESS=127.0.0.1 OMNIGATE_LISTEN_PORT=8080
+    export OMNIGATE_PLATFORM_MANIFEST=/usr/share/dshancontrol/platform.json
+    export OMNIGATE_CORE_PATH=/usr/lib/dshancontrol/core
+    export PYTHONPATH="$OMNIGATE_CORE_PATH"
+    export OMNIGATE_WEB_ASSETS=/usr/share/dshancontrol/web
+    export OMNIGATE_WEB_CONFIG=/data/dshancontrol/web/config.json
+    export OMNIGATE_CONFIG="$OMNIGATE_WEB_CONFIG"
+    export OMNIGATE_WEB_SECRET=/data/dshancontrol/web/session.key
+    export OMNIGATE_WEB_LOG="$BASE/web/web.log"
+    export OMNIGATE_EDGE_DB=/data/dshancontrol/web/edge.db
+    export OMNIGATE_HMI_DB=/data/dshancontrol/web/hmi.db
+    export OMNIGATE_HMI_SETTINGS=/data/dshancontrol/web/hmi.json
+    export OMNIGATE_EDS_DIR=/data/dshancontrol/web/eds
+    export XDG_RUNTIME_DIR="$BASE/hmi"
+    export DSHANCONTROL_DESKTOP_SOCKET="$BASE/desktop/desktop.sock"
+    export DSHANCONTROL_DESKTOP_UID=402
+    export QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
+    export QT_QPA_FB_DISABLE_INPUT=0 QT_QPA_FB_HIDECURSOR=1
+    if [ -r /etc/dshancontrol/display.env ]; then
+        set -a
+        . /etc/dshancontrol/display.env
+        set +a
+    fi
+    start-stop-daemon -S -q -b -m -p "$BASE/web.pid" \
+        -c dshan-web:dshan-app -x "$PYTHON" -- /usr/lib/dshancontrol/web/app.py || return 1
+    count=0
+    until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/api/health; do
+        count=$((count + 1))
+        if [ "$count" -ge 10 ]; then
+            echo 'DshanControl: local API did not become ready; see /run/dshancontrol/web/web.log' >&2
+            stop
+            return 1
+        fi
+        sleep 1
+    done
+    if ! start-stop-daemon -S -q -b -m -p "$BASE/desktop.pid" \
+        -c dshan-desktop:dshan-app -x "$DESKTOP" -- \
+        --socket "$DSHANCONTROL_DESKTOP_SOCKET"; then
+        stop
+        return 1
+    fi
+    count=0
+    until [ -S "$DSHANCONTROL_DESKTOP_SOCKET" ]; do
+        count=$((count + 1))
+        if [ "$count" -ge 10 ]; then
+            echo 'DshanControl: desktop service did not become ready' >&2
+            stop
+            return 1
+        fi
+        sleep 1
+    done
+    if ! start-stop-daemon -S -q -b -m -p "$BASE/hmi.pid" \
+        -c dshan-hmi:dshan-app -x "$HMI"; then
+        stop
+        return 1
+    fi
+}
+stop() {
+    start-stop-daemon -K -q -p "$BASE/hmi.pid" -x "$HMI" || true
+    start-stop-daemon -K -q -p "$BASE/desktop.pid" -x "$DESKTOP" || true
+    start-stop-daemon -K -q -p "$BASE/web.pid" -x "$PYTHON" || true
+}
+case "${1:-}" in
+    start) start ;;
+    stop) stop ;;
+    restart) stop; sleep 1; start ;;
+    *) echo "Usage: $0 {start|stop|restart}" >&2; exit 2 ;;
+esac

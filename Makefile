@@ -77,3 +77,11 @@ test-application-registry:
 	cd dist/application-registry-tests && ./application-registry-test
 
 test-hmi: test-application-registry
+
+.PHONY: test-hmi-local-api
+test-hmi-local-api:
+	mkdir -p dist/local-api-tests
+	cd dist/local-api-tests && $(HMI_QMAKE) ../../tests/hmi/localapi-test.pro && $(MAKE)
+	cd dist/local-api-tests && ./localapi-test
+
+test-hmi: test-hmi-local-api

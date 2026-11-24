@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "100ask-imx6ull-pro",
+  "board_id": "100ask-imx6ull-pro",
+  "soc": "nxp-imx6ull",
+  "architecture": "armv7-a-hardfloat",
+  "runtime_profile": "lite",
+  "capabilities": [],
+  "channels": {"display0": {"kind": "display", "device": "/dev/fb0", "role": "local-hmi"}},
+  "update": {"strategy": "unprovisioned", "system_install": "board-image", "qualified": false},
+  "float_abi": "hard",
+  "bsp": {
+    "repository": "https://github.com/100askTeam/aibsp-imx6ull-pro_linux5.4.47",
+    "commit": "e00afed02481332d2de44a498518b596651dcdef",
+    "buildroot": "2026.02.1",
+    "kernel_commit": "05967a3aaba135f40eee6eaf14ced11c090d32c1",
+    "uboot_commit": "65baaf3fb37946b98d7c85ad5e014f9389d580a4",
+    "dtb": "imx6ull-14x14-evk.dtb"
+  },
+  "display": {"backend": "qt5-linuxfb", "framebuffer": "/dev/fb0", "input": "qt5-evdev", "width": 1024, "height": 600, "resolution_source": "user-specified", "panel": "not-board-tested"},
+  "media": {"backend": "unavailable", "reason": "No i.MX6ULL decoder backend has been integrated"},
+  "application_update": {"enabled": false, "reason": "Board identity, storage contract and maintenance interlock are not provisioned"},
+  "validation_status": "development-not-board-tested"
+}

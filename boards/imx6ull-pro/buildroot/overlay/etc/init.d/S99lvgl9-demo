@@ -1,0 +1,4 @@
+#!/bin/sh
+# This image selects DshanControl as the framebuffer owner.
+# Retain the vendor entry point as a no-op instead of starting a second GUI.
+exit 0

@@ -2,6 +2,7 @@
 #include <QNetworkProxy>
 #endif
 #include "oneshotupload.h"
+#include "localapi.h"
 #include "mainwindow.h"
 #include "displayprobe.h"
 #include "updatepanel.h"
@@ -54,7 +55,7 @@
 
 namespace
 {
-const char *kBaseUrl = "http://127.0.0.1/api/hmi/v1";
+const QString kBaseUrl = hmiApiBaseUrl();
 const QColor kGrid("#d9e3ef");
 const QColor kText("#18324f");
 const QColor kMuted("#61758b");
