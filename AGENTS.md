@@ -40,3 +40,11 @@ This record documents user authorization, not a maintenance interlock or a passe
 hardware gate. Respect LYNX's live hardware guard, supported vendor workflows and
 current programming-mode policy. Preserve the observed independent `/data`
 partition; obtain concrete storage-layout and backup evidence before writes.
+
+The user subsequently authorized a network transfer followed by local `dd` and a
+normal reboot, instead of the unavailable NXP MCP mode transition. This permits a
+Linux maintenance workflow; it does not require changing USB boot mode. Before
+any block write, verify the target CID/layout, complete local image checks and a
+recoverable backup, and fully unmount p1/p2 from an independent RAM environment.
+Never overwrite the mounted running root filesystem. Preserve p3 and the boot
+metadata, verify block readback, then perform the authorized normal reboot.
