@@ -77,6 +77,9 @@ DesktopProviders::DesktopProviders(const QJsonObject &configuration, QObject *pa
     : QObject(parent), config(configuration), cloudMqtt(this), sensorMqtt(this)
 {
     network.setProxy(QNetworkProxy::NoProxy);
+    require(!config.contains("local_api_port") ||
+                (positiveInteger(config["local_api_port"]) && config["local_api_port"].toDouble()<=65535),
+            "Invalid loopback API port", "configuration");
     cloud = {{"configured", false},
              {"mqtt", "not_configured"},
              {"error", ""},
@@ -525,7 +528,9 @@ void DesktopProviders::pollLocal()
 {
     if (jobs.contains("local") || !config["local_points"].isObject())
         return;
-    request("local", QUrl("http://127.0.0.1/api/hmi/v1/snapshot"), "GET", {}, "application/json",
+    QUrl localUrl("http://127.0.0.1/api/hmi/v1/snapshot");
+    localUrl.setPort(config["local_api_port"].toInt(80));
+    request("local", localUrl, "GET", {}, "application/json",
             {}, [this](const QJsonObject &root, const QString &error) {
                 if (!error.isEmpty() || root["ok"] != true ||
                     root["settings"].toObject()["demo_mode"] == true ||

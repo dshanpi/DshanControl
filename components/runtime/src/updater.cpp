@@ -282,7 +282,10 @@ NativeUpdater::NativeUpdater(const QJsonObject &configuration)
               QDir::cleanPath(root) == root &&
               root == contract["application_root"].toString(),
           "Application root differs from system contract");
-  if (!config["development_mode"].toBool(false))
+  require(!config.contains("require_persistent_storage") ||
+              config["require_persistent_storage"].isBool(),
+          "require_persistent_storage must be a boolean");
+  if (!config["development_mode"].toBool(false) || config["require_persistent_storage"] == true)
     verifyPersistentStorage(root, contract);
   require(!QFileInfo(root).isSymLink(), "Application root must not be a link");
   releases = root + "/releases";

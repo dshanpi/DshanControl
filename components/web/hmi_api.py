@@ -104,7 +104,7 @@ def _platform_request(method, params):
         raise ValueError("原生平台通道未配置")
     body = json.dumps({"protocol": 1, "method": method, "params": params}).encode() + b"\n"
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-        connection.settimeout(5)
+        connection.settimeout(20 if method == "fieldbus.execute" else 5)
         connection.connect(path)
         connection.sendall(body)
         with connection.makefile("rb") as stream:
@@ -556,6 +556,11 @@ def _can_connect(interface):
 
 
 def _execute_action(action, p):
+    fieldbus_actions = {"can_apply", "can_receive", "can_send", "canopen_nmt", "canopen_sdo_read",
+                       "canopen_sdo_write", "rs485_config", "rs485_read", "rs485_write",
+                       "ethercat_scan", "ethercat_sdo_read", "ethercat_sdo_write", "ethercat_cycle"}
+    if action in fieldbus_actions and os.environ.get("DSHANCONTROL_NATIVE_PLATFORM_SOCKET"):
+        return _platform_request("fieldbus.execute", {"action": action, "params": p, "confirmed": True})
     if action == "brightness":
         value = _integer(p.get("value"), "亮度", 10, 255)
         if os.environ.get("DSHANCONTROL_NATIVE_PLATFORM_SOCKET"):

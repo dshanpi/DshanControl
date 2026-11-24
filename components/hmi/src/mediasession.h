@@ -4,6 +4,8 @@
 #include <QProcess>
 #include <QQueue>
 #include <QTimer>
+#include <QImage>
+#include <QSharedMemory>
 class MediaSession : public QObject
 {
     Q_OBJECT
@@ -16,6 +18,7 @@ class MediaSession : public QObject
   signals:
     void changed(const QJsonObject &state);
     void feedback(const QString &message);
+    void frameReady(const QImage &frame);
 
   private:
     friend class HmiUiTest;
@@ -27,6 +30,7 @@ class MediaSession : public QObject
     QQueue<QJsonObject> queue;
     bool startedOnce = false, failedRun = false;
     QString executable;
+    QSharedMemory frameMemory;
     void read();
     void flush();
 };

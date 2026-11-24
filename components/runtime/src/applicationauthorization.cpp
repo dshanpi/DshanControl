@@ -43,6 +43,8 @@ void authorizeApplicationPeer(const QJsonObject &service, uid_t uid,
     return;
   const QSet<QString> shared{"display.brightness.get", "display.brightness.set",
                              "service.health"};
+  if (uid == 400 && method == "fieldbus.execute" && service["fieldbus_enabled"] == true)
+    return;
   const QSet<QString> hmi{"update.identity", "update.status", "update.start"};
   const bool allowed =
       (uid == 400 || uid == 401) &&

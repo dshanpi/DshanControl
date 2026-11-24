@@ -5,6 +5,20 @@ BASE=/run/dshancontrol
 HMI=/usr/bin/omnigate-hmi
 DESKTOP=/usr/bin/dshancontrol-desktop-service
 PYTHON=/usr/bin/python3
+CURRENT=/data/dshancontrol/application/current
+if [ -L "$CURRENT" ]; then
+    CURRENT=$(readlink -f "$CURRENT")
+    case "$CURRENT" in /data/dshancontrol/application/releases/*) ;; *) exit 1;; esac
+    HMI=$CURRENT/bin/omnigate-hmi
+    DESKTOP=$CURRENT/bin/dshancontrol-desktop-service
+    CORE=$CURRENT/lib/core
+    WEB=$CURRENT/lib/web/app.py
+    ASSETS=$CURRENT/share/web
+else
+    CORE=/usr/lib/dshancontrol/core
+    WEB=/usr/lib/dshancontrol/web/app.py
+    ASSETS=/usr/share/dshancontrol/web
+fi
 
 start() {
     [ -f /run/dshancontrol-storage-ready ] || {
@@ -33,9 +47,9 @@ start() {
     export DSHANCONTROL_HMI_API_PORT=8080
     export OMNIGATE_LISTEN_ADDRESS=127.0.0.1 OMNIGATE_LISTEN_PORT=8080
     export OMNIGATE_PLATFORM_MANIFEST=/usr/share/dshancontrol/platform.json
-    export OMNIGATE_CORE_PATH=/usr/lib/dshancontrol/core
+    export OMNIGATE_CORE_PATH=$CORE
     export PYTHONPATH="$OMNIGATE_CORE_PATH"
-    export OMNIGATE_WEB_ASSETS=/usr/share/dshancontrol/web
+    export OMNIGATE_WEB_ASSETS=$ASSETS
     export OMNIGATE_WEB_CONFIG=/data/dshancontrol/web/config.json
     export OMNIGATE_CONFIG="$OMNIGATE_WEB_CONFIG"
     export OMNIGATE_WEB_SECRET=/data/dshancontrol/web/session.key
@@ -45,6 +59,15 @@ start() {
     export OMNIGATE_HMI_SETTINGS=/data/dshancontrol/web/hmi.json
     export OMNIGATE_EDS_DIR=/data/dshancontrol/web/eds
     export XDG_RUNTIME_DIR="$BASE/hmi"
+    if [ -f /etc/dshancontrol/platform-service.json ]; then
+        [ -S "$BASE/platform.sock" ] || { echo 'Native platform service unavailable' >&2; return 1; }
+        export DSHANCONTROL_NATIVE_PLATFORM_SOCKET="$BASE/platform.sock"
+        export DSHANCONTROL_PLATFORM_SOCKET="$BASE/platform.sock"
+        export DSHANCONTROL_UPDATER_EXECUTABLE=/usr/bin/dshancontrol-runtime
+        export DSHANCONTROL_UPDATER_CONFIG=/etc/dshancontrol/updater.json
+        export DSHANCONTROL_APPLICATION_COMMIT=$(/usr/bin/dshancontrol-runtime application-commit)
+        export DSHANCONTROL_HMI_HEARTBEAT="$BASE/hmi/heartbeat.json"
+    fi
     export DSHANCONTROL_DESKTOP_SOCKET="$BASE/desktop/desktop.sock"
     export DSHANCONTROL_DESKTOP_UID=402
     export QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
@@ -55,7 +78,7 @@ start() {
         set +a
     fi
     start-stop-daemon -S -q -b -m -p "$BASE/web.pid" \
-        -c dshan-web:dshan-app -x "$PYTHON" -- /usr/lib/dshancontrol/web/app.py || return 1
+        -c dshan-web:dshan-app -x "$PYTHON" -- "$WEB" || return 1
     count=0
     until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/api/health; do
         count=$((count + 1))

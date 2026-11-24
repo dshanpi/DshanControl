@@ -9,25 +9,27 @@ COMPONENT_PATHS = {'desktop_service': 'bin/dshancontrol-desktop-service',
                    'imageformats': 'bin/imageformats/libdshanimageformats.so'}
 
 
-def component_inputs(desktop_service=None, media_worker=None, imageformats=None):
+def component_inputs(desktop_service=None, media_worker=None, imageformats=None, system_imageformats=False):
     values = dict(desktop_service=desktop_service, media_worker=media_worker,
                   imageformats=imageformats)
     if any(value is not None for value in values.values()):
-        if not all(value is not None for value in values.values()):
+        if not all(value is not None or (name == 'imageformats' and system_imageformats)
+                   for name,value in values.items()):
             raise ValueError('desktop service, media worker and image codecs must be supplied together')
         for name, value in values.items():
+            if value is None: continue
             path = Path(value)
             if path.is_symlink() or not path.is_file() or path.stat().st_size == 0:
                 raise ValueError('component must be a nonempty regular artifact: ' + name)
             if name != 'imageformats' and not path.stat().st_mode & 0o111:
                 raise ValueError('component must be executable: ' + name)
-        return {COMPONENT_PATHS[name]: Path(path) for name, path in values.items()}
+        return {COMPONENT_PATHS[name]: Path(path) for name, path in values.items() if path is not None}
     return {}
 
 
 
 def component_licenses(source, components):
-    if not components:
+    if 'bin/imageformats/libdshanimageformats.so' not in components:
         return {}
     directory = Path(source) / 'components/imageformats'
     names = ['LICENSE.GPL2', 'LICENSE.GPL3', 'LICENSE.LGPL3', 'SOURCE.json']
@@ -39,8 +41,8 @@ def component_licenses(source, components):
     return files
 
 
-def payload(source, destination, hmi, desktop_service=None, media_worker=None, imageformats=None):
-    components = component_inputs(desktop_service, media_worker, imageformats)
+def payload(source, destination, hmi, desktop_service=None, media_worker=None, imageformats=None, system_imageformats=False):
+    components = component_inputs(desktop_service, media_worker, imageformats, system_imageformats)
     licenses = component_licenses(source, components)
     verify_hmi_resources(source)
     mapping = [('components/core/src/omnigate_core', 'lib/core/omnigate_core'),
@@ -65,7 +67,7 @@ def payload(source, destination, hmi, desktop_service=None, media_worker=None, i
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(str(artifact), str(target))
         target.chmod(0o644 if relative.endswith('.so') else 0o755)
-    if components:
+    if licenses:
         target = destination / 'share/licenses/qt-imageformats-5.11.3'
         target.mkdir(parents=True)
         for name, artifact in licenses.items():

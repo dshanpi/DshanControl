@@ -71,6 +71,7 @@ class VideoStage : public QWidget
     QString message = "选择一个视频开始播放", description = "从本地存储打开视频";
     QRectF videoRect;
     bool playingLayer = false;
+    QImage softwareFrame;
     VideoStage()
     {
         setMinimumSize(160, 130);
@@ -82,6 +83,11 @@ class VideoStage : public QWidget
     {
         QPainter p(this);
         p.fillRect(rect(), QColor("#172535"));
+        if (!softwareFrame.isNull() && !videoRect.isEmpty())
+        {
+            p.drawImage(videoRect,softwareFrame);
+            return;
+        }
         if (playingLayer && !videoRect.isEmpty())
         {
             // Linuxfb preserves ARGB32 alpha. The Cedar layer is below the Qt
@@ -138,6 +144,9 @@ MediaPanel::MediaPanel(QWidget *parent) : QWidget(parent), session(this)
     QVBoxLayout *video;
     columns->addWidget(panel(&video), 1);
     stage = new VideoStage;
+    connect(&session,&MediaSession::frameReady,this,[this](const QImage &frame){
+        static_cast<VideoStage *>(stage)->softwareFrame=frame;stage->update();
+    });
     video->addWidget(stage, 1);
     auto *timeline = new QHBoxLayout;
     timeline->setSpacing(10);
@@ -445,6 +454,8 @@ void MediaPanel::apply(const QJsonObject &status)
                      .arg(available ? "CedarX / TPlayer" : "未运行")
                      .arg(Visuals::numberText(status["display_fps"], 1)));
     auto *surface = static_cast<VideoStage *>(stage);
+    if(status["backend"]!="ffmpeg-software" || status["state"]=="idle" || status["state"]=="error" || status["state"]=="starting")
+        surface->softwareFrame=QImage();
     surface->playingLayer = available && status["backend"] == "cedar-tplayer" &&
                             name == "playing" && status["first_frame"] == true &&
                             status["visible"] == true;

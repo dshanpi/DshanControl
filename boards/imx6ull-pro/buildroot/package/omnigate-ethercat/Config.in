@@ -1,0 +1,4 @@
+config BR2_PACKAGE_OMNIGATE_ETHERCAT
+	bool "DshanControl EtherCAT diagnostics"
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_SOEM

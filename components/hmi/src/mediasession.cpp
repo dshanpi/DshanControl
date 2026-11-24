@@ -152,7 +152,21 @@ void MediaSession::read()
             emit feedback("播放器返回无效数据。");
             return;
         }
-        if (root["event"] == "status")
+        if (root["event"] == "frame")
+        {
+            const auto key=root["key"].toString();
+            if (state["backend"]!="ffmpeg-software" || root["width"]!=512 || root["height"]!=288 ||
+                root["stride"]!=1536 || root["bytes"]!=442368 || !key.startsWith("dshan-media-") || key.size()!=44)
+            { abortWorker("invalid-software-frame");return; }
+            if(frameMemory.key()!=key) {frameMemory.detach();frameMemory.setKey(key);}
+            if(!frameMemory.isAttached() && !frameMemory.attach(QSharedMemory::ReadOnly))
+            {abortWorker("frame-memory-unavailable");return;}
+            if(frameMemory.size()!=442368 || !frameMemory.lock())
+            {abortWorker("frame-memory-invalid");return;}
+            const auto frame=QImage(static_cast<const uchar *>(frameMemory.constData()),512,288,1536,QImage::Format_RGB888).copy();
+            frameMemory.unlock();emit frameReady(frame);
+        }
+        else if (root["event"] == "status")
         {
             const QStringList states = {"idle",   "preparing", "prepared", "starting",   "playing",
                                         "paused", "completed", "error",    "unavailable"};

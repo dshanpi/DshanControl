@@ -10,14 +10,14 @@ DSHANCONTROL_IMX6ULL_DEPENDENCIES = qt5base dejavu openssl zlib sqlite ca-certif
 
 define DSHANCONTROL_IMX6ULL_USERS
 	dshan-web 400 dshan-app 400 * - - - DshanControl_local_API
-	dshan-hmi 401 dshan-app 400 * - - video,input DshanControl_HMI
+	dshan-hmi 401 dshan-app 400 * - - video,input,audio DshanControl_HMI
 	dshan-desktop 402 dshan-app 400 * - - - DshanControl_desktop
 endef
 
 define DSHANCONTROL_IMX6ULL_CONFIGURE_CMDS
 	cd $(@D)/components/hmi/src && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake omnigate-hmi.pro
 	cd $(@D)/components/desktop && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake desktop.pro
-	cd $(@D)/components/media && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake media.pro
+	cd $(@D)/components/media && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake media.pro CONFIG+=software
 	cd $(@D)/components/runtime && $(TARGET_MAKE_ENV) $(HOST_DIR)/bin/qmake runtime.pro
 endef
 
@@ -37,6 +37,8 @@ define DSHANCONTROL_IMX6ULL_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/usr/lib/dshancontrol/core $(TARGET_DIR)/usr/lib/dshancontrol/web $(TARGET_DIR)/usr/share/dshancontrol/web
 	cp -a $(@D)/components/core/src/omnigate_core $(TARGET_DIR)/usr/lib/dshancontrol/core/
 	$(INSTALL) -m 0644 $(@D)/components/web/*.py $(TARGET_DIR)/usr/lib/dshancontrol/web/
+	$(INSTALL) -D -m 0644 $(@D)/components/platform/fieldbus.py $(TARGET_DIR)/usr/lib/dshancontrol/platform/fieldbus.py
+	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/dshan-imx6ull-services $(TARGET_DIR)/usr/libexec/dshan-imx6ull-services
 	cp -a $(@D)/components/web/assets/. $(TARGET_DIR)/usr/share/dshancontrol/web/
 	$(INSTALL) -D -m 0644 $(@D)/LICENSE $(TARGET_DIR)/usr/share/licenses/dshancontrol/LICENSE
 	$(INSTALL) -m 0644 $(@D)/components/hmi/src/fonts/OFL.txt $(TARGET_DIR)/usr/share/licenses/dshancontrol/OFL.txt
@@ -47,6 +49,7 @@ define DSHANCONTROL_IMX6ULL_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S35dshan-data $(TARGET_DIR)/etc/init.d/S35dshan-data
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S41wifi $(TARGET_DIR)/etc/init.d/S41wifi
 	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S99dshancontrol $(TARGET_DIR)/etc/init.d/S99dshancontrol
+	$(INSTALL) -D -m 0755 $(@D)/boards/imx6ull-pro/runtime/S98dshan-runtime $(TARGET_DIR)/etc/init.d/S98dshan-runtime
 endef
 
 $(eval $(generic-package))

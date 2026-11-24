@@ -1,6 +1,7 @@
 #include "service.h"
 #include "applicationauthorization.h"
 #include "display.h"
+#include "fieldbus.h"
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -351,6 +352,10 @@ QJsonValue RuntimeService::dispatch(const QJsonObject &request) {
   }
   if (method == "update.start")
     return startTask(params);
+  if (method == "fieldbus.execute") {
+    NativeUpdater updater(readJson(updaterConfig));
+    return fieldbusRequest(config, updater, params);
+  }
   if (method == "update.status") {
     require(params.isEmpty() ||
                 (params.size() == 1 && params.contains("task_id")),

@@ -3,12 +3,16 @@
   "id": "100ask-imx6ull-pro",
   "board_id": "100ask-imx6ull-pro",
   "soc": "nxp-imx6ull",
-  "architecture": "armv7-a-hardfloat",
+  "architecture": "armv7-a",
   "runtime_profile": "lite",
-  "capabilities": [],
+  "capabilities": ["canopen", "modbus-rtu", "ethercat"],
   "channels": {
     "display0": {"kind": "display", "device": "/dev/fb0", "role": "local-hmi"},
-    "wifi0": {"kind": "wifi", "device": "wlan0", "role": "management"}
+    "wifi0": {"kind": "wifi", "device": "wlan0", "role": "management"},
+    "can0": {"kind": "can", "device": "can0", "role": "canopen"},
+    "rs4850": {"kind": "serial", "device": "/dev/ttymxc2", "role": "modbus-rtu"},
+    "ethernet0": {"kind": "ethernet", "device": "eth0", "role": "management"},
+    "ethercat0": {"kind": "ethernet", "device": "eth1", "role": "ethercat"}
   },
   "update": {"strategy": "unprovisioned", "system_install": "board-image", "qualified": false},
   "float_abi": "hard",
@@ -21,7 +25,7 @@
     "dtb": "imx6ull-14x14-evk.dtb"
   },
   "display": {"backend": "qt5-linuxfb", "framebuffer": "/dev/fb0", "input": "qt5-evdev", "width": 1024, "height": 600, "resolution_source": "user-specified", "panel": "not-board-tested"},
-  "media": {"backend": "unavailable", "reason": "No i.MX6ULL decoder backend has been integrated"},
+  "media": {"backend": "ffmpeg-software", "output_width": 512, "output_height": 288, "output_fps": 10, "hardware_decode": false},
   "application_update": {"enabled": false, "reason": "Board identity, storage contract and maintenance interlock are not provisioned"},
   "validation_status": "development-not-board-tested"
 }

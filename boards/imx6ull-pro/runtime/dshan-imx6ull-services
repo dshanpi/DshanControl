@@ -1,0 +1,92 @@
+#!/usr/bin/python3 -I
+"""System-owned lifecycle and unconnected laboratory maintenance interlock.
+
+The expected eMMC identity is provisioned locally; this is not an industrial
+safe-stop implementation and must be replaced before connecting field equipment.
+"""
+import json,os,socket,subprocess,sys,time
+from pathlib import Path
+from urllib.request import urlopen
+
+CONFIG=Path('/etc/dshancontrol/imx6ull-maintenance.json')
+BASE=Path('/run/dshancontrol')
+APP=Path('/data/dshancontrol/application')
+
+def storage():
+    cfg=json.loads(CONFIG.read_text())
+    assert cfg['scope']=='unconnected-laboratory', 'Field installation requires its own maintenance interlock'
+    assert Path('/sys/class/block/mmcblk1/device/cid').read_text().strip()==cfg['emmc_cid'], 'Wrong eMMC'
+    assert b'fsl,imx6ull' in Path('/proc/device-tree/compatible').read_bytes().split(b'\0'), 'Wrong SoC'
+    for number,(start,size) in enumerate([(16384,65536),(81920,1572864),(1654784,524288)],1):
+        part=Path('/sys/class/block/mmcblk1p'+str(number))
+        assert int((part/'start').read_text())==start and int((part/'size').read_text())==size, 'Partition layout changed'
+    mounts=[line.split() for line in Path('/proc/self/mountinfo').read_text().splitlines()]
+    matches=[v for v in mounts if v[4]=='/data']
+    device=os.stat('/dev/mmcblk1p3').st_rdev
+    assert len(matches)==1 and matches[0][2]==f'{os.major(device)}:{os.minor(device)}' and matches[0][3]=='/', 'Wrong data mount'
+    split=matches[0].index('-')
+    assert matches[0][split+1]=='ext4' and 'rw' in matches[0][5].split(','), 'Data is not writable ext4'
+    for path in (APP,APP.parent,CONFIG):assert not path.is_symlink(), 'Linked system path'
+    assert CONFIG.stat().st_uid==0 and CONFIG.stat().st_mode&0o022==0, 'Untrusted maintenance configuration'
+
+def maintenance():
+    storage()
+    link=json.loads(subprocess.check_output(['/sbin/ip','-details','-json','link','show','dev','can0']))[0]
+    # Up is accepted only in controller loopback; it cannot drive a field bus.
+    if 'UP' in link['flags']:
+        mode=link.get('linkinfo',{}).get('info_data',{}).get('ctrlmode',[])
+        assert 'LOOPBACK' in mode, 'CAN field mode is active'
+    eth=Path('/sys/class/net/eth1')
+    if (eth/'operstate').read_text().strip()!='down':
+        assert (eth/'carrier').read_text().strip()=='0', 'EtherCAT cable is connected'
+    for process in Path('/proc').glob('[0-9]*'):
+        for fd in (process/'fd').glob('*'):
+            try:target=os.readlink(fd)
+            except FileNotFoundError:continue
+            assert target!='/dev/ttymxc2', 'RS485 has an active owner'
+
+def health():
+    storage()
+    current=(APP/'current').resolve(strict=True)
+    assert current.parent==APP/'releases', 'Current outside release directory'
+    identity=json.loads((current/'installed.json').read_text())
+    for role,uid,executable in [('hmi',401,current/'bin/omnigate-hmi'),('desktop',402,current/'bin/dshancontrol-desktop-service'),('web',400,Path('/usr/bin/python3').resolve())]:
+        pid=int((BASE/(role+'.pid')).read_text());proc=Path('/proc')/str(pid)
+        assert (proc/'exe').resolve()==executable, role+' executable mismatch'
+        assert proc.stat().st_uid==uid, role+' UID mismatch'
+        if role=='web':assert str(current/'lib/web/app.py').encode() in (proc/'cmdline').read_bytes().split(b'\0')
+    with urlopen('http://127.0.0.1:8080/api/health',timeout=3) as response:
+        assert response.status==200
+    beat=json.loads((BASE/'hmi/heartbeat.json').read_text())
+    assert beat['commit']==identity['commit'] and beat['gui_event_loop'] is True and beat['backend_identity_verified'] is True, 'HMI identity mismatch'
+    # mtime freshness is independent of the heartbeat's own claimed timestamp.
+    assert 0<=time.time()-(BASE/'hmi/heartbeat.json').stat().st_mtime<15, 'HMI heartbeat stale'
+    with socket.socket(socket.AF_UNIX) as peer:
+        peer.settimeout(3);peer.connect(str(BASE/'desktop/desktop.sock'))
+        peer.sendall(b'{"protocol":1,"method":"desktop.snapshot","params":{}}\n')
+        data=b''
+        while b'\n' not in data:
+            chunk=peer.recv(65536);assert chunk and len(data)<524288;data+=chunk
+        assert json.loads(data)['ok'] is True
+
+def main():
+    operation=sys.argv[1]
+    if operation=='storage':storage()
+    elif operation=='maintenance':maintenance()
+    elif operation=='health':health()
+    elif operation in ('start','stop'):
+        storage()
+        subprocess.run(['/etc/init.d/S99dshancontrol',operation],check=True,timeout=100)
+        if operation=='stop':
+            for _ in range(50):
+                alive=[]
+                for role in ['hmi','desktop','web']:
+                    path=BASE/(role+'.pid')
+                    if path.exists() and (Path('/proc')/path.read_text().strip()).exists():alive.append(role)
+                if not alive:break
+                time.sleep(.1)
+            assert not alive,'Application did not stop'
+    else:raise ValueError('Unknown lifecycle operation')
+    print(json.dumps({'ok':True,'operation':operation}))
+
+if __name__=='__main__':main()

@@ -20,6 +20,7 @@ def main():
     p.add_argument('--desktop-service', type=Path)
     p.add_argument('--media-worker', type=Path)
     p.add_argument('--imageformats', type=Path)
+    p.add_argument('--system-imageformats', action='store_true', help='Use the codecs supplied by the exact system runtime contract')
     p.add_argument('--target-contract', required=True, type=Path)
     p.add_argument('--build-info', required=True, type=Path)
     p.add_argument('--version', required=True)
@@ -31,7 +32,9 @@ def main():
     a = p.parse_args()
     contract = read_json(a.target_contract)
     validate_target(contract)
-    components = component_inputs(a.desktop_service, a.media_worker, a.imageformats)
+    require(not a.system_imageformats or contract.get('imageformats') == 'system-qt',
+            'system image codecs must be declared by the target contract')
+    components = component_inputs(a.desktop_service, a.media_worker, a.imageformats, a.system_imageformats)
     require(not components or contract.get('desktop_provider') is True,
             'desktop bundle requires an explicitly qualified desktop runtime contract')
     status = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], universal_newlines=True)
@@ -61,7 +64,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp) / 'payload'
         stage.mkdir()
-        payload(ROOT, stage, a.hmi, a.desktop_service, a.media_worker, a.imageformats)
+        payload(ROOT, stage, a.hmi, a.desktop_service, a.media_worker, a.imageformats, a.system_imageformats)
         filename = 'DshanControl-app-' + a.version + '-' + contract['board_id'] + '.tar.gz'
         archive = a.output / filename
         with tarfile.open(str(archive), 'w:gz') as tar:
