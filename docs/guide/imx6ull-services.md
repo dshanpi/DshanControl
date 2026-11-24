@@ -142,9 +142,9 @@ gunicorn --bind 127.0.0.1:18081 --workers 1 --threads 4 \
 
 外层 HTTPS 反向代理提供有效证书；桌面 `home.endpoint` 指向该 HTTPS 地址，`home.token_file` 指向 UID 402 可读的私有令牌文件。不要把上述 loopback HTTP 端口直接配置为桌面公网接口。
 
-网关按涂鸦官方 HMAC-SHA256 合同签名并刷新 token。控制请求先校验设备在线状态、功能类型/范围与白名单，提交前持久预留幂等键；超时或崩溃后不自动重发。`accepted:true,state_confirmed:false` 表示云端受理，最终设备状态需再次同步。
+网关按涂鸦官方 HMAC-SHA256 合同签名并刷新 token。桌面提交单条 `{"code":"switch_1","value":true}`，网关转换为涂鸦上游的 `{"commands":[{"code":"switch_1","value":true}]}`。功能类型统一为桌面识别的 `Boolean/Integer/Enum`，每台设备最多授权 24 个功能。控制请求先校验设备在线状态、功能类型/范围与白名单，提交前持久预留幂等键；超时或崩溃后不自动重发。`accepted:true,state_confirmed:false` 表示云端受理，最终设备状态需再次同步。
 
-当前 4 项网关测试使用模拟涂鸦 API，通过不代表真实项目已授权。还需 Access ID/Secret、区域、账号设备授权后完成实测。
+当前 7 项网关测试通过，其中一项运行真实 Qt 桌面进程，经 HTTPS 调用实际 WSGI 网关，对接模拟涂鸦 API，验证单次控制、等待确认与状态回读；另有网关重启后幂等键保留检查。通过不代表真实项目已授权，仍需 Access ID/Secret、区域、账号设备授权后完成实测。
 
 ## 8. 接入涂鸦语音
 

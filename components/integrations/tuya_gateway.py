@@ -70,7 +70,7 @@ def create_app(config,client=None):
     allowed=config['devices']
     if not isinstance(allowed,dict) or len(allowed)>64:raise ValueError('Explicit device authorization required')
     for ident,codes in allowed.items():
-        if not ID.fullmatch(ident) or not isinstance(codes,list) or any(not ID.fullmatch(c) for c in codes):raise ValueError('Invalid device permission')
+        if not ID.fullmatch(ident) or not isinstance(codes,list) or len(codes)>24 or any(not isinstance(c,str) or not ID.fullmatch(c) for c in codes) or len(set(codes))!=len(codes):raise ValueError('Invalid device permission')
     database=Path(config['command_database'])
     if not database.parent.is_dir() or database.parent.stat().st_uid!=os.geteuid() or database.parent.stat().st_mode&0o077 or database.is_symlink():
         raise ValueError('Private gateway state directory required')
@@ -93,7 +93,20 @@ def create_app(config,client=None):
         result=api.call('GET','/v1.0/devices/'+ident+'/functions')
         values=result['functions']
         if not isinstance(values,list) or len(values)>128:raise ValueError('Invalid functions')
-        return [v for v in values if v.get('code') in allowed[ident]]
+        supported={'boolean':'Boolean','integer':'Integer','enum':'Enum'}
+        result=[];seen=set()
+        for value in values:
+            code=value.get('code');kind=supported.get(str(value.get('type','')).lower())
+            if code not in allowed[ident] or kind is None:continue
+            if code in seen:raise ValueError('Duplicate capability')
+            seen.add(code)
+            limits=value.get('values',{})
+            if isinstance(limits,str):limits=json.loads(limits)
+            if not isinstance(limits,dict):raise ValueError('Invalid capability schema')
+            if kind=='Integer' and not (all(type(limits.get(k)) is int for k in ('min','max','step')) and -2147483648<=limits['min']<=limits['max']<=2147483647 and limits['step']>0):raise ValueError('Invalid integer capability')
+            if kind=='Enum' and not (isinstance(limits.get('range'),list) and len(limits['range'])<=64 and all(isinstance(v,str) for v in limits['range'])):raise ValueError('Invalid enum capability')
+            result.append(dict(value,type=kind,values=limits))
+        return result
     @app.get('/v1/devices')
     def devices():
         result=[]
@@ -109,12 +122,9 @@ def create_app(config,client=None):
     def commands(ident):
         if ident not in allowed:return jsonify(error='unauthorized'),403
         body=request.get_json();key=request.headers.get('Idempotency-Key','')
-        if not re.fullmatch(r'[A-Za-z0-9-]{16,64}',key) or not isinstance(body,dict) or set(body)!={'commands'}:
+        if not re.fullmatch(r'[A-Za-z0-9-]{16,64}',key) or not isinstance(body,dict) or set(body)!={'code','value'}:
             return jsonify(error='invalid_request'),400
-        values=body['commands']
-        if not isinstance(values,list) or len(values)!=1 or not isinstance(values[0],dict) or set(values[0])!={'code','value'}:
-            return jsonify(error='invalid_request'),400
-        command=values[0];code=command['code'];value=command['value']
+        code=body['code'];value=body['value']
         if not isinstance(code,str) or code not in allowed[ident]:return jsonify(error='unauthorized'),403
         digest=hashlib.sha256((ident+json.dumps(body,sort_keys=True,separators=(',',':'))).encode()).hexdigest()
         # Reserve BEFORE all upstream work. A crash/timeout never grants a replay.
@@ -132,7 +142,8 @@ def create_app(config,client=None):
         if kind=='integer':valid=type(value) is int and limits['min']<=value<=limits['max'] and (value-limits['min'])%max(1,limits.get('step',1))==0
         if kind=='enum':valid=isinstance(value,str) and value in limits.get('range',[])
         if not valid:return jsonify(error='invalid_value'),400
-        result=api.call('POST','/v1.0/devices/'+ident+'/commands',body)
+        # The desktop contract is one command; Tuya Cloud wraps it in an array.
+        result=api.call('POST','/v1.0/devices/'+ident+'/commands',{'commands':[body]})
         if result is not True:raise RuntimeError('Command not accepted')
         with sqlite3.connect(database) as db:db.execute('UPDATE commands SET state=? WHERE key=?',('accepted',key))
         return jsonify(accepted=True,state_confirmed=False)
