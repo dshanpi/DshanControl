@@ -59,7 +59,9 @@ start() {
     count=0
     until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/api/health; do
         count=$((count + 1))
-        if [ "$count" -ge 10 ]; then
+        # Cold boots can wait for the kernel random pool before Python starts.
+        # Stop promptly on a dead process, but allow real ARM initialization time.
+        if ! kill -0 "$(cat "$BASE/web.pid")" 2>/dev/null || [ "$count" -ge 60 ]; then
             echo 'DshanControl: local API did not become ready; see /run/dshancontrol/web/web.log' >&2
             stop
             return 1
