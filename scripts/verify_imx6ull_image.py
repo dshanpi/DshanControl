@@ -168,6 +168,14 @@ def main():
                           'private_profile_embedded': False, 'hardware_validation': 'not-run'}
         manifest = json.loads(fsread('/usr/share/dshancontrol/platform.json'))
         require(manifest['display']['width'] == 1024 and manifest['display']['height'] == 600, 'Incorrect display manifest')
+        require(manifest['channels']['wifi0']['device'] == 'wlan0'
+                and manifest['channels']['wifi0']['kind'] == 'wifi', 'Missing Wi-Fi API mapping')
+        for path in ('/usr/sbin/rngd', '/usr/lib/libjitterentropy.so.3.6.3',
+                     '/usr/lib/libcap.so.2.78', '/etc/init.d/S21rngd',
+                     '/lib/firmware/regulatory.db', '/lib/firmware/regulatory.db.p7s',
+                     '/lib/firmware/rtl_bt/rtl8723b_fw.bin'):
+            require('Inode:' in run(debugfs, '-R', 'stat ' + path, rootfs),
+                    'Missing cold-start or wireless dependency: ' + path)
 
         fdtget, dtb = host_tool('fdtget'), images / 'imx6ull-14x14-evk.dtb'
 
