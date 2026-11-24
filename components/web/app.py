@@ -173,7 +173,7 @@ def require_login():
     if request.path.startswith("/api/hmi/v1/"):
         if request.remote_addr in ("127.0.0.1", "::1"):
             return None
-        return jsonify(error="HMI API仅允许本机访问"), 403
+        return jsonify(ok=False, error="HMI API仅允许本机访问"), 403
     public = {"/", "/api/login", "/api/health"}
     if request.path.startswith("/assets/") or request.path in public:
         return None
@@ -219,6 +219,8 @@ def handle_error(exc):
         code = 500
         message = "内部服务错误"
         app.logger.exception("request failed")
+    if request.path.startswith("/api/hmi/v1/"):
+        return jsonify(ok=False, error=message), code
     return jsonify(error=message), code
 
 

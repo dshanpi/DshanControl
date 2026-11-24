@@ -125,6 +125,8 @@ Qt 和 Python 会增大根文件系统，本适配把 ext4 大小设为 512 MiB�
 
 界面通过 `DSHANCONTROL_HMI_API_PORT=8080` 连接本机 API。新参数只允许有效端口号，主机固定为 `127.0.0.1`；没有设置时仍使用旧板的 80 端口。
 
+默认健康检查也使用同一端口；启动管理器显式设置 `HEALTH_URL` 时保留其覆盖行为。HTTP 路由、字段、错误返回和桌面 RPC 的完整对照见 [后端接口说明](../../docs/backend-api.md)。
+
 布局保存在 `/data/dshancontrol/hmi/`，Web 数据库、设置和本机 session key 保存在 `/data/dshancontrol/web/`。这些目录在本开发配置中位于可写 ext4 根文件系统，**重新烧录根文件系统会覆盖其中的数据**。独立数据分区和升级迁移尚未设计完成。
 
 运行目录为 `/run/dshancontrol/`，本地 API 日志为 `/run/dshancontrol/web/web.log`。日志随重新启动丢失。默认没有配置云端凭据、外部家庭服务或音视频服务。

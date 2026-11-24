@@ -11,6 +11,7 @@ import struct
 import subprocess
 import tempfile
 import time
+import urllib.error
 import urllib.request
 
 
@@ -98,9 +99,56 @@ def main():
             except OSError:
                 return False
 
+        def check_http_contract():
+            checks = []
+
+            def request(path, method="GET", body=None, expected=200):
+                data = None if body is None else json.dumps(body).encode()
+                req = urllib.request.Request(f"http://127.0.0.1:{port}" + path,
+                    data=data, method=method, headers={"Content-Type": "application/json"})
+                try:
+                    response = urllib.request.urlopen(req, timeout=5)
+                except urllib.error.HTTPError as error:
+                    response = error
+                with response:
+                    status, value = response.code, json.load(response)
+                checks.append({"method": method, "path": path, "status": status})
+                if status != expected or value.get("ok") is not (expected == 200):
+                    raise RuntimeError("HTTP contract mismatch: " + method + " " + path)
+                if expected != 200 and not isinstance(value.get("error"), str):
+                    raise RuntimeError("Expected a readable API error")
+                return value
+
+            prefix = "/api/hmi/v1"
+            health = request("/api/health")
+            if health.get("service") != "omnigate-web":
+                raise RuntimeError("Unexpected health service")
+            original = request(prefix + "/settings")["settings"]
+            try:
+                saved = request(prefix + "/settings", "PUT", {"refresh_ms": 1500})["settings"]
+                if saved != dict(original, refresh_ms=1500):
+                    raise RuntimeError("Partial settings update changed unrelated fields")
+                if request(prefix + "/snapshot")["settings"] != saved:
+                    raise RuntimeError("Snapshot/settings contract mismatch")
+                for path, field in (("history?metric=cpu&hours=1", "points"), ("alarms?limit=500", "alarms"), ("audit", "audit")):
+                    if not isinstance(request(prefix + "/" + path).get(field), list):
+                        raise RuntimeError("Expected API array: " + field)
+                request(prefix + "/settings", "PUT", [], expected=400)
+                request(prefix + "/settings", "PUT", {"refresh_milliseconds": 1500}, expected=400)
+                # No confirmed hardware operation is sent by this smoke check.
+                request(prefix + "/actions", "POST", {"action": "brightness", "params": {"value": 120},
+                                                        "confirmed": False}, expected=400)
+                if request(prefix + "/settings")["settings"] != saved:
+                    raise RuntimeError("Rejected request changed settings")
+            finally:
+                request(prefix + "/settings", "PUT", original)
+                (output / "http-contract.json").write_text(json.dumps(checks, indent=2) + "\n")
+            report["http_contract"] = True
+
         try:
             start(bins["python3"], str(target / "usr/lib/dshancontrol/web/app.py"))
             wait_until(api_ready, processes)
+            check_http_contract()
             start(bins["dshancontrol-desktop-service"], "--socket", str(run / "ipc/desktop.sock"),
                   "--config", str(run / "absent-private-config.json"))
             wait_until(lambda: (run / "ipc/desktop.sock").exists(), processes)

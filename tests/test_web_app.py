@@ -106,6 +106,69 @@ class WebApplicationTests(unittest.TestCase):
                 self.assertEqual(hmi._execute_action("brightness", {"value": 120}), {"brightness": 120})
                 self.assertEqual(write.call_args_list[0].args, ("120",))
 
+    def test_hmi_json_contract_rejects_wrong_shapes_without_side_effects(self):
+        import hmi_api as hmi
+        client = self.app.test_client()
+        cases = [None, False, 0, "", [], [1], "settings"]
+        with patch.object(hmi, "_atomic_json") as save, \
+             patch.object(hmi, "_execute_action") as execute, patch.object(hmi, "_audit") as audit:
+            for body in cases:
+                for route, method in (("settings", client.put), ("actions", client.post)):
+                    response = method("/api/hmi/v1/" + route, data=json.dumps(body),
+                                      content_type="application/json")
+                    self.assertEqual(response.status_code, 400, (route, body))
+                    self.assertIs(response.get_json()["ok"], False)
+                    self.assertIsInstance(response.get_json()["error"], str)
+            for body in ({"brightnes": 120}, {"brightness": 120, "extra": True}):
+                self.assertEqual(client.put("/api/hmi/v1/settings", json=body).status_code, 400)
+            valid = dict(action="brightness", params={"value": 120}, confirmed=True)
+            invalid = [dict(valid, params=value) for value in (None, False, 0, "", [], [1])]
+            invalid += [dict(valid, action=value) for value in (None, 12, [], "", " ")]
+            invalid += [{key: value for key, value in valid.items() if key != missing}
+                        for missing in valid]
+            invalid += [dict(valid, extra=True)]
+            for body in invalid:
+                response = client.post("/api/hmi/v1/actions", json=body)
+                self.assertEqual(response.status_code, 400, body)
+                self.assertIs(response.get_json()["ok"], False)
+            save.assert_not_called()
+            execute.assert_not_called()
+            audit.assert_not_called()
+
+    def test_hmi_errors_share_the_boolean_ok_envelope(self):
+        import hmi_api as hmi
+        client = self.app.test_client()
+        responses = [
+            (client.get("/api/hmi/v1/history?metric=invalid"), 400),
+            (client.get("/api/hmi/v1/missing"), 404),
+            (client.post("/api/hmi/v1/snapshot"), 405),
+            (client.put("/api/hmi/v1/settings", data="{", content_type="application/json"), 400),
+            (client.get("/api/hmi/v1/snapshot", environ_overrides={"REMOTE_ADDR": "192.0.2.1"}), 403),
+        ]
+        with patch.object(hmi, "_snapshot", side_effect=OSError("fixture internal failure")):
+            responses.append((client.get("/api/hmi/v1/snapshot"), 500))
+        for response, status in responses:
+            self.assertEqual(response.status_code, status)
+            self.assertEqual(set(response.get_json()), {"ok", "error"})
+            self.assertIs(response.get_json()["ok"], False)
+            self.assertTrue(response.get_json()["error"])
+            self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(responses[-1][0].get_json()["error"], "内部服务错误")
+
+    def test_hmi_unknown_boot_layout_has_no_invented_slot(self):
+        import hmi_api as hmi
+        for cmdline, expected in (("rootfsA console=ttyS0", "rootfsA"),
+                                  ("console=ttyS0 rootfsB", "rootfsB"),
+                                  ("rootfsB", "rootfsB"), ("", None),
+                                  ("root=/dev/mmcblk1p2 rootwait rw", None),
+                                  ("rootfsAB console=ttyS0", None),
+                                  ("rootfsA rootfsB", None)):
+            with patch.object(hmi, "_read", return_value=cmdline):
+                self.assertEqual(hmi._active_slot(), expected)
+        with patch.object(hmi, "_active_slot", return_value=None):
+            self.assertIsNone(self.app.test_client().get("/api/hmi/v1/snapshot")
+                              .get_json()["system"]["active_slot"])
+
     def test_hmi_service_status_unknown_unavailable_and_recovery(self):
         import hmi_api as hmi
         with patch.object(hmi, "_service_available", return_value=False), patch.object(hmi, "_run") as run:

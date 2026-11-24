@@ -129,7 +129,7 @@ void DesktopCanvas::applyHmi(const QJsonObject &snapshot)
         {
             const auto bus = value.toObject();
             const auto name = bus["name"].toString();
-            if (!((group == 0 && name.startsWith("can")) ||
+            if (!((group == 0 && name.startsWith("can", Qt::CaseInsensitive)) ||
                   (group == 1 && name == "RS485") || (group == 2 && name == "EtherCAT")))
                 continue;
             found = true;

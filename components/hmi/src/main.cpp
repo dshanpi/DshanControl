@@ -3,6 +3,7 @@
 #include <QScreen>
 #include "mainwindow.h"
 #include "applicationheartbeat.h"
+#include "localapi.h"
 #include "desktop/desktopshell.h"
 #include "displayprobe.h"
 #include <QMessageBox>
@@ -51,7 +52,7 @@ int main(int argc, char *argv[])
     if (!heartbeatFile.isEmpty())
         new ApplicationHeartbeat(heartbeatFile,
             qEnvironmentVariable("DSHANCONTROL_APPLICATION_COMMIT"),
-            QUrl(qEnvironmentVariable("HEALTH_URL", "http://127.0.0.1/api/health")), &app);
+            QUrl(hmiHealthUrl()), &app);
     const int result = app.exec();
     delete window;
     return result;

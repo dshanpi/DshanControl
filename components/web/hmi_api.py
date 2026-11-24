@@ -402,8 +402,10 @@ def _cellular_profile(profile):
 
 
 def _active_slot():
-    cmdline = _read("/proc/cmdline")
-    return "rootfsB" if cmdline.startswith("rootfsB ") else "rootfsA"
+    # Only report an explicit legacy slot marker. Single-rootfs boards and
+    # unrecognised/contradictory boot arguments do not establish an A/B identity.
+    slots = set(_read("/proc/cmdline").split()) & {"rootfsA", "rootfsB"}
+    return next(iter(slots)) if len(slots) == 1 else None
 
 
 def _demo_sensors(now):
@@ -738,6 +740,17 @@ def _execute_action(action, p):
     raise ValueError("不支持的HMI动作")
 
 
+def _request_object(allowed, required=()):
+    body = request.get_json(force=True)
+    if not isinstance(body, dict):
+        raise ValueError("请求必须是JSON对象")
+    if set(body) - set(allowed):
+        raise ValueError("请求包含未知字段")
+    if set(required) - set(body):
+        raise ValueError("请求缺少必要字段")
+    return body
+
+
 def create_blueprint():
     _init_db()
     bp = Blueprint("hmi_api", __name__)
@@ -809,9 +822,7 @@ def create_blueprint():
     def settings():
         if request.method == "GET":
             return jsonify(ok=True, settings=_settings())
-        body = request.get_json(force=True) or {}
-        if not isinstance(body, dict):
-            raise ValueError("设置必须是对象")
+        body = _request_object(DEFAULT_SETTINGS)
         cfg = _settings()
         if "demo_mode" in body:
             if not isinstance(body["demo_mode"], bool):
@@ -829,9 +840,11 @@ def create_blueprint():
 
     @bp.post("/api/hmi/v1/actions")
     def actions():
-        body = request.get_json(force=True) or {}
-        action = str(body.get("action", ""))
-        params = body.get("params") or {}
+        body = _request_object({"action", "params", "confirmed"}, {"action", "params", "confirmed"})
+        action = body["action"]
+        if not isinstance(action, str) or not action.strip():
+            raise ValueError("动作名称必须是非空字符串")
+        params = body["params"]
         if not isinstance(params, dict):
             raise ValueError("动作参数非法")
         if body.get("confirmed") is not True:

@@ -10,12 +10,24 @@ private slots:
     void defaultPortPreservesExistingBoards()
     {
         qunsetenv("DSHANCONTROL_HMI_API_PORT");
+        qunsetenv("HEALTH_URL");
         QCOMPARE(hmiApiBaseUrl(), QString("http://127.0.0.1/api/hmi/v1"));
+        QCOMPARE(hmiHealthUrl(), QString("http://127.0.0.1/api/health"));
     }
     void unprivilegedPortStaysOnLoopback()
     {
         qputenv("DSHANCONTROL_HMI_API_PORT", "8080");
         QCOMPARE(hmiApiBaseUrl(), QString("http://127.0.0.1:8080/api/hmi/v1"));
+        QCOMPARE(hmiHealthUrl(), QString("http://127.0.0.1:8080/api/health"));
+        qunsetenv("DSHANCONTROL_HMI_API_PORT");
+    }
+    void explicitSupervisorHealthEndpointIsPreserved()
+    {
+        qputenv("DSHANCONTROL_HMI_API_PORT", "8080");
+        qputenv("HEALTH_URL", "http://127.0.0.1:9090/api/health");
+        QCOMPARE(hmiHealthUrl(), QString("http://127.0.0.1:9090/api/health"));
+        QCOMPARE(hmiApiBaseUrl(), QString("http://127.0.0.1:8080/api/hmi/v1"));
+        qunsetenv("HEALTH_URL");
         qunsetenv("DSHANCONTROL_HMI_API_PORT");
     }
     void malformedPortCannotRedirectControls()

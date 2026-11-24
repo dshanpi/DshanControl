@@ -3,6 +3,7 @@
 #include "../../components/hmi/src/visuals.h"
 #include "../../components/hmi/src/updatepanel.h"
 #include "../../components/hmi/src/applicationheartbeat.h"
+#include "../../components/hmi/src/localapi.h"
 #include "../../components/hmi/src/desktopclient.h"
 #include "../../components/hmi/src/cloudpanel.h"
 #include "../../components/hmi/src/familypanel.h"
@@ -402,6 +403,20 @@ class HmiUiTest : public QObject
         }
     }
 
+    void componentDesktopAcceptsBackendCanNames()
+    {
+        DesktopV1::DesktopCanvas canvas(false);
+        for (const auto &name : {"CAN0", "can0", "Can0"}) {
+            auto root = snapshot();
+            root["buses"] = QJsonArray{QJsonObject{{"name", name}, {"source", "real"}, {"online", true}}};
+            canvas.applyHmi(root);
+            QCOMPARE(canvas.model.busStates[0], QString("链路在线"));
+            root["buses"] = QJsonArray{QJsonObject{{"name", name}, {"source", "real"}, {"online", false}}};
+            canvas.applyHmi(root);
+            QCOMPARE(canvas.model.busStates[0], QString("链路未连接"));
+        }
+    }
+
     void componentDesktopProjectsLiveStateAndClearsLostData()
     {
         DesktopV1::DesktopCanvas canvas(false);
@@ -617,7 +632,15 @@ class HmiUiTest : public QObject
             });
             connect(socket,&QTcpSocket::disconnected,socket,&QObject::deleteLater);
         });
-        const auto url=QUrl(QString("http://127.0.0.1:%1/api/health").arg(server.serverPort()));
+        const auto oldPort = qgetenv("DSHANCONTROL_HMI_API_PORT");
+        const auto oldHealth = qgetenv("HEALTH_URL");
+        qputenv("DSHANCONTROL_HMI_API_PORT", QByteArray::number(server.serverPort()));
+        qunsetenv("HEALTH_URL");
+        const auto url = QUrl(hmiHealthUrl());
+        if (oldPort.isNull()) qunsetenv("DSHANCONTROL_HMI_API_PORT");
+        else qputenv("DSHANCONTROL_HMI_API_PORT", oldPort);
+        if (oldHealth.isNull()) qunsetenv("HEALTH_URL");
+        else qputenv("HEALTH_URL", oldHealth);
         const auto file=temp.filePath("heartbeat.json");
         ApplicationHeartbeat writer(file,commit,url);
         QTest::qWait(1200); QVERIFY(!QFile::exists(file));
