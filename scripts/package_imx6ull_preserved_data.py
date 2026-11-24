@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Prepare p1/p2 images for the observed 32/768/256 MiB layout; never flash.
 
-The UUU recipe must be reviewed and saved in the board's MCP channel. Runtime
-identity, backup and maintenance checks remain mandatory before executing it.
+The optional UUU recipe requires a supported programming channel. Network/dd
+maintenance requires a RAM root and fully unmounted p1/p2. Runtime identity,
+backup and maintenance checks remain mandatory for either installation method.
 """
 import argparse
 import hashlib
@@ -111,8 +112,9 @@ def main():
                    'partitions': [{'number': n + 1, 'start_lba': p[0], 'sectors': p[1]} for n, p in enumerate(partitions)]},
         'files': files, 'requires_data_partition': True, 'maximum_transfer_bytes': 16 * 1024 ** 2,
         'retains': ['MBR', 'U-Boot', 'U-Boot environment', 'p3 /data', 'eMMC hardware boot partitions'],
-        'pending': ['Supported NXP MCP mode transition', 'Live CID and bound USB verification',
-                    'Quiesced p2/p3 rollback backups', 'Review/save this UUU recipe in the channel',
+        'pending': ['Live CID/layout verification and maintenance authorization',
+                    'Quiesced p2/p3 rollback backups',
+                    'Unmount p1/p2 from RAM for network/dd, or review the UUU recipe in a supported channel',
                     'Readback hashes before mounting rootfs, normal boot and device validation'],
         'base_image_sha256': report['artifacts']['sdcard.img']['sha256']}
     (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

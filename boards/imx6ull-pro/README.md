@@ -2,7 +2,7 @@
 
 本适配以 [i.MX6ULL Pro 教程](https://aibsp.100ask.org/docs/imx6ull-pro/)及其公开 BSP 为依据，使用独立的 Buildroot external tree 编译 DshanControl。适配目录不修改 T113/T153 的配置，也不执行烧录。
 
-目前属于开发适配。主机上的 Qt 界面运行、单元测试或 ARM 用户态模拟运行，都不能代替实板的显示、触摸、启动和稳定性验收。具体执行结果见本目录的 `validation.md`。
+目前属于开发适配。2026-11-24 已通过网络传输、独立 RAM 维护环境和 `dd` 完成实板 p1/p2 更新，并通过正常重启后的桌面、API、Wi-Fi 自动启动检查。详细过程见 [网络烧录实板记录](network-dd-verification.md)；早期主机验证记录保留在 `validation.md`。触摸手指操作、断电启动及长时间稳定性仍需分别验收。
 
 ## 1. 版本与适配范围
 
@@ -127,7 +127,7 @@ Qt 和 Python 会增大根文件系统，本适配把 ext4 大小设为 512 MiB�
 
 默认健康检查也使用同一端口；启动管理器显式设置 `HEALTH_URL` 时保留其覆盖行为。HTTP 路由、字段、错误返回和桌面 RPC 的完整对照见 [后端接口说明](../../docs/backend-api.md)。
 
-布局保存在 `/data/dshancontrol/hmi/`，Web 数据库、设置和本机 session key 保存在 `/data/dshancontrol/web/`。这些目录在本开发配置中位于可写 ext4 根文件系统，**重新烧录根文件系统会覆盖其中的数据**。独立数据分区和升级迁移尚未设计完成。
+布局保存在 `/data/dshancontrol/hmi/`，Web 数据库、设置和本机 session key 保存在 `/data/dshancontrol/web/`。`S35dshan-data` 优先挂载已有的独立 p3；保留数据包带有 `require-data-partition` 标记，p3 不可用时拒绝启动应用。没有该标记的两分区开发镜像使用根文件系统保存数据，重新烧录会覆盖这些数据。此次保留了原 p3 文件，没有自动迁移旧应用数据库格式。
 
 运行目录为 `/run/dshancontrol/`，本地 API 日志为 `/run/dshancontrol/web/web.log`。日志随重新启动丢失。默认没有配置云端凭据、外部家庭服务或音视频服务。
 
@@ -219,8 +219,8 @@ sha256sum -c /absolute/path/to/new-image-evidence/SHA256SUMS
 
 ## 8. 实板接入与保留数据的更新
 
-2026-11-24 后续维护中，用户已明确授权连接 i.MX6ULL Pro、重启进入受支持的烧录模式、烧录和启动验证。串口已确认 i.MX6ULL、512 MiB 内存和 1024×600 显示；现有系统已通过 RTL8723BU 连接 Wi-Fi。授权范围记录在根目录 `AGENTS.md`，最新镜像仍待实板烧录验收。
+2026-11-24 后续维护中，用户明确授权网络传输后执行 `dd` 并正常重启。串口确认 i.MX6ULL、512 MiB 内存和 1024×600 显示；已在 RAM 环境卸载 p1/p2、验证回滚备份、写入并逐分区读回校验。首次启动发现的等待超时和 Wi-Fi 状态映射问题已通过文件修复解决，之后正常重启自动启动成功。授权范围记录在根目录 `AGENTS.md`。
 
 实板采用 32 MiB 启动分区、768 MiB 根分区和独立的 256 MiB `/data`。本指南前述 `sdcard.img` 是新介质用的两分区开发镜像，不能整盘覆盖这块有数据的板子。保留数据的镜像准备、无线启动流程及验收边界见 [Wi-Fi 与保留数据更新](wifi-preserved-data.md)。
 
-当前开发适配不是 OTA 包。每次硬件操作仍需适用的实时维护互锁，并遵守 LYNX MCP 的厂商能力限制。现有系统联网成功不等于新镜像的无线驱动已通过实板测试；CAN、RS485、EtherCAT、音频、视频和背光控制也需要各自验收。
+当前开发适配不是 OTA 包。每次硬件操作仍需适用的实时维护互锁；网络/RAM 维护不涉及 NXP USB 模式切换。新系统的 Wi-Fi、framebuffer 输出和本地 API 已实板验证，CAN、RS485、EtherCAT、音频、视频和背光控制尚未验收。
