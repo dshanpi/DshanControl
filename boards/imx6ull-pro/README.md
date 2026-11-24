@@ -21,9 +21,9 @@
 
 BSP 内部分说明仍提到本地源码压缩包和 `-emmc.dtb`；本适配以固定提交中的真实 defconfig 为准。不要因为说明文档的旧名称而替换当前设备树、启动参数或根分区。
 
-编译内容包括界面 `omnigate-hmi`、桌面服务 `dshancontrol-desktop-service`、通用媒体 worker、原生 runtime，以及 Web/core 本地数据服务。runtime CLI 会安装，但本适配没有配置 OTA 服务、签名身份、升级分区或硬件控制授权。
+编译内容包括界面 `omnigate-hmi`、桌面服务 `dshancontrol-desktop-service`、软件媒体 worker、原生 runtime，以及 Web/core 本地数据服务。2026-11-24 已在当前实验室实板配置受限总线执行层、背光、媒体和签名开发应用升级，详见[完整服务教程](../../docs/guide/imx6ull-services.md)与[实板验证记录](full-services-validation.md)。这些单板开发配置不自动授予其他设备升级资格。
 
-媒体 worker 没有 i.MX6ULL 解码后端。Allwinner 的 `CONFIG+=cedar` 和绑定 Qt 5.11.3 的私有图片插件不用于此板；PNG/JPEG 由 BSP 自身的 Qt 提供。
+媒体 worker 使用 `CONFIG+=software` 的 FFmpeg 软件后端。Allwinner 的 `CONFIG+=cedar` 和绑定 Qt 5.11.3 的私有图片插件不用于此板；PNG/JPEG 由 BSP 自身的 Qt 提供。
 
 ## 2. 准备构建主机
 
@@ -129,7 +129,7 @@ Qt 和 Python 会增大根文件系统，本适配把 ext4 大小设为 512 MiB�
 
 布局保存在 `/data/dshancontrol/hmi/`，Web 数据库、设置和本机 session key 保存在 `/data/dshancontrol/web/`。`S35dshan-data` 优先挂载已有的独立 p3；保留数据包带有 `require-data-partition` 标记，p3 不可用时拒绝启动应用。没有该标记的两分区开发镜像使用根文件系统保存数据，重新烧录会覆盖这些数据。此次保留了原 p3 文件，没有自动迁移旧应用数据库格式。
 
-运行目录为 `/run/dshancontrol/`，本地 API 日志为 `/run/dshancontrol/web/web.log`。日志随重新启动丢失。默认没有配置云端凭据、外部家庭服务或音视频服务。
+运行目录为 `/run/dshancontrol/`，本地 API 日志为 `/run/dshancontrol/web/web.log`。日志随重新启动丢失。默认没有配置云端凭据和外部家庭/语音服务。音频由 `S97dshan-audio` 初始化，受管 runtime 由 `S98dshan-runtime` 启动；配置应用升级后 `S99dshancontrol` 使用 `/data/dshancontrol/application/current`。
 
 为了避免争用 framebuffer，配置取消选择 LVGL demo，并用第二层 overlay 将 BSP 的 `S99lvgl9-demo` 变为无操作脚本。若启动时发现 LVGL 已在运行，DshanControl 拒绝再启动一个界面，不会强行结束该程序。
 
@@ -223,4 +223,4 @@ sha256sum -c /absolute/path/to/new-image-evidence/SHA256SUMS
 
 实板采用 32 MiB 启动分区、768 MiB 根分区和独立的 256 MiB `/data`。本指南前述 `sdcard.img` 是新介质用的两分区开发镜像，不能整盘覆盖这块有数据的板子。保留数据的镜像准备、无线启动流程及验收边界见 [Wi-Fi 与保留数据更新](wifi-preserved-data.md)。
 
-当前开发适配不是 OTA 包。每次硬件操作仍需适用的实时维护互锁；网络/RAM 维护不涉及 NXP USB 模式切换。新系统的 Wi-Fi、framebuffer 输出和本地 API 已实板验证，CAN、RS485、EtherCAT、音频、视频和背光控制尚未验收。
+源码适配目录不是 OTA 包；本轮另行制作并验证了签名开发应用包。每次硬件操作仍需适用的实时维护互锁；网络/RAM 维护不涉及 NXP USB 模式切换。Wi-Fi、framebuffer、本地 API、背光、软件媒体、总线回环/模拟及应用回退的实际结果见[服务验证记录](full-services-validation.md)。外部从站、真实云业务、语音和物理听感保持待验收。

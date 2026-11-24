@@ -92,10 +92,14 @@ curl -fsS -X PUT http://127.0.0.1:8080/api/hmi/v1/settings \
 | `canopen_sdo_write` | `interface,node_id,index,subindex,size,value` | CANopen 能力；节点 1–127，数据宽度 1–4 字节 |
 | `rs485_config` | `port,baudrate,unit_id,poll_ms` | 已映射的 Modbus RTU 通道与从站模板 |
 | `ethercat_sdo_write` | `interface,slave,index,subindex,value` | 唯一的 EtherCAT 通道；值为 1–32 字节十六进制文本 |
-| `ethercat_cycle` | `interface,count,period_us` | 总测试时长不超过 10 秒 |
+| `ethercat_cycle` | `interface,count,period_us` | i.MX6ULL 原生执行层总周期预算不超过 5 秒 |
 | `ec20` | `profile,device,interface,operation` | 已验证的蜂窝设备映射 |
 
-成功响应为 `{"ok":true,"action":"...","result":{...}}`。收到超时或断连后，实际结果可能尚未确认，不能自动重复控制请求。i.MX6ULL 开发镜像没有因此获得未验证的现场总线、背光、媒体或 OTA 能力。
+成功响应为 `{"ok":true,"action":"...","result":{...}}`。收到超时或断连后，实际结果可能尚未确认，不能自动重复控制请求。i.MX6ULL 的单板背光、媒体、应用升级与总线模拟实测范围见[服务教程](guide/imx6ull-services.md)，不据此声明外部从站或云业务通过。
+
+配置 `DSHANCONTROL_NATIVE_PLATFORM_SOCKET` 后，总线动作经 Web UID 400 转发给原生 `fieldbus.execute`，使用固定板级设备映射。除上表外，支持 `can_send`（`interface,id,data,extended`）、`can_receive`（`interface,timeout_ms`）、`canopen_sdo_read`（`interface,node_id,index,subindex`）、`rs485_read`（`port,unit_id,address,count,function`）、`rs485_write`（`port,unit_id,address,value,function`）、`ethercat_scan` 和 `ethercat_sdo_read`。`can_apply` 可选 `loopback` 布尔值；`rs485_config` 可选 `parity,stopbits`。
+
+Modbus 读取支持 FC3/4，写入支持 FC6。配置返回 `polling:false`，不会自行启动周期采集。CAN 发送和 NMT 只返回排队状态，`device_acknowledged:false`；SDO/Modbus 收到有效响应后才确认应答。原生层不提供未配置对象映射的 RPDO，不能沿用历史表单的任意变量名方式。
 
 ## 对接桌面服务 RPC
 

@@ -165,6 +165,12 @@ export const routes = [
     "title": "构建 S4 用户态并规划板级移植"
   },
   {
+    "source": "docs/guide/imx6ull-services.md",
+    "slug": "imx6ull-services",
+    "group": "开发与集成",
+    "title": "适配 i.MX6ULL 总线、媒体与应用升级"
+  },
+  {
     "source": "docs/guide/site.md",
     "slug": "site",
     "group": "开发与集成",
