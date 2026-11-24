@@ -9,6 +9,53 @@ import test_application_update_cli as reference
 
 
 class NativeUpdateCliTests(reference.UpdateCliTests):
+    def local_source(self):
+        import shutil
+        folder=self.f.root/'local-source';folder.mkdir(mode=0o700)
+        for source,name in [(self.f.path,'application-release.json'),(self.f.signature,'application-release.json.sig'),(self.f.package,'app.tar.gz')]:
+            shutil.copyfile(source,folder/name)
+            (folder/name).chmod(0o644)
+        self.f.config.update(local_development_release=str(folder),automatic_install=False)
+        reference.fixtures.atomic_json(self.config,self.f.config)
+        return folder
+
+    def test_local_signed_source_uses_check_download_and_install(self):
+        self.local_source()
+        candidate=json.loads(self.cli('check').stdout)
+        self.assertTrue(candidate['local_development_release'])
+        self.assertEqual(candidate['version'],'0.2.0')
+        result=self.cli('download')
+        folder=Path(result.stdout.strip())
+        self.assertEqual((folder/'app.tar.gz').read_bytes(),self.f.package.read_bytes())
+        self.assertEqual(self.operations(),[])
+        result=subprocess.run([str(self.binary),'--config',str(self.config),'install',str(folder/'application-release.json'),
+                               str(folder/'application-release.json.sig'),str(folder/'app.tar.gz')],capture_output=True,text=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIsNone(json.loads(self.cli('check').stdout))
+
+    def test_local_source_refuses_production_links_and_tampering(self):
+        folder=self.local_source()
+        self.f.config['development_mode']=False
+        reference.fixtures.atomic_json(self.config,self.f.config)
+        self.cli('check',expected=1)
+        self.f.config['development_mode']=True
+        reference.fixtures.atomic_json(self.config,self.f.config)
+        original=(folder/'application-release.json').read_bytes()
+        (folder/'application-release.json').write_bytes(original+b' ')
+        self.cli('check',expected=1)
+        (folder/'application-release.json').unlink()
+        (folder/'application-release.json').symlink_to(self.f.path)
+        self.cli('check',expected=1)
+        self.assertEqual(self.operations(),[])
+
+    def test_local_source_changed_payload_is_rejected_before_hooks(self):
+        folder=self.local_source()
+        self.cli('check')
+        data=(folder/'app.tar.gz').read_bytes()
+        (folder/'app.tar.gz').write_bytes(bytes([data[0]^1])+data[1:])
+        self.cli('download',expected=1)
+        self.assertEqual(self.operations(),[])
+
     def test_private_daemon_umask_publishes_readable_immutable_application_only(self):
         args=[str(self.binary),'--config',str(self.config),'install',str(self.f.path),
               str(self.f.signature),str(self.f.package)]

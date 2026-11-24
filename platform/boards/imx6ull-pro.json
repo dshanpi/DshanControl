@@ -4,13 +4,13 @@
   "id": "100ask-imx6ull-pro",
   "vendor": "100ASK",
   "soc": "nxp-imx6ull",
-  "architecture": "armv7-a-hardfloat",
+  "architecture": "armv7-a",
   "build_system": "buildroot-2026.02.1",
   "supported_profiles": [],
   "candidate_profiles": ["lite"],
   "runtime_manifest": "boards/imx6ull-pro/platform.json",
   "board_support_component": "imx6ull-pro-adapter",
-  "display": {"framebuffer": "/dev/fb0", "backend": "linuxfb", "width": 1024, "height": 600, "panel": "not-board-tested"},
-  "validation_status": "development-not-board-tested",
-  "limitations": ["panel-and-touch-unverified", "hardware-revision-unverified", "media-decoder-unavailable", "application-update-not-provisioned", "fieldbus-not-mapped-or-tested"]
+  "display": {"framebuffer": "/dev/fb0", "backend": "linuxfb", "width": 1024, "height": 600, "panel": "boot-verified-20261124"},
+  "validation_status": "boot-tested-services-development",
+  "limitations": ["hardware-revision-unverified", "software-media-development", "application-update-development-only", "fieldbus-slaves-not-connected", "cloud-credentials-unprovisioned", "tuya-voice-runtime-unavailable"]
 }

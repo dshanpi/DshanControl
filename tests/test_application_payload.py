@@ -11,6 +11,16 @@ from application_payload import payload, component_inputs, COMPONENT_PATHS
 
 
 class ComponentPayloadTests(unittest.TestCase):
+    def test_system_codecs_bundle_is_explicit_and_keeps_application_components(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);hmi,desktop,media,_=self.artifacts(root)
+            with self.assertRaises(ValueError):component_inputs(desktop,media)
+            destination=root/'payload'
+            payload(ROOT,destination,hmi,desktop,media,system_imageformats=True)
+            self.assertEqual((destination/'bin/dshancontrol-media-worker').read_bytes(),media.read_bytes())
+            self.assertFalse((destination/'bin/imageformats').exists())
+            self.assertFalse((destination/'share/licenses/qt-imageformats-5.11.3').exists())
+
     def artifacts(self, root):
         files = []
         for name in ['hmi', 'desktop', 'media', 'images.so']:

@@ -27,5 +27,5 @@
   "display": {"backend": "qt5-linuxfb", "framebuffer": "/dev/fb0", "input": "qt5-evdev", "width": 1024, "height": 600, "resolution_source": "user-specified", "panel": "not-board-tested"},
   "media": {"backend": "ffmpeg-software", "output_width": 512, "output_height": 288, "output_fps": 10, "hardware_decode": false},
   "application_update": {"enabled": false, "reason": "Board identity, storage contract and maintenance interlock are not provisioned"},
-  "validation_status": "development-not-board-tested"
+  "validation_status": "boot-tested-services-development"
 }

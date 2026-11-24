@@ -13,6 +13,8 @@ class NativeUpdater {
   void switchTo(const QString &name);
   bool hook(const QString &operation, bool checked = true);
   bool healthy();
+  QJsonObject checkLocalDevelopment(QByteArray *manifest = nullptr, QByteArray *signature = nullptr);
+  QJsonObject downloadLocalDevelopment(const QJsonObject &candidate, const QString &directory);
   QJsonObject checkDevelopment(const DevelopmentRelease &source,
                                QByteArray *manifest = nullptr,
                                QByteArray *signature = nullptr);

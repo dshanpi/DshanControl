@@ -273,6 +273,11 @@ QString draftAssetUrl(const QJsonObject &asset) {
 NativeUpdater::NativeUpdater(const QJsonObject &configuration)
     : config(configuration) {
   DevelopmentRelease development(configuration);
+  if (config.contains("local_development_release")) {
+    require(config["development_mode"] == true && config["automatic_install"] == false &&
+                !development.enabled() && config["local_development_release"].isString(),
+            "Local signed packages require explicit nonautomatic development mode", "configuration");
+  }
   require(!config.contains("development_mode") ||
               config["development_mode"].isBool(),
           "development_mode must be a boolean");
@@ -533,6 +538,10 @@ QString NativeUpdater::install(const QString &manifestPath,
   return name;
 }
 QJsonObject NativeUpdater::check() {
+  if (config.contains("local_development_release")) {
+    progress("checking");
+    return checkLocalDevelopment();
+  }
   DevelopmentRelease development(config);
   if (development.enabled())
     return checkDevelopment(development);
@@ -611,10 +620,12 @@ QJsonObject NativeUpdater::check() {
 }
 QJsonObject NativeUpdater::download(const QJsonObject &candidate,
                                     const QString &directory) {
+  if (config.contains("local_development_release"))
+    return downloadLocalDevelopment(candidate, directory);
   DevelopmentRelease development(config);
   if (development.enabled())
     return downloadDevelopment(development, candidate, directory);
-  require(!candidate.contains("development_release"),
+  require(!candidate.contains("development_release") && !candidate.contains("local_development_release"),
           "Development candidate is not enabled", "download");
   FileLock lock(root + "/.update.lock");
   progress("download-metadata");
@@ -671,6 +682,71 @@ QJsonObject NativeUpdater::download(const QJsonObject &candidate,
     QFile::remove(partial);
     throw;
   }
+  return target;
+}
+
+QJsonObject NativeUpdater::checkLocalDevelopment(QByteArray *manifestBytes, QByteArray *signatureBytes) {
+  require(config["development_mode"] == true && config["automatic_install"] == false,
+          "Local development source disabled", "configuration");
+  const auto path=config["local_development_release"].toString();
+  require(QDir::isAbsolutePath(path) && path!="/" && QDir::cleanPath(path)==path,
+          "Invalid local development directory", "configuration");
+  QString parent;
+  for (const auto &part:path.mid(1).split('/')) {
+    parent+='/'+part;
+    require(!QFileInfo(parent).isSymLink(), "Linked local development path refused", "configuration");
+  }
+  struct stat info;
+  require(::lstat(QFile::encodeName(path).constData(),&info)==0 && S_ISDIR(info.st_mode) &&
+              info.st_uid==::geteuid() && (info.st_mode&0777)==0700,
+          "System-owned private local development directory required", "configuration");
+  auto input=[&](const QString &name,qint64 maximum) {
+    const auto file=path+'/'+name;
+    struct stat entry;
+    require(::lstat(QFile::encodeName(file).constData(),&entry)==0 && S_ISREG(entry.st_mode) &&
+                entry.st_uid==::geteuid() && entry.st_nlink==1 && !(entry.st_mode&0022),
+            "Untrusted local development artifact", "configuration");
+    return readBytes(file,maximum);
+  };
+  const auto bytes=input("application-release.json",1024*1024);
+  const auto signature=input("application-release.json.sig",16384);
+  verifySignature(bytes,signature,config["public_key"].toString());
+  const auto manifest=strictJson(bytes).toObject();
+  validateManifest(manifest,false);
+  require(manifest["release_state"]=="draft", "Local development source accepts signed drafts only", "checking");
+  if (manifest["sequence"].toDouble()<=state()["high_water"].toDouble()) return {};
+  const auto target=matchTarget(manifest,contract,installed(),qint64(state()["high_water"].toDouble()));
+  const auto name=QString::number(qint64(manifest["sequence"].toDouble()))+'-'+target["sha256"].toString().left(16);
+  require(!state()["failed"].toArray().contains(name), "Failed package remains quarantined", "checking");
+  const auto package=path+'/'+target["filename"].toString();
+  require(::lstat(QFile::encodeName(package).constData(),&info)==0 && S_ISREG(info.st_mode) &&
+              info.st_uid==::geteuid() && info.st_nlink==1 && !(info.st_mode&0022) &&
+              info.st_size==qint64(target["size"].toDouble()), "Local package missing or changed", "checking");
+  if(manifestBytes)*manifestBytes=bytes;
+  if(signatureBytes)*signatureBytes=signature;
+  return {{"version",manifest["version"]},{"sequence",manifest["sequence"]},
+          {"local_development_release",true},{"manifest_sha256",hashBytes(bytes)},
+          {"signature_sha256",hashBytes(signature)},{"package_sha256",target["sha256"]}};
+}
+
+QJsonObject NativeUpdater::downloadLocalDevelopment(const QJsonObject &candidate,const QString &directory) {
+  FileLock lock(root+"/.update.lock");
+  progress("download-metadata");
+  QByteArray bytes,signature;
+  const auto fresh=checkLocalDevelopment(&bytes,&signature);
+  require(!fresh.isEmpty() && fresh==candidate, "Selected local package changed", "download");
+  const auto target=matchTarget(strictJson(bytes).toObject(),contract,installed(),qint64(state()["high_water"].toDouble()));
+  require(QDir().mkpath(directory) && !QFileInfo(directory).isSymLink(), "Invalid package destination", "storage");
+  const auto size=qint64(target["size"].toDouble());
+  require(QStorageInfo(directory).bytesAvailable()>size+16*1024*1024, "Insufficient package space", "storage");
+  const auto partial=directory+"/.package.part";
+  progress("download-package");
+  copyBounded(config["local_development_release"].toString()+'/'+target["filename"].toString(),partial,size);
+  require(QFileInfo(partial).size()==size && hashFile(partial)==target["sha256"].toString(), "Local package hash mismatch", "download");
+  writeBytes(directory+"/application-release.json",bytes);
+  writeBytes(directory+"/application-release.json.sig",signature);
+  require(QFile::rename(partial,directory+'/'+target["filename"].toString()), "Cannot finalize local package", "storage");
+  syncDirectory(directory);
   return target;
 }
 
