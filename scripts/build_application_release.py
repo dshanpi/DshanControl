@@ -19,6 +19,7 @@ def main():
     p.add_argument('--hmi', required=True, type=Path)
     p.add_argument('--desktop-service', type=Path)
     p.add_argument('--media-worker', type=Path)
+    p.add_argument('--native-api', type=Path, help='Native i.MX6ULL API from the same clean target build')
     p.add_argument('--imageformats', type=Path)
     p.add_argument('--system-imageformats', action='store_true', help='Use the codecs supplied by the exact system runtime contract')
     p.add_argument('--target-contract', required=True, type=Path)
@@ -35,6 +36,15 @@ def main():
     require(not a.system_imageformats or contract.get('imageformats') == 'system-qt',
             'system image codecs must be declared by the target contract')
     components = component_inputs(a.desktop_service, a.media_worker, a.imageformats, a.system_imageformats)
+    if a.native_api:
+        require(contract['board_id'] == '100ask-imx6ull-pro' and
+                'native-cpp-v1' in contract.get('application_layouts', []),
+                'native API requires the migrated i.MX6ULL system contract')
+        require(a.native_api.is_file() and not a.native_api.is_symlink() and
+                a.native_api.stat().st_size > 0 and a.native_api.stat().st_mode & 0o111,
+                'native API must be a regular executable artifact')
+        require(a.desktop_service and a.media_worker, 'native layout requires desktop/media artifacts')
+        components['bin/dshancontrol-api'] = a.native_api
     require(not components or contract.get('desktop_provider') is True,
             'desktop bundle requires an explicitly qualified desktop runtime contract')
     status = subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain'], universal_newlines=True)
@@ -64,7 +74,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp) / 'payload'
         stage.mkdir()
-        payload(ROOT, stage, a.hmi, a.desktop_service, a.media_worker, a.imageformats, a.system_imageformats)
+        payload(ROOT, stage, a.hmi, a.desktop_service, a.media_worker, a.imageformats, a.system_imageformats, a.native_api)
         filename = 'DshanControl-app-' + a.version + '-' + contract['board_id'] + '.tar.gz'
         archive = a.output / filename
         with tarfile.open(str(archive), 'w:gz') as tar:
@@ -79,6 +89,8 @@ def main():
     target = {k: contract[k] for k in TARGET_FIELDS}
     target.update(filename=filename, sha256=digest(archive), size=archive.stat().st_size,
                   unpacked_size=unpacked, validation={})
+    if a.native_api:
+        target['application_layout'] = 'native-cpp-v1'
     manifest = dict(schema_version=1, app_id='dshancontrol', repository='dshanpi/DshanControl',
                     release_kind='application', release_state='draft', channel=a.channel,
                     minimum_updater_version='0.1.0',

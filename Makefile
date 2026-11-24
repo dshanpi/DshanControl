@@ -1,5 +1,6 @@
 PYTHON ?= python3
 TEST_PYTHON ?= .test-venv/bin/python
+GO ?= go
 RELEASE_DIR ?= dist
 
 .PHONY: test-bootstrap test package
@@ -8,7 +9,7 @@ test-bootstrap:
 	$(PYTHON) -m venv .test-venv
 	.test-venv/bin/pip install --disable-pip-version-check -r tests/requirements.txt
 
-test: build-native build-native-fixtures build-desktop
+test: build-native build-native-fixtures build-desktop build-native-services test-go-gateway
 	TEST_PYTHON="$(TEST_PYTHON)" ./scripts/test_all.sh
 
 package:
@@ -20,8 +21,23 @@ build-native:
 	mkdir -p dist/native-runtime
 	cd dist/native-runtime && $(HMI_QMAKE) ../../components/runtime/runtime.pro && $(MAKE)
 
-test-native: build-native build-native-fixtures
+test-native: build-native build-native-fixtures build-native-services
 	$(TEST_PYTHON) -m unittest discover -s tests -p 'test_native_*.py' -v
+
+.PHONY: build-native-services
+build-native-services:
+	mkdir -p dist/api-native dist/fieldbus-native dist/lifecycle-native
+	cd dist/api-native && $(HMI_QMAKE) ../../components/api/api.pro && $(MAKE)
+	cd dist/fieldbus-native && $(HMI_QMAKE) ../../components/fieldbus/fieldbus.pro && $(MAKE)
+	cd dist/lifecycle-native && $(HMI_QMAKE) ../../components/lifecycle/lifecycle.pro && $(MAKE)
+
+.PHONY: test-go-gateway build-go-gateway
+test-go-gateway: build-desktop
+	cd components/integrations/tuya-go && DSHANCONTROL_DESKTOP_TEST_BINARY="$(CURDIR)/dist/desktop-native/dshancontrol-desktop-service" $(GO) test -race -v ./...
+
+build-go-gateway:
+	mkdir -p dist/tuya-go
+	cd components/integrations/tuya-go && $(GO) build -trimpath -o ../../../dist/tuya-go/dshancontrol-tuya-gateway .
 
 .PHONY: build-native-fixtures
 build-native-fixtures:

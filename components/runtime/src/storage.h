@@ -24,7 +24,8 @@ bool identifier(const QString &value);
 bool sha256(const QJsonValue &value);
 bool positiveInteger(const QJsonValue &value, bool zero = false);
 void extractPackage(const QString &archive, const QString &directory,
-                    qint64 size);
+                    qint64 size, const QString &layout = "legacy-python-v1");
+void validateApplicationPayload(const QString &directory, const QString &layout);
 class FileLock {
   int fd = -1;
 

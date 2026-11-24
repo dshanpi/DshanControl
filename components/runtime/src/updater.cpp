@@ -484,7 +484,8 @@ QString NativeUpdater::install(const QString &manifestPath,
   progress("staging");
   QTemporaryDir stage(releases + "/.stage-XXXXXX");
   require(stage.isValid(), "Cannot stage application", "storage");
-  extractPackage(snapshot.path() + "/package.tar.gz", stage.path(), expanded);
+  extractPackage(snapshot.path() + "/package.tar.gz", stage.path(), expanded,
+                 item.value("application_layout").toString("legacy-python-v1"));
   durableJson(stage.path() + "/installed.json",
               {{"version", m["version"]},
                {"commit", m["commit"]},

@@ -1,5 +1,6 @@
 """Board-independent application payload assembly; system files are excluded."""
 import shutil
+import json
 from pathlib import Path
 from check_hmi_resources import verify as verify_hmi_resources
 
@@ -41,7 +42,7 @@ def component_licenses(source, components):
     return files
 
 
-def payload(source, destination, hmi, desktop_service=None, media_worker=None, imageformats=None, system_imageformats=False):
+def payload(source, destination, hmi, desktop_service=None, media_worker=None, imageformats=None, system_imageformats=False, native_api=None):
     components = component_inputs(desktop_service, media_worker, imageformats, system_imageformats)
     licenses = component_licenses(source, components)
     verify_hmi_resources(source)
@@ -52,6 +53,18 @@ def payload(source, destination, hmi, desktop_service=None, media_worker=None, i
                ('components/hmi/src/fonts/OFL.txt', 'share/licenses/DshanSans-OFL.txt'),
                ('components/hmi/src/fonts/manifest.json', 'share/licenses/DshanSans-manifest.json'),
                ('components/supervisor/supervisor.py', 'lib/supervisor/supervisor.py')]
+    if native_api is not None:
+        native_api = Path(native_api)
+        if native_api.is_symlink() or not native_api.is_file() or not native_api.stat().st_mode & 0o111:
+            raise ValueError('native API must be a regular executable artifact')
+        if not desktop_service or not media_worker:
+            raise ValueError('native layout requires desktop and media worker')
+        mapping = [(src, dst) for src, dst in mapping if not dst.startswith('lib/')]
+        components['bin/dshancontrol-api'] = native_api
+        marker = destination / 'share/dshancontrol/application-layout.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(json.dumps({'schema': 1, 'layout': 'native-cpp-v1',
+                                     'board_id': '100ask-imx6ull-pro'}) + '\n')
     for src, dst in mapping:
         target = destination / dst
         target.parent.mkdir(parents=True, exist_ok=True)

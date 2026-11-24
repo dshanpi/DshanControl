@@ -17,7 +17,7 @@
 | U-Boot | `65baaf3fb37946b98d7c85ad5e014f9389d580a4` |
 | DTB | defconfig 实际选择 `imx6ull-14x14-evk.dtb` |
 | 显示 | Qt5 Widgets、linuxfb、Qt evdev |
-| 本地数据 API | Python/Flask，监听 `127.0.0.1:8080` |
+| 本地数据 API | C++ / QtNetwork / SQLite，监听 `127.0.0.1:8080` |
 
 BSP 内部分说明仍提到本地源码压缩包和 `-emmc.dtb`；本适配以固定提交中的真实 defconfig 为准。不要因为说明文档的旧名称而替换当前设备树、启动参数或根分区。
 
@@ -107,7 +107,7 @@ CCACHE=none CCACHE_DISABLE=1 make -C /absolute/path/to/new-output/buildroot -j6
 
 Buildroot 根据固定的 Git 版本下载 Linux 和 U-Boot，并保留 BSP 原有内核补丁。完整构建预期输出 `u-boot-dtb.imx`、`zImage`、所选 DTB、ext4 根文件系统及 `sdcard.img`。应以本次成功构建的日志和文件哈希确认产物，不能仅凭文件名判断。
 
-Qt 和 Python 会增大根文件系统，本适配把 ext4 大小设为 512 MiB。这是开发镜像配置，是否适合实板分区，仍需检查实际 eMMC 容量、最终镜像布局与启动参数。
+Qt、字体及媒体库会增大根文件系统，本适配把 ext4 大小设为 512 MiB。当前板级包使用原生 API、总线执行器和生命周期工具，不选择 Python 运行依赖。增量 Buildroot 构建不会自动删除旧 target 中已安装的 Python 文件；生成无旧依赖的新系统镜像时应使用干净输出目录。最终镜像是否适合实板分区，仍需检查 eMMC 容量、布局与启动参数。
 
 下载缓慢时可在 Buildroot 配置中设置官方镜像 `BR2_PRIMARY_SITE="https://sources.buildroot.net"`。所有下载仍应通过包中记录的哈希校验，不替换未知来源的工具链或关闭校验。
 
@@ -170,7 +170,7 @@ QT_QPA_PLATFORM=offscreen ./omnigate-hmi --desktop-self-test
 QT_QPA_PLATFORM=offscreen ./omnigate-hmi --desktop-render ../desktop-render
 ```
 
-测试报告必须保留 skipped 数量及原因。仓库原有测试环境固定 Flask 2.1.2；此 BSP 的 Flask 3.1.3 兼容性应使用额外隔离环境检查，不能悄悄替换旧测试依赖。
+测试报告必须保留 skipped 数量及原因。仓库保留 Python 作为主机回归驱动及旧版本合同参照，原测试环境固定 Flask 2.1.2；这些依赖不属于新原生应用包。Go 网关测试需要 Go 和 SQLite 开发库，`make test` 同时执行网关的 race 检查与真实 Qt HTTPS 联调。
 
 | 现象 | 检查方向 |
 | --- | --- |
@@ -194,7 +194,7 @@ python3 scripts/smoke_imx6ull_qemu.py \
   --output /absolute/path/to/new-evidence
 ```
 
-脚本先验证 ELF 架构和 hard-float 标志，再以 Cortex-A7 用户态模拟运行 ARM Python 本地 API、ARM 桌面服务和 ARM Qt 界面；检查 API、RPC、布局初始化和截图。临时进程与数据在结束后清理，证据目录保留日志、截图和二进制哈希。它不会访问 framebuffer、串口或烧录设备，也不验证内核、驱动或启动脚本。
+该脚本对应迁移前的 ARM Python API 冒烟检查，不能作为当前原生应用包的验收依据。原生版本需执行 `make test`、`make test-hmi`，再检查 ARM ELF、依赖、实际板端进程、API 与 GUI 心跳。临时主机进程或 QEMU 截图不能替代内核、驱动、启动和重启验证。
 
 ### 检查完整镜像
 

@@ -90,6 +90,8 @@ def validate_manifest(m, public=False):
     seen = set()
     for item in assets:
         validate_target(item)
+        require(item.get('application_layout', 'legacy-python-v1') in ('legacy-python-v1', 'native-cpp-v1'),
+                'unsupported application layout')
         identity = tuple(item[k] for k in TARGET_FIELDS)
         require(identity not in seen, 'duplicate target identity')
         seen.add(identity)
@@ -147,6 +149,10 @@ def match_target(m, contract, current, high_water=0):
             'data migration unsupported by protocol v1')
     choices = [x for x in m['targets'] if all(x[k] == contract[k] for k in TARGET_FIELDS)]
     require(len(choices) == 1, 'no exact board/ABI/runtime/contract match')
+    if choices[0].get('application_layout') == 'native-cpp-v1':
+        require(contract['board_id'] == '100ask-imx6ull-pro' and
+                'native-cpp-v1' in contract.get('application_layouts', []),
+                'system contract does not support native application layout')
     return choices[0]
 
 

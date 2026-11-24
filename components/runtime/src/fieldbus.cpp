@@ -30,7 +30,7 @@ QJsonObject fieldbusRequest(const QJsonObject &configuration, const NativeUpdate
     process.setProcessEnvironment(environment);
     process.setProcessChannelMode(QProcess::SeparateChannels);
     // Executable, manifest and state locations are system owned, never RPC parameters.
-    process.start("/usr/bin/python3", {"-I", "/usr/lib/dshancontrol/platform/fieldbus.py",
+    process.start("/usr/bin/dshancontrol-fieldbus-worker", {
                   "/usr/share/dshancontrol/platform.json", "/data/dshancontrol/platform"});
     require(process.waitForStarted(3000), "Cannot start fieldbus executor", "fieldbus", "executor-unavailable");
     const auto input = QJsonDocument(params).toJson(QJsonDocument::Compact);

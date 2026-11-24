@@ -11,6 +11,17 @@ from application_payload import payload, component_inputs, COMPONENT_PATHS
 
 
 class ComponentPayloadTests(unittest.TestCase):
+    def test_native_layout_has_explicit_marker_and_no_python_payload(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);hmi,desktop,media,_=self.artifacts(root)
+            api=root/'api';api.write_bytes(b'native executable fixture');api.chmod(0o755)
+            destination=root/'payload'
+            payload(ROOT,destination,hmi,desktop,media,system_imageformats=True,native_api=api)
+            self.assertEqual((destination/'bin/dshancontrol-api').read_bytes(),api.read_bytes())
+            self.assertFalse(list(destination.rglob('*.py')))
+            self.assertEqual(json.loads((destination/'share/dshancontrol/application-layout.json').read_text()),
+                             {'schema':1,'layout':'native-cpp-v1','board_id':'100ask-imx6ull-pro'})
+
     def test_system_codecs_bundle_is_explicit_and_keeps_application_components(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);hmi,desktop,media,_=self.artifacts(root)

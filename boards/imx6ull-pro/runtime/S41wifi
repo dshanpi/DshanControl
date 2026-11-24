@@ -10,16 +10,7 @@ start)
         echo 'Wi-Fi: persistent storage initialization failed' >&2; exit 1;
     }
     [ -s "$CONF" ] || { echo 'Wi-Fi: no private network profile configured'; exit 0; }
-    /usr/bin/python3 - "$CONF" <<'PY'
-import os, stat, sys
-for path in ('/data', '/data/dshancontrol', '/data/dshancontrol/network'):
-    value = os.lstat(path)
-    if not stat.S_ISDIR(value.st_mode) or value.st_uid != 0 or value.st_mode & 0o022:
-        raise SystemExit('Wi-Fi: profile parent must be a root-owned protected directory')
-value = os.lstat(sys.argv[1])
-if not stat.S_ISREG(value.st_mode) or value.st_uid != 0 or stat.S_IMODE(value.st_mode) != 0o600:
-    raise SystemExit('Wi-Fi: profile must be a root-owned regular file with mode 0600')
-PY
+    /usr/libexec/dshan-imx6ull-services wifi-check
     count=0
     until [ -d /sys/class/net/wlan0 ]; do
         count=$((count + 1))

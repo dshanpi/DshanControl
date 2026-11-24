@@ -5,12 +5,14 @@ BASE=/run/dshancontrol
 HMI=/usr/bin/omnigate-hmi
 DESKTOP=/usr/bin/dshancontrol-desktop-service
 PYTHON=/usr/bin/python3
+API=/usr/bin/dshancontrol-api
 CURRENT=/data/dshancontrol/application/current
 if [ -L "$CURRENT" ]; then
     CURRENT=$(readlink -f "$CURRENT")
     case "$CURRENT" in /data/dshancontrol/application/releases/*) ;; *) exit 1;; esac
     HMI=$CURRENT/bin/omnigate-hmi
     DESKTOP=$CURRENT/bin/dshancontrol-desktop-service
+    API=$CURRENT/bin/dshancontrol-api
     CORE=$CURRENT/lib/core
     WEB=$CURRENT/lib/web/app.py
     ASSETS=$CURRENT/share/web
@@ -77,12 +79,20 @@ start() {
         . /etc/dshancontrol/display.env
         set +a
     fi
-    start-stop-daemon -S -q -b -m -p "$BASE/web.pid" \
-        -c dshan-web:dshan-app -x "$PYTHON" -- "$WEB" || return 1
+    if [ -x "$API" ]; then
+        unset PYTHONPATH OMNIGATE_CORE_PATH
+        start-stop-daemon -S -q -b -m -p "$BASE/web.pid" \
+            -c dshan-web:dshan-app -x "$API" || return 1
+    else
+        # Compatibility for the retained, signed pre-migration application.
+        [ -f "$WEB" ] && [ -x "$PYTHON" ] || return 1
+        start-stop-daemon -S -q -b -m -p "$BASE/web.pid" \
+            -c dshan-web:dshan-app -x "$PYTHON" -- "$WEB" || return 1
+    fi
     count=0
     until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/api/health; do
         count=$((count + 1))
-        # Cold boots can wait for the kernel random pool before Python starts.
+        # Cold boots can wait for the kernel random pool during API startup.
         # Stop promptly on a dead process, but allow real ARM initialization time.
         if ! kill -0 "$(cat "$BASE/web.pid")" 2>/dev/null || [ "$count" -ge 60 ]; then
             echo 'DshanControl: local API did not become ready; see /run/dshancontrol/web/web.log' >&2
@@ -116,7 +126,11 @@ start() {
 stop() {
     start-stop-daemon -K -q -p "$BASE/hmi.pid" -x "$HMI" || true
     start-stop-daemon -K -q -p "$BASE/desktop.pid" -x "$DESKTOP" || true
-    start-stop-daemon -K -q -p "$BASE/web.pid" -x "$PYTHON" || true
+    if [ -x "$API" ]; then
+        start-stop-daemon -K -q -p "$BASE/web.pid" -x "$API" || true
+    else
+        start-stop-daemon -K -q -p "$BASE/web.pid" -x "$PYTHON" || true
+    fi
 }
 case "${1:-}" in
     start) start ;;

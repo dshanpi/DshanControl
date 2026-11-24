@@ -10,8 +10,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+          cache: false
       - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev libqt5charts5-dev libssl-dev zlib1g-dev libsqlite3-dev mosquitto mosquitto-clients python3-pil
       - run: make test-bootstrap
+      - name: Prepare isolated software CAN interface
+        run: |
+          if sudo modprobe vcan; then
+            sudo ip link add dshan-vcan type vcan
+            sudo ip link set dshan-vcan up
+            echo 'DSHANCONTROL_TEST_CAN=dshan-vcan' >> "$GITHUB_ENV"
+          else
+            echo 'Kernel vcan unavailable; SocketCAN-only cases will report skips.'
+          fi
       - run: make test
       - run: make test-hmi
       - run: /usr/bin/python3 docs/design/component-desktop-v1/tools/verify_package.py docs/design/component-desktop-v1

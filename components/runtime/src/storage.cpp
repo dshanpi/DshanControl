@@ -1,6 +1,7 @@
 #include "storage.h"
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -310,7 +311,7 @@ FileLock::~FileLock() {
     ::close(fd);
 }
 void extractPackage(const QString &archive, const QString &directory,
-                    qint64 expected) {
+                    qint64 expected, const QString &layout) {
   gzFile file = gzopen(QFile::encodeName(archive).constData(), "rb");
   require(file, "Cannot read gzip package", "extraction");
   QSet<QString> seen;
@@ -422,17 +423,7 @@ void extractPackage(const QString &archive, const QString &directory,
       for (int i = 0; i < n; ++i)
         require(tail[i] == 0, "Trailing nonzero archive data", "extraction");
     require(n == 0 && gzeof(file), "Gzip integrity rejected", "extraction");
-    const QStringList required = {"bin/omnigate-hmi",
-                                  "lib/web/app.py",
-                                  "lib/web/hmi_api.py",
-                                  "lib/core/omnigate_core/__init__.py",
-                                  "lib/supervisor/supervisor.py",
-                                  "share/web/index.html"};
-    for (const auto &path : required)
-      require(QFileInfo(directory + '/' + path).isFile(),
-              "Incomplete application payload", "extraction");
-    require(QFileInfo(directory + "/bin/omnigate-hmi").isExecutable(),
-            "HMI is not executable", "extraction");
+    validateApplicationPayload(directory, layout);
     QStringList folders{directory};
     for (int i = 0; i < folders.size(); ++i) {
       QDir dir(folders[i]);
@@ -450,4 +441,41 @@ void extractPackage(const QString &archive, const QString &directory,
       gzclose(file);
     throw;
   }
+}
+void validateApplicationPayload(const QString &directory,
+                                const QString &layout) {
+  require(layout == "legacy-python-v1" || layout == "native-cpp-v1",
+          "Unsupported application layout", "extraction");
+  QStringList required{"bin/omnigate-hmi", "share/web/index.html"};
+  QStringList executables{"bin/omnigate-hmi"};
+  const QString marker =
+      directory + "/share/dshancontrol/application-layout.json";
+  if (layout == "native-cpp-v1") {
+    require(readJson(marker) == QJsonObject{{"schema", 1},
+                                            {"layout", layout},
+                                            {"board_id", "100ask-imx6ull-pro"}},
+            "Native payload marker mismatch", "extraction");
+    executables << "bin/dshancontrol-api" << "bin/dshancontrol-desktop-service"
+                << "bin/dshancontrol-media-worker";
+    required << executables;
+    QDirIterator files(directory, QDir::Files, QDirIterator::Subdirectories);
+    while (files.hasNext()) {
+      const auto path = files.next();
+      require(!path.endsWith(".py") && !path.endsWith(".pyc") &&
+                  !path.endsWith(".pyo"),
+              "Python runtime file in native application", "extraction");
+    }
+  } else {
+    require(!QFileInfo::exists(marker),
+            "Native layout cannot use legacy validation", "extraction");
+    required << "lib/web/app.py" << "lib/web/hmi_api.py"
+             << "lib/core/omnigate_core/__init__.py"
+             << "lib/supervisor/supervisor.py";
+  }
+  for (const auto &path : required)
+    require(QFileInfo(directory + '/' + path).isFile(),
+            "Incomplete application payload", "extraction");
+  for (const auto &path : executables)
+    require(QFileInfo(directory + '/' + path).isExecutable(),
+            "Application entry is not executable", "extraction");
 }

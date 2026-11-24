@@ -83,6 +83,8 @@ void validateManifest(const QJsonObject &m, bool publicRelease) {
     require(value.isObject(), "Invalid target entry");
     auto target = value.toObject();
     validateTarget(target);
+    require(!target.contains("application_layout") || target["application_layout"] == "legacy-python-v1" ||
+                target["application_layout"] == "native-cpp-v1", "Unsupported application layout");
     QJsonArray identity;
     for (const auto &key : TargetFields)
       identity.append(target[key]);
@@ -161,6 +163,10 @@ QJsonObject matchTarget(const QJsonObject &m, const QJsonObject &contract,
     }
   }
   require(count == 1, "No exact board/ABI/runtime/contract match");
+  if (selected.value("application_layout").toString("legacy-python-v1") == "native-cpp-v1")
+    require(contract["board_id"] == "100ask-imx6ull-pro" &&
+                contract["application_layouts"].toArray().contains("native-cpp-v1"),
+            "System contract does not support native application layout");
   return selected;
 }
 void verifySignature(const QByteArray &manifest, const QByteArray &signature,

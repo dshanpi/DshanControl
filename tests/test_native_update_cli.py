@@ -9,6 +9,53 @@ import test_application_update_cli as reference
 
 
 class NativeUpdateCliTests(reference.UpdateCliTests):
+    def native_package(self, python_file=False, missing_api=False):
+        import io, tarfile
+        marker={'schema':1,'layout':'native-cpp-v1','board_id':'100ask-imx6ull-pro'}
+        files={'bin/omnigate-hmi':b'native HMI fixture',
+               'bin/dshancontrol-api':b'native API fixture',
+               'bin/dshancontrol-desktop-service':b'native desktop fixture',
+               'bin/dshancontrol-media-worker':b'native media fixture',
+               'share/web/index.html':b'web assets',
+               'share/dshancontrol/application-layout.json':json.dumps(marker).encode()}
+        if python_file:files['lib/unexpected.py']=b'print(1)'
+        if missing_api:del files['bin/dshancontrol-api']
+        with tarfile.open(self.f.package,'w:gz') as archive:
+            for name,data in files.items():
+                info=tarfile.TarInfo(name);info.size=len(data);info.mode=0o755 if name.startswith('bin/') else 0o644
+                archive.addfile(info,io.BytesIO(data))
+        contract_path=self.f.root/'contract.json'
+        contract=json.loads(contract_path.read_text());contract['board_id']='100ask-imx6ull-pro'
+        contract['application_layouts']=['legacy-python-v1','native-cpp-v1']
+        reference.fixtures.atomic_json(contract_path,contract)
+        self.original_contract=contract_path.read_bytes()
+        self.f.manifest['targets'][0].update(board_id='100ask-imx6ull-pro',application_layout='native-cpp-v1',
+            sha256=reference.fixtures.digest(self.f.package),size=self.f.package.stat().st_size,
+            unpacked_size=sum(map(len,files.values())))
+        self.f.sign()
+
+    def test_native_layout_requires_system_contract_then_installs(self):
+        self.native_package()
+        contract_path=self.f.root/'contract.json';contract=json.loads(contract_path.read_text())
+        del contract['application_layouts'];reference.fixtures.atomic_json(contract_path,contract)
+        self.original_contract=contract_path.read_bytes()
+        self.cli(expected=1,message='does not support native application layout')
+        self.assertEqual(self.operations(),[])
+        contract['application_layouts']=['native-cpp-v1'];reference.fixtures.atomic_json(contract_path,contract)
+        self.original_contract=contract_path.read_bytes()
+        self.cli()
+        current=self.f.updater.current_path()
+        self.assertTrue((current/'bin/dshancontrol-api').is_file())
+        self.assertFalse(list(current.rglob('*.py')))
+
+    def test_native_layout_rejects_python_or_incomplete_payload_before_hooks(self):
+        self.native_package(python_file=True)
+        self.cli(expected=1,message='python runtime file')
+        self.assertEqual(self.operations(),[])
+        self.native_package(missing_api=True)
+        self.cli(expected=1,message='incomplete application payload')
+        self.assertEqual(self.operations(),[])
+
     def local_source(self):
         import shutil
         folder=self.f.root/'local-source';folder.mkdir(mode=0o700)
