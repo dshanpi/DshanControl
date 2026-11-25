@@ -1,0 +1,94 @@
+{
+  "schema": "dshancontrol-imx6ull-system-draft-v1",
+  "standard": "DSP-LINUX-001/1.1.0",
+  "release_kind": "system",
+  "version": "0.1.0-dev.20261125.1",
+  "board_id": "100ask-imx6ull-pro",
+  "tag": "system-v0.1.0-dev.20261125.1--imx6ull-pro",
+  "application_commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+  "application_version": "0.1.0-imx6ull.20261124.3",
+  "integration_commit": "ad0747ede81ce1c2e8660e0ce1a514e6addee4d5",
+  "integration_repository": "dshanpi/aibsp-imx6ull-pro_linux5.4.47",
+  "integration_tag": "imx6ull-pro-integration-v0.1.0-dev.20261125.1",
+  "integration_boundary": "BSP and board overlay/recipe in hardware repository; application pinned independently",
+  "bsp_commit": "e00afed02481332d2de44a498518b596651dcdef",
+  "image": {
+    "filename": "DshanControl-v0.1.0-dev.20261125.1-imx6ull-pro.img.gz",
+    "sha256": "588d1d837b01f1e80c0f90352b601ee8d5d4ef409c45ebc4fc6970c79a5e135a",
+    "uncompressed_sha256": "a162e6f5b4600edc7ed4650c2d56d8042ceb132d1c922bdfecc58d60f4066aa8",
+    "uncompressed_bytes": 562036736
+  },
+  "auto_update_eligible": false,
+  "artifacts": [
+    {
+      "filename": "DshanControl-v0.1.0-dev.20261125.1-imx6ull-pro.img.gz",
+      "sha256": "588d1d837b01f1e80c0f90352b601ee8d5d4ef409c45ebc4fc6970c79a5e135a",
+      "bytes": 55978337
+    },
+    {
+      "filename": "DshanControl-v0.1.0-dev.20261125.1-source.tar.gz",
+      "sha256": "8ca981b49be0eea93c4b3d7f26ea20faad8ffd48e8a638c8a33726fb8a88af85",
+      "bytes": 28145400
+    },
+    {
+      "filename": "RELEASE_NOTES.md",
+      "sha256": "15f2998310821ab32b86392538db1d09e21d3bdf1aa780d0a2e74edb8dc41880",
+      "bytes": 2063
+    },
+    {
+      "filename": "board-profile-imx6ull-pro.json",
+      "sha256": "df5991f20be44ac08b47fbf75528def9869271acd29aaf2e34f87dbb6aa18f95",
+      "bytes": 1018
+    },
+    {
+      "filename": "bsp-source.tar.gz",
+      "sha256": "391d87d9b6889205d1ea12499c523d51aa48bd6ee0b88d01dae4dfe40ceace36",
+      "bytes": 10323226
+    },
+    {
+      "filename": "build-info-imx6ull-pro.json",
+      "sha256": "efc4b4635772451b877830a52a190b6eba7c4be77389b87b5f4f46b31dd67f39",
+      "bytes": 6884
+    },
+    {
+      "filename": "build-inputs.tar.gz",
+      "sha256": "4a1d644e592454192308ab2ba701bbf1b40e8faef040be1ecf9d676821cabed5",
+      "bytes": 119170
+    },
+    {
+      "filename": "buildroot-corresponding-sources-and-licenses.tar.gz",
+      "sha256": "a6d5d71b7d8e58674c83689f63da08ec5b75121f80b420e0671fcdedd6020b4f",
+      "bytes": 1154309797
+    },
+    {
+      "filename": "buildroot-package-info.json",
+      "sha256": "1f2009c2a96d14ee1cfa7b3f3ac20ec8675ed5446329b4dfaa3844c75c6b1077",
+      "bytes": 114467
+    },
+    {
+      "filename": "hardware-source.tar.gz",
+      "sha256": "c83ba22bcb34336cb9d7ee32b6fad80fd2579b88bee6ae7b59d8eda28b788aba",
+      "bytes": 10353328
+    },
+    {
+      "filename": "privacy-review.json",
+      "sha256": "24de424ce0195ade9163c87178fc12d8d5761bfa5e0a85f9bba3c870fb0f834c",
+      "bytes": 203
+    },
+    {
+      "filename": "sdk-manifest-imx6ull-pro.json",
+      "sha256": "ecc30cb9afd8e9a9830807a98d832cc844f6edc3d36f2a737bb7b1d08d6f6745",
+      "bytes": 67018
+    },
+    {
+      "filename": "validation-imx6ull-pro.json",
+      "sha256": "914221bf8e77b7efe7e77ea61403b8bcc0217170c305730f009efe2dcb2e6092",
+      "bytes": 2300
+    },
+    {
+      "filename": "verification-evidence.tar.gz",
+      "sha256": "977636c8cfec25903d05b57674d28a7d07c33ecc5afe4162b86800f252187e0c",
+      "bytes": 988536
+    }
+  ]
+}

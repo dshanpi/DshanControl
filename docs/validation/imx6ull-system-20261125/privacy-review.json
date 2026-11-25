@@ -1,0 +1,6 @@
+{
+  "target_private_key_scan": "passed",
+  "target_data_and_ssh_scan": "passed",
+  "lab_provisioning_embedded": false,
+  "scope": "Fresh source-only output; no live-board backup or configuration used"
+}

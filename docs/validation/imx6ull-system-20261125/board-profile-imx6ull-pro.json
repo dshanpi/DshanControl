@@ -1,0 +1,40 @@
+{
+  "board_id": "100ask-imx6ull-pro",
+  "profile_version": 1,
+  "status": "development-draft",
+  "soc": "NXP i.MX6ULL",
+  "hardware_revision": "unverified",
+  "ram_mib": 512,
+  "architecture": "armv7-a",
+  "float_abi": "hard",
+  "display": [
+    1024,
+    600
+  ],
+  "touch": "Goodix",
+  "storage": {
+    "boot_device": "eMMC mmc1",
+    "partitions": [
+      {
+        "number": 1,
+        "bootable": true,
+        "type": 12,
+        "offset": 8388608,
+        "bytes": 16777216
+      },
+      {
+        "number": 2,
+        "bootable": false,
+        "type": 131,
+        "offset": 25165824,
+        "bytes": 536870912
+      }
+    ],
+    "data_policy": "Fresh image has two partitions and rootfs /data fallback; existing p3 must be preserved separately; never dd the whole image over an installation to preserve data"
+  },
+  "installer": {
+    "entrypoint": "https://github.com/dshanpi/lynx-releases",
+    "nxp_software_download_mode": "not-supported-by-current-MCP",
+    "this_image_installation": "not_run"
+  }
+}

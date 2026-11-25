@@ -1,0 +1,15 @@
+{
+  "application": {
+    "commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+    "run_id": 45582261643,
+    "conclusion": "success",
+    "url": "https://github.com/dshanpi/DshanControl/actions/runs/45582261643"
+  },
+  "delivery_tools": {
+    "commit": "cbbefefa0c859b5737334b701aff4a29d0d3a02c",
+    "run_id": 45583896495,
+    "conclusion": "success",
+    "url": "https://github.com/dshanpi/DshanControl/actions/runs/45583896495"
+  },
+  "scope": "Completed workflow conclusions observed through GitHub API; final report-only commit is later"
+}

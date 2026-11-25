@@ -1,0 +1,72 @@
+{
+  "release_kind": "system",
+  "image_sha256": "a162e6f5b4600edc7ed4650c2d56d8042ceb132d1c922bdfecc58d60f4066aa8",
+  "board_id": "100ask-imx6ull-pro",
+  "checks": {
+    "host-tests": {
+      "status": "passed",
+      "tester": "Codex automated checks",
+      "date_utc": "2026-11-25T09:16:53.547832+00:00",
+      "evidence": "verification-evidence.tar.gz"
+    },
+    "hmi-tests": {
+      "status": "passed",
+      "tester": "Codex automated checks",
+      "date_utc": "2026-11-25T09:16:53.547832+00:00",
+      "evidence": "verification-evidence.tar.gz"
+    },
+    "target-build": {
+      "status": "passed",
+      "tester": "Codex automated checks",
+      "date_utc": "2026-11-25T09:16:53.547832+00:00",
+      "evidence": "verification-evidence.tar.gz"
+    },
+    "image-content": {
+      "status": "passed",
+      "tester": "Codex automated checks",
+      "date_utc": "2026-11-25T09:16:53.547832+00:00",
+      "evidence": "verification-evidence.tar.gz"
+    },
+    "arm-userspace-smoke": {
+      "status": "passed",
+      "tester": "Codex automated checks",
+      "date_utc": "2026-11-25T09:16:53.547832+00:00",
+      "evidence": "verification-evidence.tar.gz"
+    },
+    "new-image-flash-and-boot": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "new-image-touch": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "factory-to-ota-chain": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "physical-power-loss": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "external-fieldbus-slaves": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "cloud-tuya-production": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "voice-sdk": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    },
+    "soak": {
+      "status": "not_run",
+      "reason": "Not qualified on this packaged image"
+    }
+  },
+  "stage": "draft",
+  "auto_update_eligible": false,
+  "previous_board_evidence": "docs/validation/imx6ull-native-20261125 belongs to separately deployed laboratory files; not this complete image"
+}

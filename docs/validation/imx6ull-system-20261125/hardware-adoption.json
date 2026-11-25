@@ -1,0 +1,9 @@
+{
+  "hardware_commit": "ad0747ede81ce1c2e8660e0ce1a514e6addee4d5",
+  "application_commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+  "source": "/home/ubuntu/dshancontrol-system-20261125/hardware-prepared-r1",
+  "scope": "Fresh output; resumed after tzdata source-group fix; native application build directory recreated for corrected clean source. No previous image or old target reused.",
+  "runtime_source_unchanged_from_tested_candidate": true,
+  "previous_application": "4aa797fae1a52fc03d810ed6018b3ffea7cdb310",
+  "correction": "BR2_TARGET_TZ_ZONELIST=asia; localtime remains Asia/Shanghai"
+}

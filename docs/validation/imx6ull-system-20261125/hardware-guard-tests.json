@@ -1,0 +1,16 @@
+{
+  "checks": [
+    {
+      "name": "wrong-application",
+      "status": "passed",
+      "refusal": "Application commit differs",
+      "output_created": false
+    },
+    {
+      "name": "dirty-application",
+      "status": "passed",
+      "refusal": "Use a clean committed tree",
+      "output_created": false
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "assets_verified": 16,
+  "image_sha256": "a162e6f5b4600edc7ed4650c2d56d8042ceb132d1c922bdfecc58d60f4066aa8",
+  "image_bytes": 562036736,
+  "application_commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+  "hardware_commit": "ad0747ede81ce1c2e8660e0ce1a514e6addee4d5",
+  "scope": "Checksums, lock closure, gzip image identity and A/H/BSP Git archives; no hardware qualification"
+}

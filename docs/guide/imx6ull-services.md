@@ -262,3 +262,5 @@ ls -l /proc/$p/fd | grep /dev/input
 系统镜像以 GitHub Draft 管理，访问需具有仓库相应权限；不是公开稳定版，也不进入桌面自动更新源。交付包含 `.img.gz`、应用/BSP/硬件源码、Buildroot 第三方来源和许可证、配置、构建/验证日志、`release-lock.json` 与 `SHA256SUMS`。上传后必须重新下载所有附件，并核对解压镜像和 A/H 来源，不能只核对本地文件。
 
 新整盘镜像采用两分区布局；现有实验室板为三分区布局。整盘覆盖会改写分区表，不能用于宣称保留 p3 的更新。重建与部署前置条件见 [硬件集成说明](https://github.com/dshanpi/aibsp-imx6ull-pro_linux5.4.47/blob/ad0747ede81ce1c2e8660e0ce1a514e6addee4d5/dshancontrol/README.md)。新镜像实板启动、物理断电、外部从站和真实云业务须分别完成后才能提升发布资格。
+
+完整镜像草稿已上传并完成 16 个远端附件的逐项回下载核验，详见[系统镜像交付记录](../IMX6ULL-SYSTEM-DELIVERY-20261125.md)。新镜像尚未实板烧录，发布阶段仍为 Draft。

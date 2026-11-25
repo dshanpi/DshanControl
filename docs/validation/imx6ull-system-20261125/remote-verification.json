@@ -1,0 +1,340 @@
+{
+  "date_utc": "2026-11-25T09:51:13.010787+00:00",
+  "release_id": 457886139,
+  "release_url": "https://github.com/dshanpi/DshanControl/releases/tag/untagged-e8d3214c50638ad44acc",
+  "tag": "system-v0.1.0-dev.20261125.1--imx6ull-pro",
+  "draft": true,
+  "application_commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+  "hardware_repository": "dshanpi/aibsp-imx6ull-pro_linux5.4.47",
+  "hardware_commit": "ad0747ede81ce1c2e8660e0ce1a514e6addee4d5",
+  "download_host": "Windows publishing host",
+  "remote_tags_verified": true,
+  "assets": [
+    {
+      "id": 790910236,
+      "name": "DshanControl-v0.1.0-dev.20261125.1-imx6ull-pro.img.gz",
+      "bytes": 55978337,
+      "sha256": "588d1d837b01f1e80c0f90352b601ee8d5d4ef409c45ebc4fc6970c79a5e135a",
+      "verified": true
+    },
+    {
+      "id": 790916365,
+      "name": "DshanControl-v0.1.0-dev.20261125.1-source.tar.gz",
+      "bytes": 28145400,
+      "sha256": "8ca981b49be0eea93c4b3d7f26ea20faad8ffd48e8a638c8a33726fb8a88af85",
+      "verified": true
+    },
+    {
+      "id": 790916721,
+      "name": "RELEASE_NOTES.md",
+      "bytes": 2063,
+      "sha256": "15f2998310821ab32b86392538db1d09e21d3bdf1aa780d0a2e74edb8dc41880",
+      "verified": true
+    },
+    {
+      "id": 790916824,
+      "name": "SHA256SUMS",
+      "bytes": 1435,
+      "sha256": "5654c32b12b852dd6f135959490f781cd429d61aa1cc2a88860cdb557e77b9be",
+      "verified": true
+    },
+    {
+      "id": 790885241,
+      "name": "board-profile-imx6ull-pro.json",
+      "bytes": 1018,
+      "sha256": "df5991f20be44ac08b47fbf75528def9869271acd29aaf2e34f87dbb6aa18f95",
+      "verified": true
+    },
+    {
+      "id": 790885302,
+      "name": "bsp-source.tar.gz",
+      "bytes": 10323226,
+      "sha256": "391d87d9b6889205d1ea12499c523d51aa48bd6ee0b88d01dae4dfe40ceace36",
+      "verified": true
+    },
+    {
+      "id": 790887052,
+      "name": "build-info-imx6ull-pro.json",
+      "bytes": 6884,
+      "sha256": "efc4b4635772451b877830a52a190b6eba7c4be77389b87b5f4f46b31dd67f39",
+      "verified": true
+    },
+    {
+      "id": 790887084,
+      "name": "build-inputs.tar.gz",
+      "bytes": 119170,
+      "sha256": "4a1d644e592454192308ab2ba701bbf1b40e8faef040be1ecf9d676821cabed5",
+      "verified": true
+    },
+    {
+      "id": 790917175,
+      "name": "buildroot-corresponding-sources-and-licenses.tar.gz",
+      "bytes": 1154309797,
+      "sha256": "a6d5d71b7d8e58674c83689f63da08ec5b75121f80b420e0671fcdedd6020b4f",
+      "verified": true
+    },
+    {
+      "id": 790935089,
+      "name": "buildroot-package-info.json",
+      "bytes": 114467,
+      "sha256": "1f2009c2a96d14ee1cfa7b3f3ac20ec8675ed5446329b4dfaa3844c75c6b1077",
+      "verified": true
+    },
+    {
+      "id": 790935219,
+      "name": "hardware-source.tar.gz",
+      "bytes": 10353328,
+      "sha256": "c83ba22bcb34336cb9d7ee32b6fad80fd2579b88bee6ae7b59d8eda28b788aba",
+      "verified": true
+    },
+    {
+      "id": 790935407,
+      "name": "privacy-review.json",
+      "bytes": 203,
+      "sha256": "24de424ce0195ade9163c87178fc12d8d5761bfa5e0a85f9bba3c870fb0f834c",
+      "verified": true
+    },
+    {
+      "id": 790935466,
+      "name": "release-lock.json",
+      "bytes": 3495,
+      "sha256": "3e356acad9248524277811b2941d50efa12cca8293f4eca5779a4ae6ff549dc2",
+      "verified": true
+    },
+    {
+      "id": 790935536,
+      "name": "sdk-manifest-imx6ull-pro.json",
+      "bytes": 67018,
+      "sha256": "ecc30cb9afd8e9a9830807a98d832cc844f6edc3d36f2a737bb7b1d08d6f6745",
+      "verified": true
+    },
+    {
+      "id": 790935621,
+      "name": "validation-imx6ull-pro.json",
+      "bytes": 2300,
+      "sha256": "914221bf8e77b7efe7e77ea61403b8bcc0217170c305730f009efe2dcb2e6092",
+      "verified": true
+    },
+    {
+      "id": 790935674,
+      "name": "verification-evidence.tar.gz",
+      "bytes": 988536,
+      "sha256": "977636c8cfec25903d05b57674d28a7d07c33ecc5afe4162b86800f252187e0c",
+      "verified": true
+    }
+  ],
+  "downloaded_delivery_verification": {
+    "passed": true,
+    "assets_verified": 16,
+    "image_sha256": "a162e6f5b4600edc7ed4650c2d56d8042ceb132d1c922bdfecc58d60f4066aa8",
+    "image_bytes": 562036736,
+    "application_commit": "ab981454fd095fb1101bea317ab8dcc33d94897b",
+    "hardware_commit": "ad0747ede81ce1c2e8660e0ce1a514e6addee4d5",
+    "scope": "Checksums, lock closure, gzip image identity and A/H/BSP Git archives; no hardware qualification"
+  },
+  "range_download": {
+    "asset_id": 790917175,
+    "name": "buildroot-corresponding-sources-and-licenses.tar.gz",
+    "bytes": 1154309797,
+    "sha256": "a6d5d71b7d8e58674c83689f63da08ec5b75121f80b420e0671fcdedd6020b4f",
+    "passed": true,
+    "prefix_bytes": 628097024,
+    "prefix_origin": "Earlier actual GitHub API streaming download in the same task, byte-compared before resuming",
+    "ranges": [
+      {
+        "begin": 628097024,
+        "end": 644874239,
+        "sha256": "fc0f9947899badf26e856a7df6cd8c8e6a1a20b6e2c6588411fd4c167c6d465b",
+        "filename": "part-628097024-644874239"
+      },
+      {
+        "begin": 644874240,
+        "end": 661651455,
+        "sha256": "18e9217afa171774daf31d31c13ec4ed4da5f25f6f86fd17795c9a5f0e495c51",
+        "filename": "part-644874240-661651455"
+      },
+      {
+        "begin": 661651456,
+        "end": 678428671,
+        "sha256": "485e9ffd1d64c93ffe2284fb26c81565e60b4f6c71ee34921375943af0b5872f",
+        "filename": "part-661651456-678428671"
+      },
+      {
+        "begin": 678428672,
+        "end": 695205887,
+        "sha256": "5f1b44442b97c35709f993263ccbdfa74d7c8b0f2a4661b3e757ef27cbbaf9c8",
+        "filename": "part-678428672-695205887"
+      },
+      {
+        "begin": 695205888,
+        "end": 711983103,
+        "sha256": "3ed190423e84c741645af77057f9b9bac1dada15f4463866c732923b6e7c638d",
+        "filename": "part-695205888-711983103"
+      },
+      {
+        "begin": 711983104,
+        "end": 728760319,
+        "sha256": "134b936b986d72487ae97bee6efd29341b076ea9c9c804f7c822dc04c1c67346",
+        "filename": "part-711983104-728760319"
+      },
+      {
+        "begin": 728760320,
+        "end": 745537535,
+        "sha256": "ca04a00dc57f535a89088ab3339f373bc3a314366f9fb6681aa67de542fdb190",
+        "filename": "part-728760320-745537535"
+      },
+      {
+        "begin": 745537536,
+        "end": 762314751,
+        "sha256": "647fb4d9951c8dd5849a62936a0ade8d201e5067d07897088f55f26f817a5257",
+        "filename": "part-745537536-762314751"
+      },
+      {
+        "begin": 762314752,
+        "end": 779091967,
+        "sha256": "858e95e135ab2780d76940e36de7ed539f6cebb8a21c71361ac504dedb926aee",
+        "filename": "part-762314752-779091967"
+      },
+      {
+        "begin": 779091968,
+        "end": 795869183,
+        "sha256": "8c70f045ec86416f74256a863bd844e07503840b7787fc998d0242116954a1f6",
+        "filename": "part-779091968-795869183"
+      },
+      {
+        "begin": 795869184,
+        "end": 812646399,
+        "sha256": "4ed8ee8ce4b75985eb846753521b8a683dc095607440c464ab9fef1aadde60f7",
+        "filename": "part-795869184-812646399"
+      },
+      {
+        "begin": 812646400,
+        "end": 829423615,
+        "sha256": "d238da44ff14bdcd86fa3c380cff12caf100ef5282d4b7c8e31bbb642d68fe2c",
+        "filename": "part-812646400-829423615"
+      },
+      {
+        "begin": 829423616,
+        "end": 846200831,
+        "sha256": "0e63469128df6e936e5702245c5a44c79f7621ef591b7101f6c786a17880482a",
+        "filename": "part-829423616-846200831"
+      },
+      {
+        "begin": 846200832,
+        "end": 862978047,
+        "sha256": "317b55a48bad74afed31c1d77530ab45ef829e347e4f0b45f6e61a2e91083d67",
+        "filename": "part-846200832-862978047"
+      },
+      {
+        "begin": 862978048,
+        "end": 879755263,
+        "sha256": "0bdb83f565390aed4295506d41266a7f99ee6ce167eba8b5f186bfd32df19b16",
+        "filename": "part-862978048-879755263"
+      },
+      {
+        "begin": 879755264,
+        "end": 896532479,
+        "sha256": "fbb2d888dde08f82e54d93f67c92ea853c990d869a3ec234681ab40a91c82a37",
+        "filename": "part-879755264-896532479"
+      },
+      {
+        "begin": 896532480,
+        "end": 913309695,
+        "sha256": "0d741a9eb00be258de6db7cf9e72be959f87c81cef2819c426a646fd027b6e49",
+        "filename": "part-896532480-913309695"
+      },
+      {
+        "begin": 913309696,
+        "end": 930086911,
+        "sha256": "def09ff3703cd6bcdb1488f5a645c40da7ab1e973f28cee0c21d838c2b82cd4a",
+        "filename": "part-913309696-930086911"
+      },
+      {
+        "begin": 930086912,
+        "end": 946864127,
+        "sha256": "c6a9ae7903cd7906cdb2c6bf0b87222ef0cc0967c62347fe4b26e16690a7ae42",
+        "filename": "part-930086912-946864127"
+      },
+      {
+        "begin": 946864128,
+        "end": 963641343,
+        "sha256": "4f2ae5dd4854bcfd504e24022469d5225ea79c37fd7b8703ffbffb4ea26071a6",
+        "filename": "part-946864128-963641343"
+      },
+      {
+        "begin": 963641344,
+        "end": 980418559,
+        "sha256": "190b833ad6fe097b638c5f3d50cb46d889606017c493e5bb5379e86f1a35c2e0",
+        "filename": "part-963641344-980418559"
+      },
+      {
+        "begin": 980418560,
+        "end": 997195775,
+        "sha256": "427938db1ac86ee19d948e72d4629ba29758216b59893ff6bcfa596212922a10",
+        "filename": "part-980418560-997195775"
+      },
+      {
+        "begin": 997195776,
+        "end": 1013972991,
+        "sha256": "41400670bc93eaa6991bdd2042b1b5bb31ce1b4b0622c1921f42feb293d14703",
+        "filename": "part-997195776-1013972991"
+      },
+      {
+        "begin": 1013972992,
+        "end": 1030750207,
+        "sha256": "00d77adce4388378591d6a57c0bb102209c74da6fb18f2a4a8a1dfb931f49830",
+        "filename": "part-1013972992-1030750207"
+      },
+      {
+        "begin": 1030750208,
+        "end": 1047527423,
+        "sha256": "4321bc6cce727686b7b98a29e4afd44874e0cf35af2852ef22ebe242333062b0",
+        "filename": "part-1030750208-1047527423"
+      },
+      {
+        "begin": 1047527424,
+        "end": 1064304639,
+        "sha256": "60855c66781636e9c5c63c640477daff3b2a73f9f9a46e0bcfeec3fe7c46744e",
+        "filename": "part-1047527424-1064304639"
+      },
+      {
+        "begin": 1064304640,
+        "end": 1081081855,
+        "sha256": "87b9fa70117ea128add86624bd886f1c31bb47ee54839b175168bb66029e04f1",
+        "filename": "part-1064304640-1081081855"
+      },
+      {
+        "begin": 1081081856,
+        "end": 1097859071,
+        "sha256": "68bb8bd8e6ed1375d99f9f1e5252eda67c9f5509003906adbbeee0458444eb4c",
+        "filename": "part-1081081856-1097859071"
+      },
+      {
+        "begin": 1097859072,
+        "end": 1114636287,
+        "sha256": "d46c9473f5a9ba6dce6a453a0d43cd1bf69fda49f22cc89e6100839a33902369",
+        "filename": "part-1097859072-1114636287"
+      },
+      {
+        "begin": 1114636288,
+        "end": 1131413503,
+        "sha256": "631810ca55394715b3b871f6838182441bb783c6e641abdcfcaa29ce7f65aa30",
+        "filename": "part-1114636288-1131413503"
+      },
+      {
+        "begin": 1131413504,
+        "end": 1148190719,
+        "sha256": "cb801f1f180a6131bc09fc1db91650f6f67bb3040db37754799b265a8b5752bd",
+        "filename": "part-1131413504-1148190719"
+      },
+      {
+        "begin": 1148190720,
+        "end": 1154309796,
+        "sha256": "c535fcadb3f3b503ff4bb35175d515e2a6780b4140a1167e4d0565740c61da20",
+        "filename": "part-1148190720-1154309796"
+      }
+    ],
+    "elapsed_seconds": 59.85,
+    "source": "GitHub asset API; exact HTTP 206 Content-Range validated for every part"
+  }
+}
