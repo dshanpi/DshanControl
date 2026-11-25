@@ -3,6 +3,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
+#include <time.h>
 using namespace Native;
 namespace {
 const QString config = "/etc/dshancontrol/imx6ull-maintenance.json";
@@ -146,13 +147,24 @@ void health() {
     check(api["backend"] == "native-cpp", "Native API unavailable");
   auto path = base + "/hmi/heartbeat.json";
   auto beat = readJson(path);
-  auto age =
-      QFileInfo(path).lastModified().msecsTo(QDateTime::currentDateTime());
+  // A retained heartbeat from a previous process (including a same-commit OTA)
+  // must not end the startup grace period before the new GUI is actually ready.
+  check(beat["pid"].toDouble() ==
+                integer(readText(base + "/hmi.pid"), "HMI PID", 2, INT_MAX) &&
+            beat["boot_id"].toString() ==
+                readText("/proc/sys/kernel/random/boot_id"),
+        "HMI heartbeat belongs to a previous process or boot");
+  struct timespec now{};
+  check(::clock_gettime(CLOCK_BOOTTIME, &now) == 0 &&
+            beat["monotonic_seconds"].isDouble(),
+        "HMI heartbeat clock unavailable");
+  const double age = double(now.tv_sec) + now.tv_nsec / 1e9 -
+                     beat["monotonic_seconds"].toDouble();
   check(beat["commit"] == identity["commit"] &&
             beat["gui_event_loop"] == true &&
             beat["backend_identity_verified"] == true,
         "HMI identity mismatch");
-  check(age >= 0 && age < 15000, "HMI heartbeat stale");
+  check(age >= 0 && age < 15, "HMI heartbeat stale");
   rpc(base + "/desktop/desktop.sock", "desktop.snapshot", {}, 3000);
 }
 void wifiCheck() {
