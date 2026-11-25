@@ -15,7 +15,10 @@ SmartDesktopMimi 不在本项目范围内。本约定来自 2026-10-12 用户确
 
 S4 底层使用 DongshanPI/100ASK_T113s4-SdNand_TinaSDK5 的 t113_s4/100ask，
 不能替换成 SPI NAND 配置。T153 支持保持原状。通用应用不得写死新板设备节点。
-A133、T527、RK3576、IMX6ULL-PRO、STM32MP157、RK3506 尚未接入，不能标记支持。
+A133、T527、RK3576、STM32MP157、RK3506 尚未接入，不能标记支持。
+i.MX6ULL Pro 已有原生服务实验室实板验证，完整镜像仍按开发草稿交付；
+板级代码由 [i.MX6ULL BSP 仓库](https://github.com/dshanpi/aibsp-imx6ull-pro_linux5.4.47/tree/master/dshancontrol)
+维护，固定引用 DshanControl 应用提交。单板实验室记录不构成全型号或生产资格。
 板级样例不等于经过验证的系统镜像，后续目标见 BOARD-PORTING-QUEUE.md。
 
 参考规范：https://github.com/dshanpi/EinkOS/blob/main/standards/linux-board-release/v1.1.0/SPEC.md

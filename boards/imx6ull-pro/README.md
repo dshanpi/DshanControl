@@ -1,8 +1,13 @@
 # DshanControl 移植到 100ASK i.MX6ULL Pro
 
+2026-11-25 起，板级代码的维护入口为 [BSP 仓库 dshancontrol 目录](https://github.com/dshanpi/aibsp-imx6ull-pro_linux5.4.47/tree/master/dshancontrol)。
+设备树/Buildroot/启动和维护脚本已上传，硬件标签 `imx6ull-pro-integration-v0.1.0-dev.20261125`
+固定引用应用 `4aa797fae1a52fc03d810ed6018b3ffea7cdb310`。本目录保留该版重建和既有验证记录；
+后续板级修改在 BSP 仓库维护，通用 C++/Go 服务仍在 DshanControl。
+
 本适配以 [i.MX6ULL Pro 教程](https://aibsp.100ask.org/docs/imx6ull-pro/)及其公开 BSP 为依据，使用独立的 Buildroot external tree 编译 DshanControl。适配目录不修改 T113/T153 的配置，也不执行烧录。
 
-目前属于开发适配。2026-11-24 已通过网络传输、独立 RAM 维护环境和 `dd` 完成实板 p1/p2 更新，并通过正常重启后的桌面、API、Wi-Fi 自动启动检查。详细过程见 [网络烧录实板记录](network-dd-verification.md)；早期主机验证记录保留在 `validation.md`。触摸手指操作、断电启动及长时间稳定性仍需分别验收。
+目前属于开发适配。2026-11-24 已通过网络传输、独立 RAM 维护环境和 `dd` 完成实板 p1/p2 更新，并通过正常重启后的桌面、API、Wi-Fi 自动启动检查。详细过程见 [网络烧录实板记录](network-dd-verification.md)；早期主机验证记录保留在 `validation.md`。2026-11-25 用户已确认触摸点击及位置正常，见 [原生服务验收](native-services-validation.md)。物理断电与长时间稳定性尚未验收；新完整镜像需要独立验证。
 
 ## 1. 版本与适配范围
 
