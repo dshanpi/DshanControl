@@ -1,0 +1,194 @@
+{
+  "passed": true,
+  "before": {
+    "commit": "75cd98597485065521ac46b1890bc6de898eb81f",
+    "data_schema": 1,
+    "package_sha256": "e2523622d6b86844216ceaf6d6718605fb06afcd87183fdecf195803faa48f77",
+    "sequence": 1,
+    "version": "0.1.0-imx6ull.20261124.2"
+  },
+  "after": {
+    "commit": "f549f80ca9bf0b8c6a5552b2252073d57b85f136",
+    "data_schema": 1,
+    "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+    "sequence": 3,
+    "version": "0.1.0-imx6ull.20261124.3"
+  },
+  "caller_uid": 401,
+  "tasks": [
+    {
+      "candidate": {
+        "local_development_release": true,
+        "manifest_sha256": "653250e10bb4c29d8aa84e970d2bffb0a8329fa2eb8672d4a7dd7f151a10e9b8",
+        "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+        "sequence": 3,
+        "signature_sha256": "cc237c71eefc8b4ff46cb0b917e2fd8c9b50230a3fce30a97d404d79dc83b90a",
+        "version": "0.1.0-imx6ull.20261124.3"
+      },
+      "created_at_ms": 1795535717779,
+      "elapsed_ms": 288,
+      "finished_at_ms": 1795535718108,
+      "identity": {
+        "architecture": "armv7-a",
+        "board_id": "100ask-imx6ull-pro",
+        "contract_id": "dshancontrol-imx6ull-lab-1",
+        "float_abi": "hard",
+        "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+        "libc": "glibc-2.41",
+        "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+        "updater_protocol": 1
+      },
+      "operation": "check",
+      "source_task_id": null,
+      "stage": "completed",
+      "stages": [
+        {
+          "elapsed_ms": 5,
+          "stage": "preparing"
+        },
+        {
+          "elapsed_ms": 59,
+          "stage": "checking"
+        }
+      ],
+      "status": "success",
+      "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+      "task_id": "497bc2a8116c4ed6bf6211c2988660f2"
+    },
+    {
+      "candidate": {
+        "local_development_release": true,
+        "manifest_sha256": "653250e10bb4c29d8aa84e970d2bffb0a8329fa2eb8672d4a7dd7f151a10e9b8",
+        "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+        "sequence": 3,
+        "signature_sha256": "cc237c71eefc8b4ff46cb0b917e2fd8c9b50230a3fce30a97d404d79dc83b90a",
+        "version": "0.1.0-imx6ull.20261124.3"
+      },
+      "created_at_ms": 1795535718379,
+      "elapsed_ms": 2325,
+      "finished_at_ms": 1795535720741,
+      "identity": {
+        "architecture": "armv7-a",
+        "board_id": "100ask-imx6ull-pro",
+        "contract_id": "dshancontrol-imx6ull-lab-1",
+        "float_abi": "hard",
+        "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+        "libc": "glibc-2.41",
+        "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+        "updater_protocol": 1
+      },
+      "operation": "download",
+      "package_filename": "DshanControl-app-0.1.0-imx6ull.20261124.3-100ask-imx6ull-pro.tar.gz",
+      "source_task_id": "497bc2a8116c4ed6bf6211c2988660f2",
+      "stage": "completed",
+      "stages": [
+        {
+          "elapsed_ms": 7,
+          "stage": "preparing"
+        },
+        {
+          "elapsed_ms": 42,
+          "stage": "download-metadata"
+        },
+        {
+          "elapsed_ms": 2256,
+          "stage": "download-package"
+        }
+      ],
+      "status": "success",
+      "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+      "task_id": "603ee8e852e84526b15acfc54a857528"
+    },
+    {
+      "candidate": {
+        "local_development_release": true,
+        "manifest_sha256": "653250e10bb4c29d8aa84e970d2bffb0a8329fa2eb8672d4a7dd7f151a10e9b8",
+        "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+        "sequence": 3,
+        "signature_sha256": "cc237c71eefc8b4ff46cb0b917e2fd8c9b50230a3fce30a97d404d79dc83b90a",
+        "version": "0.1.0-imx6ull.20261124.3"
+      },
+      "created_at_ms": 1795535721138,
+      "elapsed_ms": 28361,
+      "finished_at_ms": 1795535749538,
+      "identity": {
+        "architecture": "armv7-a",
+        "board_id": "100ask-imx6ull-pro",
+        "contract_id": "dshancontrol-imx6ull-lab-1",
+        "float_abi": "hard",
+        "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+        "libc": "glibc-2.41",
+        "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+        "updater_protocol": 1
+      },
+      "operation": "install",
+      "release_directory": "3-5d5874c570e35a24",
+      "source_task_id": "603ee8e852e84526b15acfc54a857528",
+      "stage": "completed",
+      "stages": [
+        {
+          "elapsed_ms": 950,
+          "stage": "preparing"
+        },
+        {
+          "elapsed_ms": 31,
+          "stage": "recovery"
+        },
+        {
+          "elapsed_ms": 22,
+          "stage": "signature"
+        },
+        {
+          "elapsed_ms": 2248,
+          "stage": "compatibility"
+        },
+        {
+          "elapsed_ms": 2625,
+          "stage": "staging"
+        },
+        {
+          "elapsed_ms": 148,
+          "stage": "maintenance"
+        },
+        {
+          "elapsed_ms": 1315,
+          "stage": "stopping"
+        },
+        {
+          "elapsed_ms": 40,
+          "stage": "switching"
+        },
+        {
+          "elapsed_ms": 1373,
+          "stage": "starting"
+        },
+        {
+          "elapsed_ms": 19543,
+          "stage": "health"
+        },
+        {
+          "elapsed_ms": 43,
+          "stage": "completed"
+        }
+      ],
+      "status": "success",
+      "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+      "task_id": "ec8849c91fd54521aec8650fbff9036a"
+    }
+  ],
+  "user_config_preserved": true,
+  "data_marker_preserved": true,
+  "database_integrity": "ok",
+  "application_python_files": 0,
+  "api": {
+    "application_commit": "f549f80ca9bf0b8c6a5552b2252073d57b85f136",
+    "backend": "native-cpp",
+    "ok": true,
+    "service": "omnigate-web"
+  },
+  "health": {
+    "passed": true,
+    "code": 0,
+    "output": "{\"ok\":true,\"operation\":\"health\"}\n"
+  }
+}

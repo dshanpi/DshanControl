@@ -1,0 +1,145 @@
+{
+  "health": {
+    "passed": true,
+    "result": {
+      "ok": true,
+      "operation": "health"
+    }
+  },
+  "backlight": {
+    "passed": true,
+    "result": [
+      {
+        "requested": 64,
+        "driver": 2,
+        "response": {
+          "brightness": 64
+        }
+      },
+      {
+        "requested": 128,
+        "driver": 4,
+        "response": {
+          "brightness": 128
+        }
+      },
+      {
+        "requested": 255,
+        "driver": 8,
+        "response": {
+          "brightness": 255
+        }
+      }
+    ]
+  },
+  "can_loopback": {
+    "passed": true,
+    "result": {
+      "scope": "physical-controller-loopback-no-external-slave",
+      "received": "1122334455667788"
+    }
+  },
+  "canopen_simulated": {
+    "passed": true,
+    "result": {
+      "scope": "software-CANopen-slave-over-controller-loopback",
+      "read": {
+        "data": "78563412",
+        "device_acknowledged": true,
+        "index": 8192,
+        "node_id": 7,
+        "subindex": 0
+      },
+      "write": {
+        "device_acknowledged": true,
+        "index": 8192,
+        "node_id": 7,
+        "subindex": 0,
+        "written": 4
+      },
+      "requests": [
+        "4000200000000000",
+        "4000200000000000",
+        "230020002a000000"
+      ]
+    }
+  },
+  "rs485_absent_slave": {
+    "passed": true,
+    "result": {
+      "scope": "physical-uart-no-slave",
+      "configured": {
+        "baudrate": 9600,
+        "configured": true,
+        "device_acknowledged": false,
+        "parity": "N",
+        "poll_ms": 1000,
+        "polling": false,
+        "port": "/dev/ttymxc2",
+        "stopbits": 1,
+        "unit_id": 1
+      },
+      "read_rejected": "{\"error\":\"No Modbus response\",\"ok\":false}"
+    }
+  },
+  "ethercat_absent_slave": {
+    "passed": true,
+    "result": {
+      "scope": "physical-NIC-no-cable-no-slave",
+      "code": 3,
+      "output": "No EtherCAT slaves found on eth1\n"
+    }
+  },
+  "final_health": {
+    "passed": true,
+    "result": {
+      "ok": true,
+      "operation": "health"
+    }
+  },
+  "native_canopen_suite": {
+    "passed": true,
+    "code": 0,
+    "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 2.651s\n\nOK\n"
+  },
+  "native_api": {
+    "passed": true,
+    "result": {
+      "application_commit": "f549f80ca9bf0b8c6a5552b2252073d57b85f136",
+      "backend": "native-cpp",
+      "ok": true,
+      "service": "omnigate-web"
+    }
+  },
+  "touchscreen": {
+    "passed": true,
+    "result": {
+      "name": "goodix-ts",
+      "udev_class": "touchscreen",
+      "qt_evdev_open": true,
+      "user_confirmed_click_and_coordinates": true,
+      "normal_reboot_retained": true
+    }
+  },
+  "business_configuration": {
+    "passed": true,
+    "scope": "unconfigured-status-not-real-cloud-connection",
+    "result": {
+      "cloud": {
+        "configured": false,
+        "ready": null,
+        "state": null
+      },
+      "home": {
+        "configured": false,
+        "ready": null,
+        "state": null
+      },
+      "voice": {
+        "configured": false,
+        "ready": false,
+        "state": "not_configured"
+      }
+    }
+  }
+}

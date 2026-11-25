@@ -1,0 +1,32 @@
+{
+  "width": 1024,
+  "height": 600,
+  "virtual_width": 1024,
+  "virtual_height": 600,
+  "xoffset": 0,
+  "yoffset": 0,
+  "bits_per_pixel": 32,
+  "stride": 4096,
+  "red": [
+    16,
+    8,
+    0
+  ],
+  "green": [
+    8,
+    8,
+    0
+  ],
+  "blue": [
+    0,
+    8,
+    0
+  ],
+  "alpha": [
+    0,
+    0,
+    0
+  ],
+  "raw_sha256": "082e6829238d0219286dbfe3b423032cb44a18677ab1ba6106bf47d7911a66a9",
+  "scope": "Read from /dev/fb0 on the physical i.MX6ULL Pro; not a camera photograph"
+}

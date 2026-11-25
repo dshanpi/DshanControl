@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "code": 0,
+  "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 1.823s\n\nOK\n",
+  "scope": "native-worker-PTY-RTU-simulation"
+}

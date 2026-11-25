@@ -1,0 +1,223 @@
+{
+  "passed": true,
+  "runtime_python_unavailable_during_test": true,
+  "current_identity": {
+    "commit": "f549f80ca9bf0b8c6a5552b2252073d57b85f136",
+    "data_schema": 1,
+    "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+    "sequence": 3,
+    "version": "0.1.0-imx6ull.20261124.3"
+  },
+  "high_water": 6,
+  "transaction_absent": true,
+  "failure_injection": "killed_new_api_pid=26707\nrelease=/data/dshancontrol/application/releases/6-7eb8589a3cc9af74\n",
+  "cycle": {
+    "caller_uid": 401,
+    "steps": [
+      {
+        "candidate": {
+          "local_development_release": true,
+          "manifest_sha256": "314c0cc2629667efbf04014b164202f66d1240de7864d55c40824048c795b37d",
+          "package_sha256": "7eb8589a3cc9af749f18b90c2c54bafefaa132c037abdfdadb696ea290130810",
+          "sequence": 6,
+          "signature_sha256": "94996f4bd243f7057a94278f571625c4871c8e5b58e37b01bfe71c63b0dba314",
+          "version": "0.1.0-imx6ull.20261124.3"
+        },
+        "created_at_ms": 26111129,
+        "elapsed_ms": 60,
+        "finished_at_ms": 26111228,
+        "identity": {
+          "architecture": "armv7-a",
+          "board_id": "100ask-imx6ull-pro",
+          "contract_id": "dshancontrol-imx6ull-lab-1",
+          "float_abi": "hard",
+          "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+          "libc": "glibc-2.41",
+          "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+          "updater_protocol": 1
+        },
+        "operation": "check",
+        "source_task_id": null,
+        "stage": "completed",
+        "stages": [
+          {
+            "elapsed_ms": 5,
+            "stage": "preparing"
+          },
+          {
+            "elapsed_ms": 33,
+            "stage": "checking"
+          }
+        ],
+        "status": "success",
+        "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+        "task_id": "d564a9055dde42e3bc1dd8719b2d9fb4"
+      },
+      {
+        "candidate": {
+          "local_development_release": true,
+          "manifest_sha256": "314c0cc2629667efbf04014b164202f66d1240de7864d55c40824048c795b37d",
+          "package_sha256": "7eb8589a3cc9af749f18b90c2c54bafefaa132c037abdfdadb696ea290130810",
+          "sequence": 6,
+          "signature_sha256": "94996f4bd243f7057a94278f571625c4871c8e5b58e37b01bfe71c63b0dba314",
+          "version": "0.1.0-imx6ull.20261124.3"
+        },
+        "created_at_ms": 26111717,
+        "elapsed_ms": 3658,
+        "finished_at_ms": 26115420,
+        "identity": {
+          "architecture": "armv7-a",
+          "board_id": "100ask-imx6ull-pro",
+          "contract_id": "dshancontrol-imx6ull-lab-1",
+          "float_abi": "hard",
+          "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+          "libc": "glibc-2.41",
+          "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+          "updater_protocol": 1
+        },
+        "operation": "download",
+        "package_filename": "DshanControl-app-0.1.0-imx6ull.20261124.3-100ask-imx6ull-pro.tar.gz",
+        "source_task_id": "d564a9055dde42e3bc1dd8719b2d9fb4",
+        "stage": "completed",
+        "stages": [
+          {
+            "elapsed_ms": 5,
+            "stage": "preparing"
+          },
+          {
+            "elapsed_ms": 51,
+            "stage": "download-metadata"
+          },
+          {
+            "elapsed_ms": 3587,
+            "stage": "download-package"
+          }
+        ],
+        "status": "success",
+        "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+        "task_id": "47b5676f32ec458b87618067f1329cbb"
+      },
+      {
+        "candidate": {
+          "local_development_release": true,
+          "manifest_sha256": "314c0cc2629667efbf04014b164202f66d1240de7864d55c40824048c795b37d",
+          "package_sha256": "7eb8589a3cc9af749f18b90c2c54bafefaa132c037abdfdadb696ea290130810",
+          "sequence": 6,
+          "signature_sha256": "94996f4bd243f7057a94278f571625c4871c8e5b58e37b01bfe71c63b0dba314",
+          "version": "0.1.0-imx6ull.20261124.3"
+        },
+        "created_at_ms": 26115535,
+        "elapsed_ms": 92234,
+        "error": {
+          "code": "1",
+          "message": "New application health failed",
+          "stage": "health"
+        },
+        "finished_at_ms": 26207806,
+        "identity": {
+          "architecture": "armv7-a",
+          "board_id": "100ask-imx6ull-pro",
+          "contract_id": "dshancontrol-imx6ull-lab-1",
+          "float_abi": "hard",
+          "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+          "libc": "glibc-2.41",
+          "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+          "updater_protocol": 1
+        },
+        "operation": "install",
+        "release_directory": null,
+        "source_task_id": "47b5676f32ec458b87618067f1329cbb",
+        "stage": "rollback",
+        "stages": [
+          {
+            "elapsed_ms": 1054,
+            "stage": "preparing"
+          },
+          {
+            "elapsed_ms": 30,
+            "stage": "recovery"
+          },
+          {
+            "elapsed_ms": 22,
+            "stage": "signature"
+          },
+          {
+            "elapsed_ms": 2792,
+            "stage": "compatibility"
+          },
+          {
+            "elapsed_ms": 2719,
+            "stage": "staging"
+          },
+          {
+            "elapsed_ms": 166,
+            "stage": "maintenance"
+          },
+          {
+            "elapsed_ms": 1265,
+            "stage": "stopping"
+          },
+          {
+            "elapsed_ms": 42,
+            "stage": "switching"
+          },
+          {
+            "elapsed_ms": 1436,
+            "stage": "starting"
+          },
+          {
+            "elapsed_ms": 60641,
+            "stage": "health"
+          }
+        ],
+        "status": "failed",
+        "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+        "task_id": "abdb3d82721f4caaaf2ab2a54f4a9a3b"
+      }
+    ]
+  },
+  "bad_signature": {
+    "steps": [
+      {
+        "candidate": null,
+        "created_at_ms": 25795858,
+        "elapsed_ms": 48,
+        "error": {
+          "code": "signature-rejected",
+          "message": "Manifest signature rejected",
+          "stage": "signature"
+        },
+        "finished_at_ms": 25795943,
+        "identity": {
+          "architecture": "armv7-a",
+          "board_id": "100ask-imx6ull-pro",
+          "contract_id": "dshancontrol-imx6ull-lab-1",
+          "float_abi": "hard",
+          "hardware_revision": "lab-unit-110100303034474131021a55d2ee5b00",
+          "libc": "glibc-2.41",
+          "runtime_id": "imx6ull-br2026.02.1-63e61e71a99e",
+          "updater_protocol": 1
+        },
+        "operation": "check",
+        "source_task_id": null,
+        "stage": "checking",
+        "stages": [
+          {
+            "elapsed_ms": 6,
+            "stage": "preparing"
+          }
+        ],
+        "status": "failed",
+        "system_contract_sha256": "5f7ec516c003634f550a2b5dceaec71c54f42626ae422045c8fe60a6d8d126dd",
+        "task_id": "5e851c85761547249ec78f99a48f5f95"
+      }
+    ]
+  },
+  "heartbeat_previous_process_rejected": {
+    "error": "HMI heartbeat belongs to a previous process or boot",
+    "ok": false
+  },
+  "earlier_seq4_required_explicit_recovery": true,
+  "seq5_diagnostic_automatic_rollback": true,
+  "seq6_fixed_automatic_rollback": true
+}

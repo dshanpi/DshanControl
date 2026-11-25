@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "python_executable_unavailable": true,
+  "python_processes": 0,
+  "normal_reboot": true,
+  "cold_power_cycle": false,
+  "touchscreen_classified": true,
+  "hmi_touchscreen_open": true,
+  "maintenance": true,
+  "health": true,
+  "wifi_check": true,
+  "boot_id": "7a5d23b1-b651-40b3-927c-140e77592dce",
+  "current": "/data/dshancontrol/application/releases/3-5d5874c570e35a24",
+  "lifecycle_sha256": "1e54b721384a8f9f5fc6d049a3dea3a7ea53f1b6179c6c42e6f053c36e99947b",
+  "saved_brightness": 128,
+  "driver_brightness": 4,
+  "brightness_restored_after_boot": true,
+  "rtc_time_retained_after_reboot": true,
+  "timezone": "Asia/Shanghai",
+  "final_local_time": "2026-11-25T15:39:52+08:00",
+  "database_integrity": {
+    "edge.db": "ok",
+    "hmi.db": "ok"
+  },
+  "config_file_hash_matches": {
+    "/etc/dshancontrol/system-release.json": true,
+    "/data/dshancontrol/hmi/layout-v1.json": true,
+    "/data/dshancontrol/web/hmi.json": false,
+    "/data/dshancontrol/native-preservation-probe": true,
+    "/etc/udev/rules.d/71-dshancontrol-goodix.rules": true
+  },
+  "settings_change": {
+    "scope": "brightness changed through audited UI/API action during acceptance; retained, not overwritten",
+    "before": 255,
+    "after": 128,
+    "audit_id": 67
+  },
+  "current_identity": {
+    "commit": "f549f80ca9bf0b8c6a5552b2252073d57b85f136",
+    "data_schema": 1,
+    "package_sha256": "5d5874c570e35a24fb7094beffdcb2b1bfb80bd512f524491dc6e40695e77457",
+    "sequence": 3,
+    "version": "0.1.0-imx6ull.20261124.3"
+  }
+}

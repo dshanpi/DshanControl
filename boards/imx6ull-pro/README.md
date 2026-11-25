@@ -135,7 +135,7 @@ Qt、字体及媒体库会增大根文件系统，本适配把 ext4 大小设为
 
 ## 6. 显示与触摸适配
 
-默认使用 `/dev/fb0`；Qt evdev 自动枚举输入设备。配置文件为 `/etc/dshancontrol/display.env`。只在确认设备对应关系后，设置 `QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS` 的 event 路径和旋转参数。
+默认使用 `/dev/fb0`；Qt evdev 自动枚举输入设备。Goodix 屏由 `71-dshancontrol-goodix.rules` 修正为 touchscreen，并创建 `/dev/input/dshan-touchscreen`；实板 event0 是触摸，event1 是 GPIO 按键，不应固定套用编号。配置文件为 `/etc/dshancontrol/display.env`。只在确认设备对应关系后，设置 `QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS` 的 event 路径和旋转参数。
 
 本次用户确认屏幕为 1024×600，与组件桌面的最小布局一致。BSP 原始 LCD 时序已配置为此分辨率；本适配修正原设备树中仍为 800×480 的触摸坐标范围，保留控制器配置写入和固件更新关闭。触摸驱动使用这两个属性设置输入坐标范围，原 Goodix 配置数据本身也是 1024×600。
 

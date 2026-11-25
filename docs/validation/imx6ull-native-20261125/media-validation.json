@@ -1,0 +1,49 @@
+{
+  "audio_inventory": {
+    "passed": true,
+    "result": {
+      "cards": " 0 [wm8960audio    ]: wm8960-audio - wm8960-audio\n                      wm8960-audio\n",
+      "clip_sha256": "4289eaf8c33a059646b0692edc404c30742374bef4ff07f90bf77de6a5d99843"
+    }
+  },
+  "pcm_capture": {
+    "passed": true,
+    "result": {
+      "scope": "PCM-capture-open-transfer-no-recording-retained",
+      "result": {
+        "code": 0,
+        "output": ""
+      }
+    }
+  },
+  "pcm_playback": {
+    "passed": true,
+    "result": {
+      "scope": "PCM-playback-transfer-audibility-not-confirmed",
+      "result": {
+        "code": 0,
+        "output": ""
+      }
+    }
+  },
+  "software_video_worker": {
+    "passed": true,
+    "result": {
+      "uid": 401,
+      "frame": {
+        "bytes": 442368,
+        "event": "frame",
+        "height": 288,
+        "key": "dshan-media-32e90621aa3544a69609230d1872250d",
+        "protocol": 1,
+        "sequence": 1,
+        "stride": 1536,
+        "width": 512
+      },
+      "events": 122,
+      "full_clip_completed": true,
+      "pause_seek_resume_mute_close": true,
+      "hardware_decode": false
+    }
+  }
+}
