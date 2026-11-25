@@ -1,0 +1,4 @@
+# The vendor GT9xx driver advertises pen buttons on this capacitive touchscreen.
+# Correct input_id's tablet classification so Qt evdev discovers the panel.
+# Match the device identity, not its enumeration-dependent event number.
+SUBSYSTEM=="input", KERNEL=="event[0-9]*", ATTRS{name}=="goodix-ts", ENV{ID_INPUT_TOUCHSCREEN}="1", ENV{ID_INPUT_TABLET}="", SYMLINK+="input/dshan-touchscreen"
