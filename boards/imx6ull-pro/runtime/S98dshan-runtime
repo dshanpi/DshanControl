@@ -13,6 +13,7 @@ start)
         [ "$count" -lt 20 ] && kill -0 "$(cat "$BASE/platform.pid")" || exit 1
         sleep 1
     done
+    /usr/libexec/dshan-imx6ull-services display-restore
     ;;
 stop)
     [ -S "$BASE/platform.sock" ] || exit 0

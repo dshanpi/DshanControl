@@ -176,6 +176,26 @@ void wifiCheck() {
             (value.st_mode & 07777) == 0600,
         "Wi-Fi profile must be root-owned regular file mode 0600");
 }
+void restoreDisplay() {
+  storage();
+  const QString settings = "/data/dshancontrol/web/hmi.json";
+  if (!QFileInfo::exists(settings))
+    return;
+  const auto directory = metadata("/data/dshancontrol/web");
+  const auto file = metadata(settings);
+  check(S_ISDIR(directory.st_mode) && directory.st_uid == 400 &&
+            !(directory.st_mode & 0022) && S_ISREG(file.st_mode) &&
+            file.st_uid == 400 && !(file.st_mode & 0022),
+        "Untrusted display settings");
+  auto saved = readJson(settings);
+  if (!saved.contains("brightness"))
+    return;
+  const int value = integer(saved["brightness"], "saved brightness", 10, 255);
+  // Use the existing root runtime policy and driver mapping, never write sysfs
+  // from the unprivileged API. Called after runtime startup, outside OTA hooks.
+  rpc(base + "/platform.sock", "display.brightness.set",
+      {{"channel", "display0"}, {"value", value}, {"confirmed", true}}, 5000);
+}
 } // namespace
 int main(int argc, char **argv) {
   QCoreApplication application(argc, argv);
@@ -190,6 +210,8 @@ int main(int argc, char **argv) {
       health();
     else if (operation == "wifi-check")
       wifiCheck();
+    else if (operation == "display-restore")
+      restoreDisplay();
     else if (operation == "start" || operation == "stop") {
       storage();
       command("/etc/init.d/S99dshancontrol", {operation}, 100000);
