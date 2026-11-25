@@ -113,6 +113,7 @@ def main():
         shutil.copyfile(files[0], configs / name)
     shutil.copyfile(build / 'provenance.json', configs / 'source-provenance.json')
     shutil.copyfile(evidence / 'hardware-adoption.json', configs / 'hardware-adoption.json')
+    shutil.copyfile(br / 'host/opt/ext-toolchain/README.txt', configs / 'bootlin-toolchain-README.txt')
     shutil.copytree(build / 'external', configs / 'external', ignore=shutil.ignore_patterns('app-source'))
     recipe = {'application_commit': commit, 'application_version': (source / 'platform/VERSION').read_text().strip(),
               'integration_commit': integration_commit, 'source_archive': source_archive.name,
@@ -156,6 +157,11 @@ def main():
            'legal_files': source_files, 'overlays': {'repository': 'dshanpi/aibsp-imx6ull-pro_linux5.4.47', 'commit': integration_commit,
            'path': 'dshancontrol/board/buildroot', 'archive': 'build-inputs.tar.gz'},
            'source_redistribution_review': 'Buildroot legal-info captured; vendor binary redistribution audit pending',
+           'input_capture_complete': False,
+           'remaining_source_review': ['Bootlin compiler binary archive is captured; full component source/license mapping requires follow-up audit',
+                                       'Vendor firmware redistribution review not completed'],
+           'legal_info_warnings': (legal / 'README').read_text(),
+           'buildroot_source_warning_resolution': 'Pinned Buildroot sources and support/libtool are included in bsp-source.tar.gz and hardware-source.tar.gz',
            'excluded_inputs': ['previous build/host/target/images outputs', 'private laboratory configuration and signing keys']}
     write(output / 'sdk-manifest-imx6ull-pro.json', sdk)
     compiler = br / 'host/bin/arm-linux-gcc'
