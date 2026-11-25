@@ -123,7 +123,7 @@ def main():
     archive(logs, output / 'verification-evidence.tar.gz')
     shutil.rmtree(logs)
     image_hash = validation['artifacts']['sdcard.img']['sha256']
-    profile = {'board_id': 'imx6ull-pro', 'profile_version': 1, 'status': 'development-draft',
+    profile = {'board_id': '100ask-imx6ull-pro', 'profile_version': 1, 'status': 'development-draft',
                'soc': 'NXP i.MX6ULL', 'hardware_revision': 'unverified', 'ram_mib': 512,
                'architecture': 'armv7-a', 'float_abi': 'hard', 'display': [1024, 600],
                'touch': 'Goodix', 'storage': {'boot_device': 'eMMC mmc1', 'partitions': validation['partitions'],
@@ -156,7 +156,7 @@ def main():
                  'physical-power-loss', 'external-fieldbus-slaves', 'cloud-tuya-production', 'voice-sdk', 'soak'):
         checks[name] = {'status': 'not_run', 'reason': 'Not qualified on this packaged image'}
     write(output / 'validation-imx6ull-pro.json', {'release_kind': 'system', 'image_sha256': image_hash,
-          'checks': checks, 'stage': 'draft', 'auto_update_eligible': False,
+          'board_id': '100ask-imx6ull-pro', 'checks': checks, 'stage': 'draft', 'auto_update_eligible': False,
           'previous_board_evidence': 'docs/validation/imx6ull-native-20261125 belongs to separately deployed laboratory files; not this complete image'})
     notes = '''# i.MX6ULL Pro native system development draft
 
@@ -212,6 +212,7 @@ No bit-for-bit reproducibility or production readiness is claimed.
     require(all(a['bytes'] < 2 * 1024 ** 3 for a in artifacts), 'GitHub asset exceeds 2 GiB')
     lock = {'schema': 'dshancontrol-imx6ull-system-draft-v1', 'standard': 'DSP-LINUX-001/1.1.0',
             'release_kind': 'system', 'version': args.version,
+            'board_id': '100ask-imx6ull-pro',
             'tag': 'system-v' + args.version + '--imx6ull-pro', 'application_commit': commit,
             'application_version': recipe['application_version'],
             'integration_commit': integration_commit, 'integration_repository': 'dshanpi/aibsp-imx6ull-pro_linux5.4.47',
