@@ -49,7 +49,7 @@ def main():
         parser.error("Use a new evidence directory")
     bins = {name: target / "usr/bin" / name for name in (
         "omnigate-hmi", "dshancontrol-desktop-service", "dshancontrol-media-worker",
-        "dshancontrol-runtime", "python3")}
+        "dshancontrol-runtime", "dshancontrol-api")}
     for path in bins.values():
         arm_hardfloat(path)
     output.mkdir(parents=True)
@@ -67,7 +67,6 @@ def main():
             reserve.bind(("127.0.0.1", 0))
             port = reserve.getsockname()[1]
         env = dict(os.environ,
-            PYTHONHOME=str(target / "usr"),
             OMNIGATE_PLATFORM_MANIFEST=str(target / "usr/share/dshancontrol/platform.json"),
             OMNIGATE_CORE_PATH=str(target / "usr/lib/dshancontrol/core"),
             OMNIGATE_WEB_ASSETS=str(target / "usr/share/dshancontrol/web"),
@@ -146,7 +145,7 @@ def main():
             report["http_contract"] = True
 
         try:
-            start(bins["python3"], str(target / "usr/lib/dshancontrol/web/app.py"))
+            start(bins["dshancontrol-api"])
             wait_until(api_ready, processes)
             check_http_contract()
             start(bins["dshancontrol-desktop-service"], "--socket", str(run / "ipc/desktop.sock"),

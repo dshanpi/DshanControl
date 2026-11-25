@@ -124,11 +124,13 @@ def main():
             return data
 
         installed = ['usr/bin/' + name for name in ('omnigate-hmi', 'dshancontrol-desktop-service',
-                     'dshancontrol-media-worker', 'dshancontrol-runtime')]
+                     'dshancontrol-media-worker', 'dshancontrol-runtime',
+                     'dshancontrol-api', 'dshancontrol-fieldbus-worker')]
         installed += ['usr/lib/qt/plugins/platforms/libqlinuxfb.so', 'usr/lib/qt/plugins/platforms/libqoffscreen.so',
                       'etc/init.d/S99dshancontrol', 'etc/init.d/S99lvgl9-demo', 'etc/dshancontrol/display.env',
-                      'usr/share/dshancontrol/platform.json', 'usr/lib/dshancontrol/web/app.py',
-                      'usr/lib/dshancontrol/web/hmi_api.py', 'etc/fonts/fonts.conf']
+                      'usr/share/dshancontrol/platform.json', 'usr/libexec/dshan-imx6ull-services',
+                      'etc/dshancontrol/build-source.json',
+                      'etc/udev/rules.d/71-dshancontrol-goodix.rules', 'etc/fonts/fonts.conf']
         installed += ['etc/init.d/S35dshan-data', 'etc/init.d/S41wifi',
                       'usr/sbin/wpa_supplicant', 'usr/sbin/wpa_cli', 'usr/sbin/iw',
                       'lib/firmware/rtlwifi/rtl8723bu_nic.bin']
@@ -166,6 +168,15 @@ def main():
                     'Private configuration must not be included: ' + private)
         report['wifi'] = {'driver': 'rtl8xxxu', 'firmware': 'rtlwifi/rtl8723bu_nic.bin',
                           'private_profile_embedded': False, 'hardware_validation': 'not-run'}
+        for obsolete in ('/usr/bin/python3', '/usr/lib/dshancontrol/web/app.py',
+                         '/etc/dshancontrol/imx6ull-maintenance.json'):
+            require('Inode:' not in run(debugfs, '-R', 'stat ' + obsolete, rootfs),
+                    'Unexpected legacy runtime or private lab provisioning: ' + obsolete)
+        identity = json.loads(fsread('/etc/dshancontrol/build-source.json'))
+        require(re.fullmatch(r'[0-9a-f]{40}', identity['application_commit']), 'Invalid source identity')
+        report['build_source'] = identity
+        require('ID_INPUT_TOUCHSCREEN' in fsread('/etc/udev/rules.d/71-dshancontrol-goodix.rules'),
+                'Goodix discovery fix missing')
         manifest = json.loads(fsread('/usr/share/dshancontrol/platform.json'))
         require(manifest['display']['width'] == 1024 and manifest['display']['height'] == 600, 'Incorrect display manifest')
         require(manifest['channels']['wifi0']['device'] == 'wlan0'

@@ -7,6 +7,8 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tarfile
+import tempfile
 
 BSP_COMMIT = "e00afed02481332d2de44a498518b596651dcdef"
 
@@ -37,6 +39,8 @@ def main():
         parser.error("Buildroot paths must not contain whitespace")
     if output.exists() or output == source or source in output.parents or bsp in output.parents:
         parser.error("Use a NEW output directory outside the source and BSP trees")
+    if command("git", "status", "--porcelain", cwd=source):
+        parser.error("Release inputs must come from a clean committed source tree")
     if command("git", "rev-parse", "HEAD", cwd=bsp) != BSP_COMMIT:
         parser.error("BSP revision differs from the reviewed commit " + BSP_COMMIT)
     if command("git", "status", "--porcelain", "--untracked-files=normal", "--", "buildroot-2026.02.1", cwd=bsp):
@@ -48,8 +52,18 @@ def main():
     shutil.copytree(source / "boards/imx6ull-pro/buildroot", external)
     snapshot = external / "app-source"
     # Keep source, fonts, dependencies and their licenses; exclude generated files.
-    shutil.copytree(source, snapshot, ignore=shutil.ignore_patterns(
-        ".git", "dist", ".test-venv", "__pycache__", "*.pyc", "node_modules"))
+    snapshot.mkdir()
+    with tempfile.TemporaryDirectory(prefix="dshan-source-") as temporary:
+        archive = Path(temporary) / "source.tar"
+        subprocess.run(["git", "archive", "--format=tar", "-o", str(archive), "HEAD"],
+                       cwd=source, check=True)
+        with tarfile.open(archive) as package:
+            package.extractall(snapshot, filter="data")
+    identity = {"application_commit": command("git", "rev-parse", "HEAD", cwd=source),
+                "bsp_commit": BSP_COMMIT, "release_kind": "system",
+                "qualification": "development-draft-not-qualified"}
+    (external / "overlay/etc/dshancontrol/build-source.json").write_text(
+        json.dumps(identity, indent=2) + "\n")
     for path in (external / "overlay/etc/init.d").iterdir():
         path.chmod(0o755)
     (snapshot / "boards/imx6ull-pro/runtime/S99dshancontrol").chmod(0o755)
