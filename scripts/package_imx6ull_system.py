@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
+import tempfile
 
 
 def sha(path):
@@ -74,6 +75,16 @@ def main():
     require(smoke['passed'], 'ARM userspace smoke failed')
     for check in ('build', 'legal-info', 'host-test', 'hmi-test', 'image-validation', 'arm-smoke'):
         require((evidence / (check + '.exit')).read_text().strip() == '0', check + ' failed')
+    debugfs = br / 'host/sbin/debugfs'
+    filesystem = br / 'images/rootfs.ext2'
+    require(run(str(debugfs), '-R', 'cat /etc/timezone', str(filesystem)) == 'Asia/Shanghai', 'Wrong image timezone')
+    localtime = run(str(debugfs), '-R', 'stat /etc/localtime', str(filesystem))
+    require('../usr/share/zoneinfo/Asia/Shanghai' in localtime, 'Wrong image localtime link')
+    with tempfile.TemporaryDirectory(prefix='dshan-timezone-') as temporary:
+        zone = Path(temporary) / 'Shanghai'
+        run(str(debugfs), '-R', 'dump /usr/share/zoneinfo/posix/Asia/Shanghai ' + str(zone), str(filesystem))
+        require(zone.is_file() and sha(zone) == sha(br / 'target/usr/share/zoneinfo/posix/Asia/Shanghai'), 'Timezone content mismatch')
+        timezone_hash = sha(zone)
     output.mkdir(parents=True)
     stamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
     prefix = 'DshanControl-v' + args.version
@@ -117,9 +128,14 @@ def main():
     for directory in ('image-validation', 'arm-smoke'):
         shutil.copytree(evidence / directory, logs / directory)
     shutil.copyfile(evidence / 'hardware-guard-tests.json', logs / 'hardware-guard-tests.json')
+    write(logs / 'timezone-image-verification.json', {'status': 'passed', 'timezone': 'Asia/Shanghai',
+          'tzif_sha256': timezone_hash, 'image_sha256': validation['artifacts']['sdcard.img']['sha256']})
     for name in ('build', 'legal-info', 'host-test', 'hmi-test'):
         for suffix in ('.log', '.exit'):
             shutil.copyfile(evidence / (name + suffix), logs / (name + suffix))
+    for path in evidence.glob('*-attempt-1.*'):
+        if path.is_file():
+            shutil.copyfile(path, logs / path.name)
     archive(logs, output / 'verification-evidence.tar.gz')
     shutil.rmtree(logs)
     image_hash = validation['artifacts']['sdcard.img']['sha256']
@@ -146,6 +162,7 @@ def main():
     build_info = dict(recipe, release_kind='system', date_utc=stamp, image_sha256=image_hash,
                       host=run('uname', '-a'), compiler=run(str(compiler), '--version'),
                       build_scope='Fresh output/toolchain extraction/target and full image; reused downloaded source archives; hardware source/recipe equivalence checked before image generation',
+                      corrected_attempt='First attempt stopped at tzdata source-group selection; corrected source/configuration installed and native application rebuilt. Dependencies built in this new output were retained; no 20261124 target or image reused.',
                       byte_reproducibility='not_tested', system_contract='unprovisioned',
                       auto_update_eligible=False, image_content=validation['installed_files_sha256'])
     write(output / 'build-info-imx6ull-pro.json', build_info)

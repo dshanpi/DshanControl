@@ -249,11 +249,11 @@ ls -l /proc/$p/fd | grep /dev/input
 
 | 输入 | 固定身份 |
 | --- | --- |
-| 工厂应用 | `4aa797fae1a52fc03d810ed6018b3ffea7cdb310` |
-| 主板集成 | `cd2291547c0953e3af435bb2919819af42a12f8e` |
+| 工厂应用 | `ab981454fd095fb1101bea317ab8dcc33d94897b` |
+| 主板集成 | `ad0747ede81ce1c2e8660e0ce1a514e6addee4d5` |
 | BSP 基线 | `e00afed02481332d2de44a498518b596651dcdef` |
-| 硬件标签 | `imx6ull-pro-integration-v0.1.0-dev.20261125` |
-| 系统标签 | `system-v0.1.0-dev.20261125--imx6ull-pro` |
+| 硬件标签 | `imx6ull-pro-integration-v0.1.0-dev.20261125.1` |
+| 系统标签 | `system-v0.1.0-dev.20261125.1--imx6ull-pro` |
 
 完整系统通过独立输出构建，目标不安装 Python。镜像中的 `/etc/dshancontrol/build-source.json` 保存应用与硬件身份；发布锁再关联实际压缩/解压镜像哈希，避免把更新后的应用提交冒充原系统来源。
 
@@ -261,4 +261,4 @@ ls -l /proc/$p/fd | grep /dev/input
 
 系统镜像以 GitHub Draft 管理，访问需具有仓库相应权限；不是公开稳定版，也不进入桌面自动更新源。交付包含 `.img.gz`、应用/BSP/硬件源码、Buildroot 第三方来源和许可证、配置、构建/验证日志、`release-lock.json` 与 `SHA256SUMS`。上传后必须重新下载所有附件，并核对解压镜像和 A/H 来源，不能只核对本地文件。
 
-新整盘镜像采用两分区布局；现有实验室板为三分区布局。整盘覆盖会改写分区表，不能用于宣称保留 p3 的更新。重建与部署前置条件见 [硬件集成说明](https://github.com/dshanpi/aibsp-imx6ull-pro_linux5.4.47/blob/cd2291547c0953e3af435bb2919819af42a12f8e/dshancontrol/README.md)。新镜像实板启动、物理断电、外部从站和真实云业务须分别完成后才能提升发布资格。
+新整盘镜像采用两分区布局；现有实验室板为三分区布局。整盘覆盖会改写分区表，不能用于宣称保留 p3 的更新。重建与部署前置条件见 [硬件集成说明](https://github.com/dshanpi/aibsp-imx6ull-pro_linux5.4.47/blob/ad0747ede81ce1c2e8660e0ce1a514e6addee4d5/dshancontrol/README.md)。新镜像实板启动、物理断电、外部从站和真实云业务须分别完成后才能提升发布资格。
