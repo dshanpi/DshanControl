@@ -116,6 +116,7 @@ def main():
     logs.mkdir()
     for directory in ('image-validation', 'arm-smoke'):
         shutil.copytree(evidence / directory, logs / directory)
+    shutil.copyfile(evidence / 'hardware-guard-tests.json', logs / 'hardware-guard-tests.json')
     for name in ('build', 'legal-info', 'host-test', 'hmi-test'):
         for suffix in ('.log', '.exit'):
             shutil.copyfile(evidence / (name + suffix), logs / (name + suffix))
